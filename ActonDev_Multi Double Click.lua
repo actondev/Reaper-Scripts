@@ -46,28 +46,17 @@ debug_mode = 1
 
 -- setting to 6: responding in YES in the {Split?} dialog
 -- setting to 2: responding in NO in the {Split?} dialog
-if keepStartingIn == true then
-	keepStartingIn = 2
-elseif keepStartingIn == false then
-	keepStartingIn = 6
-end
+keepStartingIn = boolToDialog(keepStartingIn)
+keepEndingIn = boolToDialog(keepEndingIn)
 
-if keepEndingIn == true then
-	keepEndingIn = 2
-elseif keepEndingIn == false then
-	keepEndingIn = 6
-end
 
 function main()
 	reaper.Undo_BeginBlock()
 	selItem = reaper.GetSelectedMediaItem(0, 0)
 	selTrack = reaper.GetMediaItemTrack(selItem);
 	_,selChunk =  reaper.GetItemStateChunk(selItem, "", 0)
-	local selPosition = string.match(selChunk, "POSITION ([0-9%.]+)\n")
-	local selLength = string.match(selChunk, "LENGTH ([0-9%.]+)\n")
 	
 	-- fdebug("Chunk " .. selChunk)
-	fdebug("Here " ..selPosition .. " " .. selLength)
 	-- Source type possible values: MIDI, WAVE, MP3.. so i keep the first 3
 	-- if no <Source tag in the chunk, then it's an empty item (region item in my case, also known as notes items)
 	itemType = string.match(selChunk, "<SOURCE%s(%P%P%P).*\n")
@@ -82,11 +71,12 @@ function main()
 		
 		regionItemSelect(selItem)
 		local exceedStart, exceedEnd, countQuantized
-		exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(selPosition, selLength, quantizeThreshold, true)
+		exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(selItem, quantizeThreshold, true)
 
 		if countQuantized > 0 then
 			reaper.ShowMessageBox(countQuantized .. " item(s) quantized (difference in edges below " .. quantizeThreshold .. " ms)\nIt was probably a glitch in their positioning\nUndo if action not desired, and edit the .lua file for the desired threshold.", "ActonDev: Region item Select", 0)
 		end
+
 		if  exceedStart then
 			actionSelected = keepStartingIn or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?", "ActonDev: Region Item", 4)
 			if actionSelected == 6 then

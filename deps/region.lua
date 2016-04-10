@@ -216,13 +216,21 @@ function regionItemSelect(item, unselect)
 	envelopeFix(item)
 end
 
+function handleExceededRegionEdges()
+	
+end
 
-function itemsExceedRegionEdges(itemPosition, itemLength, threshold)
+
+function itemsExceedRegionEdges(regionItem, threshold)
 	-- returns exceedStart, exceedEnd, countUpdated (depends on threshold)
 	-- 	 	countUpdated return value notes the number of edited items (changed item position/length)
 
 	-- return values
 	local exceedStart, exceedEnd, countQuantized = false, false, 0
+
+	local _,chunk =  reaper.GetItemStateChunk(selItem, "", 0)
+	local itemPosition = string.match(chunk, "POSITION ([0-9%.]+)\n")
+	local itemLength = string.match(chunk, "LENGTH ([0-9%.]+)\n")
 
 	local itemEnd = itemPosition+itemLength
 	fdebug("Item\t" ..itemPosition .. "\t" .. itemLength)
