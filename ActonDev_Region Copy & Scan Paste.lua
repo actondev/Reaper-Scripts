@@ -10,9 +10,12 @@ label = 'ActonDev: Copy Region'
 
 function copyItems()
 	-- split items at time selection
-	reaperCMD(40061)
+	-- reaperCMD(40061)
 	-- copy items
-	reaperCMD(40698)
+	-- reaperCMD(40698)
+
+	-- copy selected are of items
+	reaperCMD(40060)
 end
 
 -- item, notes are the source item, source notes
@@ -45,8 +48,13 @@ function scanPaste(targetRegionItems, sourceItem, sourceNotes)
 				reaper.SetMediaItemSelected(tempItem, 1)
 				-- reaper.SetOnlyTrackSelected(selTrack)
 				regionItemSelect(tempItem, false)
+				-- split items at time selection
+				-- reaperCMD(40061)
 				-- remove items
-				reaperCMD(40006)
+				-- reaperCMD(40006)
+
+				-- remove selected area of items
+				reaperCMD(40312)
 				-- paste
 				reaperCMD(40058)
 				
