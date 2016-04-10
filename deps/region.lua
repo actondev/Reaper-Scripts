@@ -215,3 +215,74 @@ function regionItemSelect(item, unselect)
 	mediaItemGarbageCleanSelected()
 	envelopeFix(item)
 end
+
+
+function itemsExceedRegionEdges(itemPosition, itemLength, threshold, update)
+	-- returns exceed, updated (depends on threshold)
+	-- 	 updated return value notes the number of edited items (changed item position/length)
+	-- local itemPosition = string.match(selChunk, "POSITION ([0-9%.]+)\n")
+	-- local itemLength = string.match(selChunk, "LENGTH ([0-9%.]+)\n")
+	-- threshold = threshold or 0
+	countUpdated = 0
+	local ret = false
+	local itemEnd = itemPosition+itemLength
+	fdebug("Item\t" ..itemPosition .. "\t" .. itemLength)
+	-- fdebug(itemLength)
+	local countSel = reaper.CountSelectedMediaItems(0)
+	for i=1,countSel do
+		local tempItem = reaper.GetSelectedMediaItem(0, i-1)
+		local _,tempChunk =  reaper.GetItemStateChunk(tempItem, "", 0)
+		local tempPosition = string.match(tempChunk, "POSITION ([0-9%.]+)\n")
+		local tempLength = string.match(tempChunk, "LENGTH ([0-9%.]+)\n")
+		local tempEnd = tempPosition + tempLength
+		fdebug("Temp\t" ..tempPosition .. "\t" .. tempLength)
+
+		if tempPosition<itemPosition or tempEnd>itemEnd then
+			fdebug("check 1, true")
+			-- small glitches: fuck off
+			if threshold > 0 then
+				fdebug("here 1")
+				local flagUpdated = false
+				if update == true then
+					local positionDiff = itemPosition - tempPosition
+					if (positionDiff >0 and positionDiff < threshold) then
+						-- fdebug("position diff " .. )
+						flagUpdated = true
+						reaper.SetMediaItemPosition(tempItem, itemPosition, false)
+						tempPosition = itemPosition
+						reaper.SetMediaItemLength(tempItem, tempLength - positionDiff, true)
+						tempLength = tempLength - positionDiff
+					end
+
+					local endDiff = tempEnd - itemEnd
+
+					if (endDiff>0 and endDiff<threshold) then
+						flagUpdated = true
+						reaper.SetMediaItemLength(tempItem, itemEnd-tempPosition, false)
+						tempLength = itemEnd-tempPosition
+						tempEnd = tempPosition + tempLength
+					end
+					if flagUpdated then
+						countUpdated = countUpdated + 1
+						-- items updated, recheck
+						if tempPosition<itemPosition or tempEnd>itemEnd then
+							ret = true
+						end
+					else
+						-- items not updated, so difference greater than threshold
+						ret = true
+					end
+				end
+			else
+				-- threshold is 0, so yeah: they exceed
+				return true,0
+			end
+		end 
+		-- !item not exceeding
+	end
+	-- end of for
+	if countUpdated > 0 then
+		reaper.ShowMessageBox(countUpdated .. " items updated (difference in edges below of threshold)\nIt was probably a glitch in their positioning\nUndo if action not desired, and check the .lua file for the threshold variable", "ActonDev: Region item Select", 0)
+	end
+	return ret, countUpdated
+end
