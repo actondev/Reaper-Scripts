@@ -13,7 +13,6 @@ function copyItems()
 	-- reaperCMD(40061)
 	-- copy items
 	-- reaperCMD(40698)
-
 	-- copy selected are of items
 	reaperCMD(40060)
 end

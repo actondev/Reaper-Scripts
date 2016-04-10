@@ -3,13 +3,20 @@ package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
 require 'ActonDev.deps.template'
 require 'ActonDev.deps.region'
 
+local scriptPath = debug.getinfo(1,'S').source:match("@(.+)[/\\].+$")
+fdebug(scriptPath)
 
 -- -------------------------------------
 -- USER OPTIONS: FEEL FREE TO EDIT THOSE
 -- -------------------------------------
 -- 
 -- 
-threshold = 0.1
+-- Having some tolerance to the start/end of media items
+-- 		Some times some glitches happen and items starts/ends just miliseconds off by the start/end
+-- 		of the region edges. This thresholds automatically quantizes items, so no unnecessary splts are
+-- 		to happen. (could result in almost zero length items).
+-- 		Set to zero to skip this feature (note that you get informed if quantizing happend)
+quantizeThreshold = 0.1
 -- Set to true to avoid the messageBox
 -- 		always trim not suggest, you end up deleting items
 -- 		always split safe to use
@@ -19,10 +26,10 @@ threshold = 0.1
 
 -- set to true if you want to keep items that start inside the region edges
 -- 		comment it out to get prompt
-keepStartingIn = true
+-- keepStartingIn = true
 -- set to true if you want to keep items that start inside the region edges
 -- 		comment it out to get prompt
-keepEndingIn = true
+-- keepEndingIn = true
 
 -- Note: if keepStartingIn is true and keepEnding in is false,
 -- 		items that start outside the region area, but ending in will be splitted (no prompt)
@@ -39,15 +46,15 @@ debug_mode = 1
 
 -- setting to 6: responding in YES in the {Split?} dialog
 -- setting to 2: responding in NO in the {Split?} dialog
-if keepStartingIn then
+if keepStartingIn == true then
 	keepStartingIn = 2
-else
+elseif keepStartingIn == false then
 	keepStartingIn = 6
 end
 
-if keepEndingIn then
+if keepEndingIn == true then
 	keepEndingIn = 2
-else
+elseif keepEndingIn == false then
 	keepEndingIn = 6
 end
 
@@ -75,9 +82,11 @@ function main()
 		
 		regionItemSelect(selItem)
 		local exceedStart, exceedEnd, countQuantized
-		exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(selPosition, selLength, threshold, true)
-		-- fdebug("Exceed..")
-		-- fdebug(exceed)
+		exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(selPosition, selLength, quantizeThreshold, true)
+
+		if countQuantized > 0 then
+			reaper.ShowMessageBox(countQuantized .. " item(s) quantized (difference in edges below " .. quantizeThreshold .. " ms)\nIt was probably a glitch in their positioning\nUndo if action not desired, and edit the .lua file for the desired threshold.", "ActonDev: Region item Select", 0)
+		end
 		if  exceedStart then
 			actionSelected = keepStartingIn or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?", "ActonDev: Region Item", 4)
 			if actionSelected == 6 then

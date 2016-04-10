@@ -288,9 +288,5 @@ function itemsExceedRegionEdges(itemPosition, itemLength, threshold)
 	end
 	-- !exceedEnd
 
-	if countQuantized > 0 then
-		reaper.ShowMessageBox(countQuantized .. " items updated (difference in edges below of threshold)\nIt was probably a glitch in their positioning\nUndo if action not desired, and check the .lua file for the threshold variable", "ActonDev: Region item Select", 0)
-	end
-
-	return exceedStart, exceedEnd, countUpdated
+	return exceedStart, exceedEnd, countQuantized
 end
