@@ -3,7 +3,7 @@ package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
 require 'ActonDev.deps.template'
 require 'ActonDev.deps.region'
 
-debug_mode = 1
+
 -- -------------------------------------
 -- USER OPTIONS: FEEL FREE TO EDIT THOSE
 -- -------------------------------------
@@ -13,23 +13,43 @@ threshold = 0.1
 -- Set to true to avoid the messageBox
 -- 		always trim not suggest, you end up deleting items
 -- 		always split safe to use
-alwaysSplit = false
+
+
+-- alwaysSplit = false
 
 -- set to true if you want to keep items that start inside the region edges
-keepStartingIn = false
+-- 		comment it out to get prompt
+keepStartingIn = true
 -- set to true if you want to keep items that start inside the region edges
-keepEndingIn = false
+-- 		comment it out to get prompt
+keepEndingIn = true
 
 -- Note: if keepStartingIn is true and keepEnding in is false,
 -- 		items that start outside the region area, but ending in will be splitted (no prompt)
 
 -- 
--- 
+-- --------------------------------------
 -- END OF USER OPTIONS
 -- --------------------------------------
 
+
 -- editing below here not SO advised :P
-if alwaysSplit then	actionPreselect = 6 end
+
+debug_mode = 1
+
+-- setting to 6: responding in YES in the {Split?} dialog
+-- setting to 2: responding in NO in the {Split?} dialog
+if keepStartingIn then
+	keepStartingIn = 2
+else
+	keepStartingIn = 6
+end
+
+if keepEndingIn then
+	keepEndingIn = 2
+else
+	keepEndingIn = 6
+end
 
 function main()
 	reaper.Undo_BeginBlock()
@@ -59,7 +79,7 @@ function main()
 		-- fdebug("Exceed..")
 		-- fdebug(exceed)
 		if  exceedStart then
-			actionSelected = actionPreselect or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?", "ActonDev: Region Item", 4)
+			actionSelected = keepStartingIn or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?", "ActonDev: Region Item", 4)
 			if actionSelected == 6 then
 				-- yes
 				reaper.SetEditCurPos(selPosition, false, false)
@@ -68,7 +88,7 @@ function main()
 			end
 		end
 		if  exceedEnd then
-			actionSelected = actionPreselect or reaper.ShowMessageBox("Some of the selected items end after the region item\nSplit items?", "ActonDev: Region Item", 4)
+			actionSelected = keepEndingIn or reaper.ShowMessageBox("Some of the selected items end after the region item\nSplit items?", "ActonDev: Region Item", 4)
 			if actionSelected == 6 then
 				-- yes
 				reaper.SetEditCurPos(selPosition+selLength, false, false)
