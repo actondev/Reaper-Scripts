@@ -76,8 +76,15 @@ function pointIN(x,y,w,h)
 	gfx.mouse_x >= x and gfx.mouse_x <= x + w and gfx.mouse_y  >= y and gfx.mouse_y <= y + h
 end
 
-function mouseOver(x,y,w,h)
-	return gfx.mouse_x >= x and gfx.mouse_x <= x + w and gfx.mouse_y  >= y and gfx.mouse_y <= y + h
+function mouseOver(x,y,x2,y2, relative)
+	relative = relative or true
+	-- relative means x2, y2 mean width, height
+	-- if relative == false, they are coordinates
+	if relative then
+		return gfx.mouse_x >= x and gfx.mouse_x <= x + x2 and gfx.mouse_y  >= y and gfx.mouse_y <= y + y2
+	else
+		return gfx.mouse_x >= x and gfx.mouse_x <= x2 and gfx.mouse_y  >= y and gfx.mouse_y <= y2
+	end
 end
 -----
 function mouseClick()
@@ -108,7 +115,7 @@ function draw_pin(track,fx,isOut,pin,chans, x,y,w,h, alphaIn)
 	for i = 1, chans do
 		bit = 2^(i-1)       --cuurent bit
 		val = (Low32&bit)>0 --current bit(aka channel value as booleen)
-		if Click and pointIN(x+select(1,fxBuffer:clickOffset()),y+select(2,fxBuffer:clickOffset()),w,h) then
+		if Click and pointIN(x+select(1,fxBuffer:mouseOffset()),y+select(2,fxBuffer:mouseOffset()),w,h) then
 			if val then
 				Low32 = Low32 - bit
 			else
@@ -156,7 +163,7 @@ function draw_FX_labels(track, fx, x, y, w, h)
 	gfx.printf(fx_name)
 	
 	-- Fx label click
-	if mouseClick() and pointIN(x+select(1,fxBuffer:clickOffset()),y+select(2,fxBuffer:clickOffset()),w,h) then
+	if mouseClick() and pointIN(x+select(1,fxBuffer:mouseOffset()),y+select(2,fxBuffer:mouseOffset()),w,h) then
 		if Shift then
 			-- Toggle Bypass
 			reaper.TrackFX_SetEnabled(track, fx, not fxEnabled)
@@ -199,8 +206,11 @@ function draw_FX_pins(track, fx, chans, x,y,w,h, alphaTrack)
 	local tempY, maxY = 0,0
 	y=y+1.5*w
 	local isOut=0
+	-- local xStart = x
 	for i=1,in_Pins do
-		draw_pin(track,fx,isOut, i-1,chans, x,y,w,h, alpha)--(track,fx,isOut, pin,chans, x,y,  w,h)
+		-- highlight_column(x,w-2,y,chans*w)
+		_,tempY = draw_pin(track,fx,isOut, i-1,chans, x,y,w,h, alpha)--(track,fx,isOut, pin,chans, x,y,  w,h)
+		
 		x = x + w --next x
 	end
 	---------------
@@ -209,11 +219,20 @@ function draw_FX_pins(track, fx, chans, x,y,w,h, alphaTrack)
 	--output pins--
 	local isOut=1 
 	for i=1,out_Pins do
+		-- highlight_column(x,w-2,y,chans*w)
 		_,tempY = draw_pin(track,fx,isOut, i-1,chans, x,y,w,h, alpha)--(track,fx,isOut, pin,chans, x,y,  w,h)
 		maxY = math.max(maxY, tempY)
+		
 		x = x + w --next x
 	end   
 	return x,maxY --return x value for next FX position
+end
+
+function highlight_column(xStart,w,yStart,h)
+	if mouseOver(xStart+select(1,fxBuffer:mouseOffset()), yStart+select(2,fxBuffer:mouseOffset()), w, h) then
+		gfx.set(table.unpack(colors.highlightRow))
+		gfx.rect(xStart, yStart, w,h, 1)
+	end
 end
 
 function draw_rows(chans, x, y, w, h)
@@ -225,6 +244,7 @@ function draw_rows(chans, x, y, w, h)
 		gfx.set(table.unpack(colors.odd))
 		-- if gfx.mouse_y  >= tempY and gfx.mouse_y <= tempY + h then
 		if mouseOver(0,tempY,gfx.w,h) then
+			-- highlight row
 			gfx.set(table.unpack(colors.highlightRow))
 		end
 		gfx.rect(0,tempY-1,gfx.w,h-1, 1)
@@ -236,6 +256,7 @@ function draw_rows(chans, x, y, w, h)
 		gfx.set(table.unpack(colors.even))
 		-- if gfx.mouse_y  >= tempY and gfx.mouse_y <= tempY + h then
 		if mouseOver(0,tempY,gfx.w,h) then
+			-- highlight row
 			gfx.set(table.unpack(colors.highlightRow))
 		end
 		gfx.rect(0,tempY-1,gfx.w,h-1, 1)

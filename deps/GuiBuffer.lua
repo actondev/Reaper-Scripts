@@ -90,6 +90,6 @@ function GuiBuffer:setScroll(x,y)
 	self.scrollX, self.scrollY = x, y
 end
 
-function GuiBuffer:clickOffset()
+function GuiBuffer:mouseOffset()
 	return self.outStartX-self.scrollX, self.outStartY-self.scrollY
 end
