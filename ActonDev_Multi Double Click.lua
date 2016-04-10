@@ -14,6 +14,15 @@ threshold = 0.1
 -- 		always trim not suggest, you end up deleting items
 -- 		always split safe to use
 alwaysSplit = false
+
+-- set to true if you want to keep items that start inside the region edges
+keepStartingIn = false
+-- set to true if you want to keep items that start inside the region edges
+keepEndingIn = false
+
+-- Note: if keepStartingIn is true and keepEnding in is false,
+-- 		items that start outside the region area, but ending in will be splitted (no prompt)
+
 -- 
 -- 
 -- END OF USER OPTIONS
@@ -45,18 +54,11 @@ function main()
 		
 		regionItemSelect(selItem)
 		local exceed,affected
-		
 		exceed, affected = itemsExceedRegionEdges(selPosition, selLength, threshold, true)
-		-- end
-		fdebug("Exceed..")
-		fdebug(exceed)
+		-- fdebug("Exceed..")
+		-- fdebug(exceed)
 		if  exceed == true then
 			actionSelected = actionPreselect or reaper.ShowMessageBox("Some of the selected items exceed edges of region item\nSplit selected items on region item edges?", "ActonDev: Region Item", 3)
-			-- if actionPreselect == nil then
-			-- end
-			fdebug("HERE ")
-			-- 6 yes, 7 no, 2 cancel
-			-- reaperCMD(40061)
 			if actionSelected == 6 then
 				-- split items at time selection	
 				reaperCMD(40061)
@@ -65,12 +67,9 @@ function main()
 				reaperCMD(40289)
 			end
 		end
-
-
 		-- select only our initially selected track
 		reaper.SetOnlyTrackSelected(selTrack);
-
-		-- reaperCMD("_SWS_RESTTIME1")
+		reaperCMD("_SWS_RESTTIME1")
 		-- refresh ui, create undo point
 		label = "ActonDev: Select Folder item"
 		reaper.PreventUIRefresh(-1)
@@ -84,12 +83,8 @@ function main()
 		label = "ActonDev: Open Audio item"
 		reaperCMD("40009")
 	end
-
-
 	-- fdebug(getExtState("MediaItemGarbageGUID"))
-
 	reaper.Undo_EndBlock(label, -1) 
-
 end
 
 if(reaper.CountSelectedMediaItems(0) > 0) then
