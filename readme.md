@@ -1,10 +1,10 @@
 # ActonDev Scripts #
+[Download latest version](https://github.com/actonDev/Reaper-Scripts/archive/master.zip)
 
 Installation instructions:
 Create a folder named "ActonDev" and place these files inside
 
 Example Structure
-
 ```
 Directory <Reaper Resources>/Scripts/ActonDev
 |   ActonDev_Escape.lua
@@ -18,6 +18,10 @@ Directory <Reaper Resources>/Scripts/ActonDev
         region.lua
         template.lua
 ```
+
+## Requirements ##
+  + [REAPER](http://www.cockos.com/reaper/download.php) v5.18+
+  + [SWS extensions](http://www.sws-extension.org/) v2.8.3 +
 
 ## List of Scripts ##
 
