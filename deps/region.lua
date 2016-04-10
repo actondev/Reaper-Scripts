@@ -55,6 +55,8 @@ function region_selectAll(trackName)
 	reaperCMD(40290) -- set time selection to items
 	reaperCMD(40296) -- select all tracks
 	unselectSpecialTracks(trackName)
+
+	
 	reaperCMD(40718) -- select all items on selected tracks in current time selection
 	-- TODO: split/crop or nothing? little buggy
 	-- reaperCMD(40061) -- split items at time selection
@@ -97,14 +99,14 @@ function mediaItemGarbageClean()
 	local garbage = getExtState("MediaItemGarbageGUID")
 	fdebug(garbage)
 	for token in string.gmatch(garbage, "[{%w%-}]+") do
-   		fdebug(token)
-   		local item = reaper.BR_GetMediaItemByGUID(0, token)
-   		fdebug(item)
-   		if item then
-   			-- MediaTrack reaper.GetMediaItem_Track(MediaItem item)
-   			local track = reaper.GetMediaItem_Track(item)
-   			reaper.DeleteTrackMediaItem(track, item)
-   		end
+		fdebug(token)
+		local item = reaper.BR_GetMediaItemByGUID(0, token)
+		fdebug(item)
+		if item then
+			-- MediaTrack reaper.GetMediaItem_Track(MediaItem item)
+			local track = reaper.GetMediaItem_Track(item)
+			reaper.DeleteTrackMediaItem(track, item)
+		end
 	end
 	setExtState("MediaItemGarbageGUID", "")
 	reaper.UpdateArrange()
@@ -119,9 +121,21 @@ function mediaItemGarbageCleanSelected()
 		if notes == "envelope_fix" then
 			-- remove it!
 			local track = reaper.GetMediaItem_Track(item)
-   			reaper.DeleteTrackMediaItem(track, item)
+			reaper.DeleteTrackMediaItem(track, item)
 		end
 	end
+end
+
+function firstTrackFix()
+	local tempTrack = reaper.GetSelectedTrack(0,0)
+	local tempItem = reaper.AddMediaItemToTrack(tempTrack)
+	local startOut, endOut = reaper.GetSet_LoopTimeRange(false, false, 0, 0, 0)
+	reaper.SetMediaItemInfo_Value(tempItem, "D_POSITION", startOut)
+	reaper.SetMediaItemInfo_Value(tempItem, "D_LENGTH", endOut - startOut)
+	reaper.ULT_SetMediaItemNote(tempItem, "envelope_fix")
+	reaper.SetMediaItemSelected(tempItem, true)
+	local guid = reaper.BR_GetMediaItemGUID(tempItem)
+	appendExtState("MediaItemGarbageGUID", guid)
 end
 
 -- insert an empty item wherever there is an envelope (so that envelope gets copied correctly)
@@ -141,8 +155,7 @@ function envelopeFix(item)
 			fdebug(i .. " type " .. type(tempItem))
 			fdebug(chunk)
 			-- number startOut retval, number endOut reaper.GetSet_LoopTimeRange(boolean isSet, boolean isLoop, number startOut, number endOut, boolean allowautoseek)
-			local startOut, endOut
-			startOut, endOut = reaper.GetSet_LoopTimeRange(false, false, 0, 0, 0)
+			local startOut, endOut = reaper.GetSet_LoopTimeRange(false, false, 0, 0, 0)
 			reaper.SetMediaItemInfo_Value(tempItem, "D_POSITION", startOut)
 			reaper.SetMediaItemInfo_Value(tempItem, "D_LENGTH", endOut - startOut)
 			reaper.ULT_SetMediaItemNote(tempItem, "envelope_fix")
@@ -171,7 +184,7 @@ function regionItemSelect(item, unselect)
 	local selTrack = reaper.GetMediaItemTrack(item)
 	reaper.SetOnlyTrackSelected(selTrack)
 	-- set first selected track as last touched track
-    reaperCMD(40914)
+	reaperCMD(40914)
 
 	local retval; local trackName;
 	retval, trackName = reaper.GetSetMediaTrackInfo_String(selTrack, "P_NAME", "", false);
