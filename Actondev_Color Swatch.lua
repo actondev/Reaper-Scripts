@@ -70,6 +70,10 @@ function initDraw()
 	else
 		context = contextItems
 	end
+	if reaper.CountSelectedMediaItems(0) == 0 then
+		context = contextTracks
+	end
+
 	gfx.x = margin
 	gfx.y = textTop
 

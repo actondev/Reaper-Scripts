@@ -16,7 +16,7 @@ function colorize(flag, r, g, b)
 		writeValue = colorNative|0x1000000
 	end
 	
-	if reaper.GetCursorContext2(true) == 1 then
+	if reaper.GetCursorContext2(true) == 1 and reaper.CountSelectedMediaItems(0)>0 then
 		-- coloring the items
 		local nItems = reaper.CountSelectedMediaItems(0)
 		for i=0,nItems-1 do
