@@ -3,18 +3,35 @@ package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
 require 'ActonDev.deps.template'
 require 'ActonDev.deps.region'
 
-debug_mode = 0
+
+quantizeThreshold = 0.1
+-- set to true if you want to keep items that start inside the region edges
+-- 		set to nil or 0 to get prompt
+keepStartingIn = nil
+-- set to true if you want to keep items that start inside the region edges
+-- 		set to nil or 0 to get prompt
+keepEndingIn = nil
+
+
+
+debug_mode = 1
 
 regionItems = {}
 label = 'ActonDev: Copy Region'
 
-function copyItems()
+function copyItems(sourceItem)
 	-- split items at time selection
 	-- reaperCMD(40061)
 	-- copy items
-	-- reaperCMD(40698)
+	-- fdebug(sourceItem)
+	-- fdebug(" HERE " .. reaper.ULT_GetMediaItemNote(sourceItem) )
+	local exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(sourceItem, quantizeThreshold, true)
+	fdebug("exceedStart..")
+	fdebug(exceedStart)
+	handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
+	reaperCMD(40698)
 	-- copy selected are of items
-	reaperCMD(40060)
+	-- reaperCMD(40060)
 end
 
 -- item, notes are the source item, source notes
@@ -82,7 +99,7 @@ function doRegionItems(sourceRegionItems, targetRegionItems)
 		-- but it seems that if first track contains no item, then *SONG tracks have problem in pasting
 		firstTrackFix()
 
-		copyItems()
+		copyItems(sourceItem)
 		scanPaste(targetRegionItems, sourceItem, sourceNotes)
 	end
 end

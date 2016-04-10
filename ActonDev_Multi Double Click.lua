@@ -25,11 +25,11 @@ quantizeThreshold = 0.1
 -- alwaysSplit = false
 
 -- set to true if you want to keep items that start inside the region edges
--- 		comment it out to get prompt
--- keepStartingIn = true
+-- 		set to nil or 0 to get prompt
+keepStartingIn = nil
 -- set to true if you want to keep items that start inside the region edges
--- 		comment it out to get prompt
--- keepEndingIn = true
+-- 		set to nil or 0 to get prompt
+keepEndingIn = nil
 
 -- Note: if keepStartingIn is true and keepEnding in is false,
 -- 		items that start outside the region area, but ending in will be splitted (no prompt)
@@ -46,15 +46,16 @@ debug_mode = 1
 
 -- setting to 6: responding in YES in the {Split?} dialog
 -- setting to 2: responding in NO in the {Split?} dialog
+
 keepStartingIn = boolToDialog(keepStartingIn)
 keepEndingIn = boolToDialog(keepEndingIn)
 
 
 function main()
 	reaper.Undo_BeginBlock()
-	selItem = reaper.GetSelectedMediaItem(0, 0)
-	selTrack = reaper.GetMediaItemTrack(selItem);
-	_,selChunk =  reaper.GetItemStateChunk(selItem, "", 0)
+	local selItem = reaper.GetSelectedMediaItem(0, 0)
+	local selTrack = reaper.GetMediaItemTrack(selItem);
+	local _,selChunk =  reaper.GetItemStateChunk(selItem, "", 0)
 	
 	-- fdebug("Chunk " .. selChunk)
 	-- Source type possible values: MIDI, WAVE, MP3.. so i keep the first 3
@@ -70,31 +71,15 @@ function main()
 
 		
 		regionItemSelect(selItem)
-		local exceedStart, exceedEnd, countQuantized
+		local exceedStart, exceedEnd, countQuantized = false, false, 0
+		-- if keepStartingIn or keepEndingIn or threshold > 0
+
 		exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(selItem, quantizeThreshold, true)
+		fdebug("exceedStart")
+		fdebug(exceedStart)
+		handleExceededRegionEdges(selItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
 
-		if countQuantized > 0 then
-			reaper.ShowMessageBox(countQuantized .. " item(s) quantized (difference in edges below " .. quantizeThreshold .. " ms)\nIt was probably a glitch in their positioning\nUndo if action not desired, and edit the .lua file for the desired threshold.", "ActonDev: Region item Select", 0)
-		end
 
-		if  exceedStart then
-			actionSelected = keepStartingIn or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?", "ActonDev: Region Item", 4)
-			if actionSelected == 6 then
-				-- yes
-				reaper.SetEditCurPos(selPosition, false, false)
-				-- split at edit cursor, select right
-				reaperCMD(40759)
-			end
-		end
-		if  exceedEnd then
-			actionSelected = keepEndingIn or reaper.ShowMessageBox("Some of the selected items end after the region item\nSplit items?", "ActonDev: Region Item", 4)
-			if actionSelected == 6 then
-				-- yes
-				reaper.SetEditCurPos(selPosition+selLength, false, false)
-				-- split at edit cursor, select left
-				reaperCMD(40758)
-			end
-		end
 		-- select only our initially selected track
 		reaper.SetOnlyTrackSelected(selTrack);
 		reaperCMD("_SWS_RESTTIME1")

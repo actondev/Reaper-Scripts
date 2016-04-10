@@ -216,8 +216,29 @@ function regionItemSelect(item, unselect)
 	envelopeFix(item)
 end
 
-function handleExceededRegionEdges()
-	
+function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
+	local _,chunk =  reaper.GetItemStateChunk(sourceItem, "", 0)
+	local itemPosition = string.match(chunk, "POSITION ([0-9%.]+)\n")
+	local itemLength = string.match(chunk, "LENGTH ([0-9%.]+)\n")
+
+	if exceedStart then
+		actionSelected = boolToDialog(keepStartingIn) or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?", "ActonDev: Region Item", 4)
+		if actionSelected == 6 then
+			-- yes
+			reaper.SetEditCurPos(itemPosition, false, false)
+			-- split at edit cursor, select right
+			reaperCMD(40759)
+		end
+	end
+	if exceedEnd then
+		actionSelected = boolToDialog(keepEndingIn) or reaper.ShowMessageBox("Some of the selected items end after the region item\nSplit items?", "ActonDev: Region Item", 4)
+		if actionSelected == 6 then
+			-- yes
+			reaper.SetEditCurPos(itemPosition+itemLength, false, false)
+			-- split at edit cursor, select left
+			reaperCMD(40758)
+		end
+	end
 end
 
 
@@ -226,9 +247,10 @@ function itemsExceedRegionEdges(regionItem, threshold)
 	-- 	 	countUpdated return value notes the number of edited items (changed item position/length)
 
 	-- return values
+	fdebug(" HERE " .. reaper.ULT_GetMediaItemNote(regionItem) )
 	local exceedStart, exceedEnd, countQuantized = false, false, 0
 
-	local _,chunk =  reaper.GetItemStateChunk(selItem, "", 0)
+	local _,chunk =  reaper.GetItemStateChunk(regionItem, "", 0)
 	local itemPosition = string.match(chunk, "POSITION ([0-9%.]+)\n")
 	local itemLength = string.match(chunk, "LENGTH ([0-9%.]+)\n")
 
@@ -238,63 +260,73 @@ function itemsExceedRegionEdges(regionItem, threshold)
 	local countSel = reaper.CountSelectedMediaItems(0)
 	for i=1,countSel do
 		local tempItem = reaper.GetSelectedMediaItem(0, i-1)
-		local _,tempChunk =  reaper.GetItemStateChunk(tempItem, "", 0)
-		local tempPosition = string.match(tempChunk, "POSITION ([0-9%.]+)\n")
-		local tempLength = string.match(tempChunk, "LENGTH ([0-9%.]+)\n")
-		local tempEnd = tempPosition + tempLength
-		fdebug("Temp\t" ..tempPosition .. "\t" .. tempLength)
+		
+		if tempItem ~= regionItem then 
+			local _,tempChunk =  reaper.GetItemStateChunk(tempItem, "", 0)
+			local tempPosition = string.match(tempChunk, "POSITION ([0-9%.]+)\n")
+			local tempLength = string.match(tempChunk, "LENGTH ([0-9%.]+)\n")
+			local tempEnd = tempPosition + tempLength
+			fdebug("Temp\t" ..tempPosition .. "\t" .. tempLength)
 
-		local flagUpdated = false
-
-		-- checking item starts
-		if tempPosition<itemPosition then
-			fdebug("check 1, true")
-			-- small glitches: fuck off
-			if threshold > 0 then
-				fdebug("here 1")
-				local diff = itemPosition - tempPosition
-				if  diff < threshold then
-					-- fdebug("position diff " .. )
-					flagUpdated = true
-					reaper.SetMediaItemPosition(tempItem, itemPosition, false)
-					tempPosition = itemPosition
-					-- keep same item end (since position -start- changed)
-					reaper.SetMediaItemLength(tempItem, tempLength - diff, true)
-					tempLength = tempLength - diff
-					tempEnd = tempPosition + tempLength
+			local flagUpdated = false
+			local diff = itemPosition - tempPosition
+			-- checking item starts
+			if diff > 0 then
+				fdebug("tempPosition<itemPosition, true")
+				-- small glitches: fuck off
+				if threshold > 0 then
+					fdebug("here 1")
+					if  diff < threshold then
+						-- fdebug("position diff " .. )
+						flagUpdated = true
+						reaper.SetMediaItemPosition(tempItem, itemPosition, false)
+						tempPosition = itemPosition
+						-- keep same item end (since position -start- changed)
+						reaper.SetMediaItemLength(tempItem, tempLength - diff, true)
+						tempLength = tempLength - diff
+						tempEnd = tempPosition + tempLength
+					else
+						exceedStart = true
+					end
 				else
+					-- threshold == 0
 					exceedStart = true
 				end
-			else
-				-- threshold == 0
-				exceedStart = true
 			end
-		end
-		-- !exceedStart
+			-- !exceedStart
 
-		-- checking item ends
-		if tempEnd>itemEnd then
-			if threshold > 0 then
-				local diff = tempEnd - itemEnd
-				if  diff<threshold then
-					flagUpdated = true
-					reaper.SetMediaItemLength(tempItem, itemEnd-tempPosition, false)
-					tempLength = itemEnd-tempPosition
-					tempEnd = tempPosition + tempLength
+			-- checking item ends
+			diff = tempEnd - itemEnd
+			if diff > 0 then
+				fdebug("tempEnd>itemEnd, true")
+				if threshold > 0 then
+					local diff = tempEnd - itemEnd
+					if  diff<threshold then
+						flagUpdated = true
+						reaper.SetMediaItemLength(tempItem, itemEnd-tempPosition, false)
+						tempLength = itemEnd-tempPosition
+						tempEnd = tempPosition + tempLength
+					else
+						exceedEnd = true
+					end
 				else
+					-- threshold == 0
 					exceedEnd = true
 				end
-			else
-				-- threshold == 0
-				exceedEnd = true
+			end
+
+			if flagUpdated then
+				countQuantized = countQuantized + 1
 			end
 		end
-
-		if flagUpdated then
-			countQuantized = countQuantized + 1
-		end
+		-- end if same item as source
+	fdebug("")
 	end
-	-- !exceedEnd
+	-- !end for
+
+	if countQuantized > 0 then
+		reaper.ShowMessageBox(countQuantized .. " item(s) quantized (difference in edges below " .. quantizeThreshold .. " ms)\nIt was probably a glitch in their positioning\nUndo if action not desired, and edit the .lua file for the desired threshold.", "ActonDev: Region item Select", 0)
+	end
 
 	return exceedStart, exceedEnd, countQuantized
 end
