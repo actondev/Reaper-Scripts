@@ -8,9 +8,16 @@ debug_mode = 1
 threshold = 0.01
 -- threshold = 0.1
 
+-- Set to true to avoid the messageBox
+-- 		always trim not suggest, you end up deleting items
+-- 		always split safe to use
+alwaysSplit = false
+if alwaysSplit then	actionPreselect = 6 end
+
+
 function itemsExceedEdges(itemPosition, itemLength, threshold, update)
 	-- returns exceed, updated (depends on threshold)
-	-- 		updated return value notes the number of edited items (changed item position/length)
+	-- 	 updated return value notes the number of edited items (changed item position/length)
 	-- local itemPosition = string.match(selChunk, "POSITION ([0-9%.]+)\n")
 	-- local itemLength = string.match(selChunk, "LENGTH ([0-9%.]+)\n")
 	-- threshold = threshold or 0
@@ -27,42 +34,51 @@ function itemsExceedEdges(itemPosition, itemLength, threshold, update)
 		local tempLength = string.match(tempChunk, "LENGTH ([0-9%.]+)\n")
 		local tempEnd = tempPosition + tempLength
 		fdebug("Temp\t" ..tempPosition .. "\t" .. tempLength)
+
 		if tempPosition<itemPosition or tempEnd>itemEnd then
+			fdebug("check 1, true")
 			-- small glitches: fuck off
-			if threshold then
-				local flag = false
+			if threshold > 0 then
+				fdebug("here 1")
+				local flagUpdated = false
 				if update == true then
 					local positionDiff = itemPosition - tempPosition
-					if positionDiff < threshold then
-						flag = true
+					if (positionDiff >0 and positionDiff < threshold) then
+						-- fdebug("position diff " .. )
+						flagUpdated = true
 						reaper.SetMediaItemPosition(tempItem, itemPosition, false)
 						tempPosition = itemPosition
 						reaper.SetMediaItemLength(tempItem, tempLength - positionDiff, true)
 						tempLength = tempLength - positionDiff
 					end
-					if tempEnd - itemEnd < threshold then
-						flag = true
+
+					local endDiff = tempEnd - itemEnd
+
+					if (endDiff>0 and endDiff<threshold) then
+						flagUpdated = true
 						reaper.SetMediaItemLength(tempItem, itemEnd-tempPosition, false)
-					end
-					if flag then
-						-- updated, now retcheck
-						countUpdated = countUpdated + 1
 						tempLength = itemEnd-tempPosition
 						tempEnd = tempPosition + tempLength
-						if tempPosition<itemPosition or tempEnd>itemEnd then ret = true end
 					end
-				else
-					if itemPosition - tempPosition < threshold and tempEnd - itemEnd < threshold then return true end
+					if flagUpdated then
+						countUpdated = countUpdated + 1
+						-- items updated, recheck
+						if tempPosition<itemPosition or tempEnd>itemEnd then
+							ret = true
+						end
+					else
+						-- items not updated, so difference greater than threshold
+						ret = true
+					end
 				end
-				-- !if update
-
 			else
-				-- no threshold, immediately return true
-				return true, 0
+				-- threshold is 0, so yeah: they exceed
+				return true,0
 			end
-			-- !if threshold
-		end
+		end 
+		-- !item not exceeding
 	end
+	-- end of for
 	return ret, updated
 end
 
@@ -74,7 +90,7 @@ function main()
 	local selPosition = string.match(selChunk, "POSITION ([0-9%.]+)\n")
 	local selLength = string.match(selChunk, "LENGTH ([0-9%.]+)\n")
 	
-	fdebug("Chunk " .. selChunk)
+	-- fdebug("Chunk " .. selChunk)
 	fdebug("Here " ..selPosition .. " " .. selLength)
 	-- Source type possible values: MIDI, WAVE, MP3.. so i keep the first 3
 	-- if no <Source tag in the chunk, then it's an empty item (region item in my case, also known as notes items)
@@ -88,23 +104,23 @@ function main()
 
 		
 		regionItemSelect(selItem)
-		if itemsExceedEdges(selPosition, selLength, threshold, true) then
-			local ret = reaper.ShowMessageBox("Selected items exceed edges of region item\nSplit selected items on region item edges?", "ActonDev: Region Item", 3)
-			fdebug(ret)
+		local exceed,affected
+		
+		exceed, affected = itemsExceedEdges(selPosition, selLength, threshold, true)
+		-- end
+		fdebug("Exceed..")
+		fdebug(exceed)
+		if  exceed == true then
+			actionSelected = actionPreselect or reaper.ShowMessageBox("Selected items exceed edges of region item\nSplit selected items on region item edges?", "ActonDev: Region Item", 3)
+			-- if actionPreselect == nil then
+			-- end
+			fdebug("HERE ")
 			-- 6 yes, 7 no, 2 cancel
-			if ret == 6 then
-				-- split items at time selection
-				local ret2 = reaper.ShowMessageBox("Also trim? (removes exceeding areas)\nYes = Trim, No = Just split", "ActonDev: Region Item", 4)
-				if ret2 == 6 then
-					-- Trim items to selected area
-					reaperCMD(40508)
-				else
-					-- NO, just split
-					-- Split items at time selection
-					reaperCMD(40061)
-				end
-
-			elseif ret == 2 then
+			-- reaperCMD(40061)
+			if actionSelected == 6 then
+				-- split items at time selection	
+				reaperCMD(40061)
+			elseif actionSelected == 2 then
 				-- unselect all items
 				reaperCMD(40289)
 			end
@@ -114,7 +130,7 @@ function main()
 		-- select only our initially selected track
 		reaper.SetOnlyTrackSelected(selTrack);
 
-		reaperCMD("_SWS_RESTTIME1")
+		-- reaperCMD("_SWS_RESTTIME1")
 		-- refresh ui, create undo point
 		label = "ActonDev: Select Folder item"
 		reaper.PreventUIRefresh(-1)
