@@ -50,26 +50,36 @@ function main()
 		reaper.PreventUIRefresh(1)
 
 		reaperCMD("_SWS_SAVETIME1")
+		reaperCMD("_BR_SAVE_CURSOR_POS_SLOT_1")
 
 		
 		regionItemSelect(selItem)
-		local exceed,affected
-		exceed, affected = itemsExceedRegionEdges(selPosition, selLength, threshold, true)
+		local exceedStart, exceedEnd, countQuantized
+		exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(selPosition, selLength, threshold, true)
 		-- fdebug("Exceed..")
 		-- fdebug(exceed)
-		if  exceed == true then
-			actionSelected = actionPreselect or reaper.ShowMessageBox("Some of the selected items exceed edges of region item\nSplit selected items on region item edges?", "ActonDev: Region Item", 3)
+		if  exceedStart then
+			actionSelected = actionPreselect or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?", "ActonDev: Region Item", 4)
 			if actionSelected == 6 then
-				-- split items at time selection	
-				reaperCMD(40061)
-			elseif actionSelected == 2 then
-				-- unselect all items
-				reaperCMD(40289)
+				-- yes
+				reaper.SetEditCurPos(selPosition, false, false)
+				-- split at edit cursor, select right
+				reaperCMD(40759)
+			end
+		end
+		if  exceedEnd then
+			actionSelected = actionPreselect or reaper.ShowMessageBox("Some of the selected items end after the region item\nSplit items?", "ActonDev: Region Item", 4)
+			if actionSelected == 6 then
+				-- yes
+				reaper.SetEditCurPos(selPosition+selLength, false, false)
+				-- split at edit cursor, select left
+				reaperCMD(40758)
 			end
 		end
 		-- select only our initially selected track
 		reaper.SetOnlyTrackSelected(selTrack);
 		reaperCMD("_SWS_RESTTIME1")
+		reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
 		-- refresh ui, create undo point
 		label = "ActonDev: Select Folder item"
 		reaper.PreventUIRefresh(-1)

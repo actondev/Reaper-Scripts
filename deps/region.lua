@@ -220,8 +220,10 @@ end
 function itemsExceedRegionEdges(itemPosition, itemLength, threshold)
 	-- returns exceedStart, exceedEnd, countUpdated (depends on threshold)
 	-- 	 	countUpdated return value notes the number of edited items (changed item position/length)
-	countUpdated = 0
-	local ret = false
+
+	-- return values
+	local exceedStart, exceedEnd, countQuantized = false, false, 0
+
 	local itemEnd = itemPosition+itemLength
 	fdebug("Item\t" ..itemPosition .. "\t" .. itemLength)
 	-- fdebug(itemLength)
@@ -234,50 +236,61 @@ function itemsExceedRegionEdges(itemPosition, itemLength, threshold)
 		local tempEnd = tempPosition + tempLength
 		fdebug("Temp\t" ..tempPosition .. "\t" .. tempLength)
 
-		if tempPosition<itemPosition or tempEnd>itemEnd then
+		local flagUpdated = false
+
+		-- checking item starts
+		if tempPosition<itemPosition then
 			fdebug("check 1, true")
 			-- small glitches: fuck off
 			if threshold > 0 then
 				fdebug("here 1")
-				local flagUpdated = false
-				local positionDiff = itemPosition - tempPosition
-				if (positionDiff >0 and positionDiff < threshold) then
+				local diff = itemPosition - tempPosition
+				if  diff < threshold then
 					-- fdebug("position diff " .. )
 					flagUpdated = true
 					reaper.SetMediaItemPosition(tempItem, itemPosition, false)
 					tempPosition = itemPosition
-					reaper.SetMediaItemLength(tempItem, tempLength - positionDiff, true)
-					tempLength = tempLength - positionDiff
+					-- keep same item end (since position -start- changed)
+					reaper.SetMediaItemLength(tempItem, tempLength - diff, true)
+					tempLength = tempLength - diff
+					tempEnd = tempPosition + tempLength
+				else
+					exceedStart = true
 				end
+			else
+				-- threshold == 0
+				exceedStart = true
+			end
+		end
+		-- !exceedStart
 
-				local endDiff = tempEnd - itemEnd
-
-				if (endDiff>0 and endDiff<threshold) then
+		-- checking item ends
+		if tempEnd>itemEnd then
+			if threshold > 0 then
+				local diff = tempEnd - itemEnd
+				if  diff<threshold then
 					flagUpdated = true
 					reaper.SetMediaItemLength(tempItem, itemEnd-tempPosition, false)
 					tempLength = itemEnd-tempPosition
 					tempEnd = tempPosition + tempLength
-				end
-				if flagUpdated then
-					countUpdated = countUpdated + 1
-					-- items updated, recheck
-					if tempPosition<itemPosition or tempEnd>itemEnd then
-						ret = true
-					end
 				else
-					-- items not updated, so difference greater than threshold
-					ret = true
+					exceedEnd = true
 				end
 			else
-				-- threshold is 0, so yeah: they exceed
-				return true,0
+				-- threshold == 0
+				exceedEnd = true
 			end
-		end 
-		-- !item not exceeding
+		end
+
+		if flagUpdated then
+			countQuantized = countQuantized + 1
+		end
 	end
-	-- end of for
-	if countUpdated > 0 then
-		reaper.ShowMessageBox(countUpdated .. " items updated (difference in edges below of threshold)\nIt was probably a glitch in their positioning\nUndo if action not desired, and check the .lua file for the threshold variable", "ActonDev: Region item Select", 0)
+	-- !exceedEnd
+
+	if countQuantized > 0 then
+		reaper.ShowMessageBox(countQuantized .. " items updated (difference in edges below of threshold)\nIt was probably a glitch in their positioning\nUndo if action not desired, and check the .lua file for the threshold variable", "ActonDev: Region item Select", 0)
 	end
-	return ret, countUpdated
+
+	return exceedStart, exceedEnd, countUpdated
 end
