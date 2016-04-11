@@ -1,10 +1,10 @@
--- package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
--- reaper.ShowConsoleMsg(package.path)
 require 'Scripts.Actondev.deps.template'
--- for unselectSpecialTracks
+-- required for unselectSpecialTracks
 require 'Scripts.Actondev.deps.region'
 
 debug_mode = 0
+
+label = "ActonDev: Folder Track Toggle Focus"
 
 function showAll()
 	label = "ActonDev: show all"
@@ -13,6 +13,7 @@ function showAll()
 	reaperCMD("_SWS_COLLAPSE")
 	-- unselect all tracks
 	reaperCMD("40297")
+	restoreHiddenTracks()
 end
 
 -- TODO remove, not needed
@@ -29,14 +30,54 @@ function showSpecial()
 	end
 end
 
+function saveHiddenTracks()
+	fdebug("Save hidden tracks")
+	-- select all tracks
+	reaperCMD("40296")
+	-- reaperCMD("_SWS_SELCHILDREN2")
+	-- invert selection
+	setExtState("HiddenTCP", "")
+	reaperCMD("_SWS_TOGTRACKSEL")
+	local selTracks = reaper.CountSelectedTracks(0)
+	for i=1,selTracks do
+		local tempTrack = reaper.GetSelectedTrack(0, i-1)
+		local vis = reaper.GetMediaTrackInfo_Value(tempTrack, "B_SHOWINTCP")
+		local _,name = reaper.GetSetMediaTrackInfo_String(tempTrack, "P_NAME", "", false)
+		local guid = reaper.GetTrackGUID(tempTrack)
+		fdebug(name .. " hidden: " .. vis .. guid)
+		appendExtState("HiddenTCP", guid)
+	end
+end
+
+function restoreHiddenTracks()
+	local hidden = getExtState("HiddenTCP")
+	for token in string.gmatch(hidden, "[{%w%-}]+") do
+		fdebug(token)
+		local track = reaper.BR_GetMediaTrackByGUID(0, token)
+		-- fdebug(item)
+		if track then
+			reaper.SetMediaTrackInfo_Value(track, "B_SHOWINTCP", 0)
+		end
+	end
+	setExtState("HiddenTCP", "")
+end
+
 function folderFocus()
-	label = "ActonDev: hide / focus"
+	local selTrack = reaper.GetSelectedTrack(0, 0)
+	saveHiddenTracks()
+	reaper.SetOnlyTrackSelected(selTrack)
+	-- label = "ActonDev: hide / focus"
 	-- GetMediaTrackInfo_Value(MediaTrack* tr, const char* parmname)
 	-- I_FOLDERDEPTH : int * : folder depth change (0=normal, 1=track is a folder parent, -1=track is the last in the innermost folder, -2=track is the last in the innermost and next-innermost folders, etc
 	-- Lua: MediaTrack reaper.GetSelectedTrack(ReaProject proj, integer seltrackidx)
 	-- Lua: MediaTrack reaper.GetSelectedTrack(ReaProject proj, integer seltrackidx)
-	selTrack = reaper.GetSelectedTrack(0, 0)
-	if reaper.GetMediaTrackInfo_Value(selTrack, "I_FOLDERDEPTH") == 0 then
+	
+	local folderDepth = reaper.GetMediaTrackInfo_Value(selTrack, "I_FOLDERDEPTH")
+	local trackDepth = reaper.GetTrackDepth(selTrack)
+
+
+	
+	if folderDepth == 0 then
 		-- child of parent folder selected
 		reaperCMD("_SWS_SELPARENTS")
 	end
@@ -50,16 +91,31 @@ function folderFocus()
 	reaperCMD("_SWSTL_HIDETCP")
 end
 
-label = ""
+
+
 
 function main()
+
 	local focus = false
 	reaper.Undo_BeginBlock()
 	reaper.PreventUIRefresh(1)
-	selTrack = reaper.GetSelectedTrack(0, 0)
-	if reaper.CountSelectedTracks(0) > 0 then
-		focus = true
-		folderFocus()
+	local selTrack = reaper.GetSelectedTrack(0, 0)
+	
+	-- saveHiddenTracks()
+	
+	if selTrack then
+		local folderDepth = reaper.GetMediaTrackInfo_Value(selTrack, "I_FOLDERDEPTH")
+		local trackDepth = reaper.GetTrackDepth(selTrack)
+
+		fdebug("Folder depth " .. folderDepth)
+		fdebug("trackDepth " .. trackDepth)
+
+		if (folderDepth == 1 or trackDepth > 0) then
+			-- focus = true
+			folderFocus()
+		else
+			showAll()
+		end
 	else
 		showAll()
 	end
@@ -71,15 +127,15 @@ function main()
 	end
 	-- Zoom adjustments
 	reaper.PreventUIRefresh(-1)
-    -- SWS_VZOOMFIT doesn't work if ui refresh is prevented :/
+	-- SWS_VZOOMFIT doesn't work if ui refresh is prevented :/
 	reaperCMD("_SWS_VZOOMFIT")
-    
+
 	-- unselect all tracks
 	reaperCMD("40297")
 
 	
 
-    -- reaper.UpdateArrange()
+	-- reaper.UpdateArrange()
 	-- reaper.PreventUIRefresh(-1)
 	-- if selTrack then
 	-- 	reaper.SetOnlyTrackSelected(selTrack)
