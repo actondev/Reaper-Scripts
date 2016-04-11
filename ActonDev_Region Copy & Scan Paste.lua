@@ -14,7 +14,7 @@ keepEndingIn = nil
 
 
 
-debug_mode = 1
+debug_mode = 0
 
 regionItems = {}
 label = 'ActonDev: Copy Region'
@@ -26,6 +26,7 @@ function copyItems(sourceItem)
 	-- fdebug(sourceItem)
 	-- fdebug(" HERE " .. reaper.ULT_GetMediaItemNote(sourceItem) )
 	local exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(sourceItem, quantizeThreshold, true)
+	gfx.init(200,300)
 	fdebug("exceedStart..")
 	fdebug(exceedStart)
 	handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)

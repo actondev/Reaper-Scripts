@@ -171,7 +171,8 @@ function draw_FX_labels(track, fx, x, y, w, h)
 			reaper.SNM_MoveOrRemoveTrackFX(track, fx, 0)
 		else
 			-- normal click, open Fx window
-			reaper.TrackFX_SetOpen(track, fx, not reaper.TrackFX_GetOpen(track, fx) )--not bool for change state
+			reaper.TrackFX_SetOpen(track, fx, 0)
+			reaper.TrackFX_SetOpen(track, fx, 1 )--not bool for change state
 			-- sleep(1)
 			reaperCMD("_BR_MOVE_WINDOW_TO_MOUSE_H_M_V_T")
 		end

@@ -141,7 +141,7 @@ end
 -- insert an empty item wherever there is an envelope (so that envelope gets copied correctly)
 function envelopeFix(item)
 	local selTrack = reaper.GetMediaItemTrack(item)
-
+	local countItemsInserted = 0
 	-- reaper.GetSelectedTrack(ReaProject proj, integer seltrackidx)
 	-- reaper.CountSelectedTracks(ReaProject proj)
 	local countSelTracks = reaper.CountSelectedTracks(0)
@@ -149,6 +149,7 @@ function envelopeFix(item)
 	for i=1,countSelTracks do
 		local tempTrack = reaper.GetSelectedTrack(0, i-1)
 		if tempTrack ~= selTrack and reaper.CountTrackEnvelopes(tempTrack) > 0 then
+			countItemsInserted = countItemsInserted +1
 			fdebug("here")
 			local tempItem = reaper.AddMediaItemToTrack(tempTrack)
 			_,chunk =  reaper.GetItemStateChunk(tempItem, "", 0)
@@ -168,6 +169,7 @@ function envelopeFix(item)
 			-- reaper.SetProjExtState(0, "ActonDev", "MediaItemGarbageGUID", newGarbage)
 		end
 	end
+	return countItemsInserted
 end
 
 -- region items are the empty items with notes (NOT midi notes! :P) in them
@@ -213,7 +215,9 @@ function regionItemSelect(item, unselect)
 	-- set first selected track as last touched track
 	reaperCMD(40914)
 	mediaItemGarbageCleanSelected()
-	envelopeFix(item)
+	local countItemsSelected = reaper.CountSelectedMediaItems(0) - 1
+	local fixesInserted = envelopeFix(item)
+	return countItemsSelected, fixesInserted
 end
 
 function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)

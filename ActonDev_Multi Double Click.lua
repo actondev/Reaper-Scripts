@@ -3,8 +3,10 @@
 require 'Scripts.ActonDev.deps.template'
 require 'Scripts.ActonDev.deps.region'
 
-local scriptPath = debug.getinfo(1,'S').source:match("@(.+)[/\\].+$")
-fdebug(scriptPath)
+debug_mode = 0
+
+-- local scriptPath = debug.getinfo(1,'S').source:match("@(.+)[/\\].+$")
+-- fdebug(scriptPath)
 
 -- -------------------------------------
 -- USER OPTIONS: FEEL FREE TO EDIT THOSE
@@ -42,7 +44,7 @@ keepEndingIn = nil
 
 -- editing below here not SO advised :P
 
-debug_mode = 1
+
 
 -- setting to 6: responding in YES in the {Split?} dialog
 -- setting to 2: responding in NO in the {Split?} dialog
@@ -70,7 +72,7 @@ function main()
 		reaperCMD("_BR_SAVE_CURSOR_POS_SLOT_1")
 
 		
-		regionItemSelect(selItem)
+		local countSelected, fixesInserted = regionItemSelect(selItem)
 		local exceedStart, exceedEnd, countQuantized = false, false, 0
 		-- if keepStartingIn or keepEndingIn or threshold > 0
 
@@ -85,7 +87,11 @@ function main()
 		reaperCMD("_SWS_RESTTIME1")
 		reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
 		-- refresh ui, create undo point
-		label = "ActonDev: Select Folder item"
+		
+		label = "ActonDev Region select: " .. countSelected
+		if fixesInserted > 0 then
+			label = label .. "+" .. fixesInserted .. "*"
+		end
 		reaper.PreventUIRefresh(-1)
 		reaper.UpdateArrange()
 
