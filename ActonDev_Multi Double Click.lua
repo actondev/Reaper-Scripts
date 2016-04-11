@@ -1,7 +1,7 @@
-package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
+-- package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
 -- reaper.ShowConsoleMsg(package.path .. "\n")
-require 'ActonDev.deps.template'
-require 'ActonDev.deps.region'
+require 'Scripts.ActonDev.deps.template'
+require 'Scripts.ActonDev.deps.region'
 
 local scriptPath = debug.getinfo(1,'S').source:match("@(.+)[/\\].+$")
 fdebug(scriptPath)

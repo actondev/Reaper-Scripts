@@ -1,8 +1,8 @@
-package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
+-- package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
 -- reaper.ShowConsoleMsg(package.path)
-require 'ActonDev.deps.template'
+require 'Scripts.Actondev.deps.template'
 -- for unselectSpecialTracks
-require 'ActonDev.deps.region'
+require 'Scripts.Actondev.deps.region'
 
 debug_mode = 0
 

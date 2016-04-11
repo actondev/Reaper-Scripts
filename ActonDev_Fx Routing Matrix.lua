@@ -1,12 +1,11 @@
 -- Original script: eugen2777. HUGE APPRECIATION ABOUT THIS!
-
-package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
+-- package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
 -- reaper.ShowConsoleMsg(package.path)
-require 'ActonDev.deps.template'
-require 'ActonDev.deps.colors'
-require 'ActonDev.deps.class'
-require 'ActonDev.deps.GuiBuffer'
-require 'ActonDev.deps.drawing'
+require 'Scripts.Actondev.deps.template'
+require 'Scripts.Actondev.deps.colors'
+require 'Scripts.Actondev.deps.class'
+require 'Scripts.Actondev.deps.GuiBuffer'
+require 'Scripts.Actondev.deps.drawing'
 debug_mode = 1
 
 label = "ActonDev: Fx Routing Matrix"
