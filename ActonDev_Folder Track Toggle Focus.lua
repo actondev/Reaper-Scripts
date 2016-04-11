@@ -7,6 +7,9 @@ debug_mode = 0
 label = "ActonDev: Folder Track Toggle Focus"
 
 function showAll()
+	if( getExtState("FolderFocus") ~= "true") then
+		return
+	end
 	label = "ActonDev: show all"
 	reaperCMD("_SWSTL_SHOWALLTCP")
 	reaperCMD("_SWS_SELALLPARENTS")
@@ -14,6 +17,8 @@ function showAll()
 	-- unselect all tracks
 	reaperCMD("40297")
 	restoreHiddenTracks()
+	setExtState("FolderFocus", "false")
+	zoomFit()
 end
 
 -- TODO remove, not needed
@@ -63,6 +68,7 @@ function restoreHiddenTracks()
 end
 
 function folderFocus()
+	setExtState("FolderFocus", "true")
 	local selTrack = reaper.GetSelectedTrack(0, 0)
 	saveHiddenTracks()
 	reaper.SetOnlyTrackSelected(selTrack)
@@ -89,10 +95,25 @@ function folderFocus()
 	-- unselectSpecialTracks("")
 	-- hide
 	reaperCMD("_SWSTL_HIDETCP")
+	zoomFit()
 end
 
 
+function zoomFit()
+	-- select all tracks
+	reaperCMD("40296")
+	-- if focusing, then unselect special, so the zoomvit happens on the folder only
+	if focus then
+		-- unselectSpecialTracks("")
+	end
+	-- Zoom adjustments
+	reaper.PreventUIRefresh(-1)
+	-- SWS_VZOOMFIT doesn't work if ui refresh is prevented :/
+	reaperCMD("_SWS_VZOOMFIT")
 
+	-- unselect all tracks
+	reaperCMD("40297")
+end
 
 function main()
 
@@ -119,19 +140,7 @@ function main()
 	else
 		showAll()
 	end
-	-- select all tracks
-	reaperCMD("40296")
-	-- if focusing, then unselect special, so the zoomvit happens on the folder only
-	if focus then
-		-- unselectSpecialTracks("")
-	end
-	-- Zoom adjustments
-	reaper.PreventUIRefresh(-1)
-	-- SWS_VZOOMFIT doesn't work if ui refresh is prevented :/
-	reaperCMD("_SWS_VZOOMFIT")
-
-	-- unselect all tracks
-	reaperCMD("40297")
+	
 
 	
 
