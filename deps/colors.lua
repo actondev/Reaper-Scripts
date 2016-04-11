@@ -2,8 +2,8 @@ ActonDev.themeContent = nil
 ActonDev.themeFileName = ""
 ActonDev.themeError = nil
 ActonDev.themeFileNameFallback = debug.getinfo(1,'S').source:match("@(.+)[/\\].+$").. "/Default_5.0_unpacked.ReaperTheme"
-ActonDev.themeFileNameFallback = string.gsub(ActonDev.themeFileNameFallback, "\\", "/")
-
+-- package.config:sub(1,1) is the os path separator
+ActonDev.themeFileNameFallback = string.gsub(ActonDev.themeFileNameFallback, "/", package.config:sub(1,1))
 updateColorsCallback = nill
 
 -- if flag colorize to r,g,b
@@ -165,7 +165,7 @@ function checkThemeChange()
 			ActonDev.themeContent = theme:read("*a")
 			io.close(theme)
 		else
-			reaper.ShowMessageBox("Please unpack your current theme, so that .ReaperTheme file is readable", "Error", 0)
+			-- reaper.ShowMessageBox("Please unpack your current theme, so that .ReaperTheme file is readable", "Error", 0)
 			local theme = io.open(ActonDev.themeFileNameFallback, "r")
 			-- ActonDev.themeError = false
 			ActonDev.themeContent = theme:read("*a")
