@@ -1,12 +1,6 @@
--- package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
--- reaper.ShowConsoleMsg(package.path .. "\n")
 require 'Scripts.ActonDev.deps.template'
 require 'Scripts.ActonDev.deps.region'
-
 debug_mode = 0
-
--- local scriptPath = debug.getinfo(1,'S').source:match("@(.+)[/\\].+$")
--- fdebug(scriptPath)
 
 -- -------------------------------------
 -- USER OPTIONS: FEEL FREE TO EDIT THOSE
@@ -42,10 +36,9 @@ keepEndingIn = nil
 -- --------------------------------------
 
 
+
+
 -- editing below here not SO advised :P
-
-
-
 -- setting to 6: responding in YES in the {Split?} dialog
 -- setting to 2: responding in NO in the {Split?} dialog
 

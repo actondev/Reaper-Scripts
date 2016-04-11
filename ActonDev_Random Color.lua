@@ -1,5 +1,3 @@
--- package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
--- reaper.ShowConsoleMsg(package.path)
 require 'Scripts.Actondev.deps.template'
 require 'Scripts.Actondev.deps.colors'
 debug_mode = 0
