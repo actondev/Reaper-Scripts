@@ -1,6 +1,19 @@
 require 'Scripts.Actondev.deps.template'
 require 'Scripts.Actondev.deps.region'
 
+-- default options: copy this file on Scripts/ActonDev/ and rename it to options where you can freely change the values
+-- the file will still exist even after scripts updates, you won't loose your settings
+require 'Scripts.ActonDev.options-defaults'
+-- this will load YOUR settings and will overwrite defaults
+pcall(require, 'Scripts.ActonDev.options')
+
+-- This script is a little buggy when items exceed region edges.
+-- TODO: fix this :P
+
+quantizeThreshold = RegionSelect.quantizeThreshold
+keepStartingIn = RegionSelect.keepStartingIn
+keepEndingIn = RegionSelect.keepEndingIn
+
 debug_mode = 0
 
 function doRegionItems(regionItems)

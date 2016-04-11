@@ -1,49 +1,18 @@
 require 'Scripts.ActonDev.deps.template'
 require 'Scripts.ActonDev.deps.region'
+
+-- default options: copy this file on Scripts/ActonDev/ and rename it to options where you can freely change the values
+-- the file will still exist even after scripts updates, you won't loose your settings
+require 'Scripts.ActonDev.options-defaults'
+-- this will load YOUR settings and will overwrite defaults
+pcall(require, 'Scripts.ActonDev.options')
+
 debug_mode = 0
 
--- -------------------------------------
--- USER OPTIONS: FEEL FREE TO EDIT THOSE
--- -------------------------------------
--- 
--- 
--- Having some tolerance to the start/end of media items
--- 		Some times some glitches happen and items starts/ends just miliseconds off by the start/end
--- 		of the region edges. This thresholds automatically quantizes items, so no unnecessary splts are
--- 		to happen. (could result in almost zero length items).
--- 		Set to zero to skip this feature (note that you get informed if quantizing happend)
-quantizeThreshold = 0.1
--- Set to true to avoid the messageBox
--- 		always trim not suggest, you end up deleting items
--- 		always split safe to use
 
-
--- alwaysSplit = false
-
--- set to true if you want to keep items that start inside the region edges
--- 		set to nil or 0 to get prompt
-keepStartingIn = nil
--- set to true if you want to keep items that start inside the region edges
--- 		set to nil or 0 to get prompt
-keepEndingIn = nil
-
--- Note: if keepStartingIn is true and keepEnding in is false,
--- 		items that start outside the region area, but ending in will be splitted (no prompt)
-
--- 
--- --------------------------------------
--- END OF USER OPTIONS
--- --------------------------------------
-
-
-
-
--- editing below here not SO advised :P
--- setting to 6: responding in YES in the {Split?} dialog
--- setting to 2: responding in NO in the {Split?} dialog
-
-keepStartingIn = boolToDialog(keepStartingIn)
-keepEndingIn = boolToDialog(keepEndingIn)
+quantizeThreshold = RegionSelect.quantizeThreshold
+keepStartingIn = RegionSelect.keepStartingIn
+keepEndingIn = RegionSelect.keepEndingIn
 
 
 function main()

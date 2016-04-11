@@ -2,7 +2,7 @@ require 'Scripts.Actondev.deps.template'
 -- required for unselectSpecialTracks
 require 'Scripts.Actondev.deps.region'
 
-debug_mode = 1
+debug_mode = 0
 
 label = "ActonDev: Folder Track Toggle Focus"
 
@@ -139,12 +139,15 @@ function main()
 		if (folderDepth == 1 or trackDepth > 0) then
 			-- focus = true
 			folderFocus()
-			reaper.SetOnlyTrackSelected(selTrack)
 		else
 			showAll()
 		end
 	else
 		showAll()
+	end
+
+	if selTrack then
+		reaper.SetOnlyTrackSelected(selTrack)
 	end
 	
 	-- reaper.UpdateArrange()

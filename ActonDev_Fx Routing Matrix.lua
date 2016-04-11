@@ -3,7 +3,8 @@ require 'Scripts.Actondev.deps.colors'
 require 'Scripts.Actondev.deps.class'
 require 'Scripts.Actondev.deps.GuiBuffer'
 require 'Scripts.Actondev.deps.drawing'
-debug_mode = 1
+
+debug_mode = 0
 
 label = "ActonDev: Fx Routing Matrix"
 

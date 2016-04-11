@@ -1,15 +1,16 @@
 require 'Scripts.Actondev.deps.template'
 require 'Scripts.Actondev.deps.region'
 
+-- default options: copy this file on Scripts/ActonDev/ and rename it to options where you can freely change the values
+-- the file will still exist even after scripts updates, you won't loose your settings
+require 'Scripts.ActonDev.options-defaults'
+-- this will load YOUR settings and will overwrite defaults
+pcall(require, 'Scripts.ActonDev.options')
 
-quantizeThreshold = 0.1
--- set to true if you want to keep items that start inside the region edges
--- 		set to nil or 0 to get prompt
-keepStartingIn = nil
 
--- this should be false: veery problematic
-keepEndingIn = false
-
+quantizeThreshold = RegionCopyScanPaste.quantizeThreshold
+keepStartingIn = RegionCopyScanPaste.keepStartingIn
+keepEndingIn = RegionCopyScanPaste.keepEndingIn
 
 
 debug_mode = 0
