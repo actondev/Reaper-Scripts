@@ -6,9 +6,9 @@ quantizeThreshold = 0.1
 -- set to true if you want to keep items that start inside the region edges
 -- 		set to nil or 0 to get prompt
 keepStartingIn = nil
--- set to true if you want to keep items that start inside the region edges
--- 		set to nil or 0 to get prompt
-keepEndingIn = nil
+
+-- this should be false: veery problematic
+keepEndingIn = false
 
 
 
@@ -24,13 +24,18 @@ function copyItems(sourceItem)
 	-- fdebug(sourceItem)
 	-- fdebug(" HERE " .. reaper.ULT_GetMediaItemNote(sourceItem) )
 	local exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(sourceItem, quantizeThreshold, true)
-	gfx.init(200,300)
+	-- gfx.init(200,300)
 	fdebug("exceedStart..")
 	fdebug(exceedStart)
-	handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
-	reaperCMD(40698)
-	-- copy selected are of items
-	-- reaperCMD(40060)
+
+	if(keepStartingIn==false and keepEndingIn==false) then
+		-- copy selected are of items
+		reaperCMD(40060)
+	else
+		handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
+		-- normal copy items (if we wanna keep exceedign items: gotta call handleExceededRegionEdges before)
+		reaperCMD(40698)		
+	end
 end
 
 -- item, notes are the source item, source notes
@@ -68,8 +73,14 @@ function scanPaste(targetRegionItems, sourceItem, sourceNotes)
 				-- remove items
 				-- reaperCMD(40006)
 
-				-- remove selected area of items
-				reaperCMD(40312)
+				if(keepStartingIn==false and keepEndingIn==false) then
+					-- remove selected area of items
+					reaperCMD(40312)
+				else
+					handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
+					-- remove items
+					reaperCMD(40006)	
+				end
 				-- paste
 				reaperCMD(40058)
 				

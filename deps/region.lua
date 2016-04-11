@@ -226,18 +226,20 @@ function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStart
 	local itemLength = string.match(chunk, "LENGTH ([0-9%.]+)\n")
 
 	if exceedStart then
-		actionSelected = boolToDialog(keepStartingIn) or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?", "ActonDev: Region Item", 4)
+		local actionSelected = boolToDialog(keepEndingIn) or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?", "ActonDev: Region Item", 4)
 		if actionSelected == 6 then
-			-- yes
+			-- split? yes
+			keepEndingIn = false
 			reaper.SetEditCurPos(itemPosition, false, false)
 			-- split at edit cursor, select right
 			reaperCMD(40759)
 		end
 	end
 	if exceedEnd then
-		actionSelected = boolToDialog(keepEndingIn) or reaper.ShowMessageBox("Some of the selected items end after the region item\nSplit items?", "ActonDev: Region Item", 4)
+		local actionSelected = boolToDialog(keepStartingIn) or reaper.ShowMessageBox("Some of the selected items end after the region item\nSplit items?", "ActonDev: Region Item", 4)
 		if actionSelected == 6 then
-			-- yes
+			-- split? yes
+			keepStartingIn = false
 			reaper.SetEditCurPos(itemPosition+itemLength, false, false)
 			-- split at edit cursor, select left
 			reaperCMD(40758)
