@@ -14,23 +14,37 @@ quantizeThreshold = RegionSelect.quantizeThreshold
 keepStartingIn = RegionSelect.keepStartingIn
 keepEndingIn = RegionSelect.keepEndingIn
 
-debug_mode = 1
+debug_mode = 0
+
+setOfSelectedItems = {}
 
 function doRegionItems(regionItems)
-	keepStartingIn = false
-	keepEndingIn = false
+	-- keepStartingIn = false
+	-- keepEndingIn = false
 	local i
 	local flagSplitted = false
-	for  i = 1, reaper.CountSelectedMediaItems(0) do
+	for  i = 1, #regionItems do
+		-- unselect all items
+		-- reaperCMD(40289)
 		fdebug("HERE ASD")
-		fdebug(regionItems[i])
+		-- fdebug(regionItems[i])
 		regionItemSelect(regionItems[i], false)
 		local exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(regionItems[i], quantizeThreshold, true)
 		flagSplitted = flagSplitted or exceedStart or exceedEnd
-		handleExceededRegionEdges(regionItems[i], true, true, false, false)
+		handleExceededRegionEdges(regionItems[i], exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
+		setOfSelectedItems[#setOfSelectedItems + 1] = getSelectedItems()
 	end
-	if flagSplitted then
-		reaper.ShowMessageBox("Some items have been splitted.\nThis action works better with single region items selected.", "ActonDev: Region Item Select", 0)
+	-- if flagSplitted then
+	-- 	reaper.ShowMessageBox("Some items have been splitted.\nThis action works better with single region items selected.", "ActonDev: Region Item Select", 0)
+	-- end
+
+	for i = 1,#setOfSelectedItems do
+		local tempTable = setOfSelectedItems[i]
+		for j=1, #tempTable do
+			if tempTable[j] then
+				reaper.SetMediaItemSelected(tempTable[j], true)
+			end
+		end
 	end
 end
 
@@ -43,7 +57,7 @@ function main()
 
 	reaperCMD("_SWS_SAVETIME1")
 
-	regionItems = getRegionItems()
+	regionItems = getSelectedItems()
 	-- keep selected track
 	selTrack = reaper.GetMediaItemTrack(regionItems[1]);
 	-- keep selected track's name
@@ -51,11 +65,11 @@ function main()
 	-- retval, selName = reaper.GetSetMediaTrackInfo_String(selTrack, "P_NAME", "", false);
 	-- let the magic happen
 	local countSel = reaper.CountSelectedMediaItems(0)
-	if countSel > 1 then
+	if true then
 		-- reaper.ShowMessageBox("This action does not work so well with multiple media items", "Warning", 0)
 		doRegionItems(regionItems)
 	else
-		regionItemSelect(regionItems[1], false)
+		regionItemSelect(regionItems[1], true)
 		local exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(regionItems[1], quantizeThreshold, true)
 		handleExceededRegionEdges(regionItems[1], exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
 	end

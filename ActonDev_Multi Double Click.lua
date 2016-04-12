@@ -7,7 +7,7 @@ require 'Scripts.ActonDev.options-defaults'
 -- this will load YOUR settings and will overwrite defaults
 pcall(require, 'Scripts.ActonDev.options')
 
-debug_mode = 1
+debug_mode = 0
 
 
 quantizeThreshold = RegionSelect.quantizeThreshold

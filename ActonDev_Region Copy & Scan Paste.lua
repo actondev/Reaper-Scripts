@@ -128,12 +128,12 @@ function main()
 	reaperCMD("_SWS_SAVEVIEW")
 	reaperCMD("_BR_SAVE_CURSOR_POS_SLOT_1")
 	-- save selected region items
-	local sourceRegionItems = getRegionItems()
+	local sourceRegionItems = getSelectedItems()
 	fdebug("Source items N: " .. #sourceRegionItems)
 	-- select all items in track
 	reaperCMD(40421)
 	-- save all region items (to iterate through, and paste/replace)
-	local targetRegionItems = getRegionItems()
+	local targetRegionItems = getSelectedItems()
 	fdebug("Target items N:  " .. #targetRegionItems)
 	doRegionItems(sourceRegionItems, targetRegionItems)
 	
