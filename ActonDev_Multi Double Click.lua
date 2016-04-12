@@ -3,9 +3,9 @@ require 'Scripts.ActonDev.deps.region'
 
 -- default options: copy this file on Scripts/ActonDev/ and rename it to options where you can freely change the values
 -- the file will still exist even after scripts updates, you won't loose your settings
-require 'Scripts.ActonDev.options-defaults'
+require 'Scripts.ActonDev.deps.options-defaults'
 -- this will load YOUR settings and will overwrite defaults
-pcall(require, 'Scripts.ActonDev.options')
+pcall(require, 'Scripts.ActonDev.deps.options')
 
 debug_mode = 0
 

@@ -2,22 +2,28 @@
 [Download latest version](https://github.com/actonDev/Reaper-Scripts/archive/master.zip)
 
 Installation instructions:
-Create a folder named "ActonDev" and place these files inside
+[Download](https://github.com/actonDev/Reaper-Scripts/archive/master.zip) and unzip on folder named "ActonDev" on your "Scripts" folder. Please download whole zip and always have the full deps folder. You can ignore/delete 'ActonDev_xxxx.lua' files if you want, but no others.
+
+**NOTICE** It'CaSe SeNsItIvE : **A**cton**D**ev
 
 Example Structure
 ```
 Directory <Reaper Resources>/Scripts/ActonDev
-|   ActonDev_Escape.lua
-|   ActonDev_Multi Double Click.lua
+|   Actondev_Color Swatch.lua
+|   ...
 |   ActonDev_Region Copy & Scan Paste.lua
 |   ActonDev_Region Item Select.lua
 |   readme.md
-|
+|   ...
 \---deps
-        class.lua
+        ...
+        options-defaults.lua
         region.lua
         template.lua
+        ...
 ```
+
+You can make a copy of the `options-defaults.lua` and name it `options.lua`. This will overwrite some default options that have been set.
 
 ## Requirements ##
   + [REAPER](http://www.cockos.com/reaper/download.php) v5.18+

@@ -2,3 +2,5 @@
 Temp*
 _*
 options*.lua
+
+!deps/options-defaults.lua
