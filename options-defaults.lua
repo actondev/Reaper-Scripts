@@ -9,7 +9,8 @@
 -- 
 -- Having some tolerance to the start/end of media items
 -- 		Some times some glitches happen and items starts/ends just miliseconds off by the start/end
--- 		of the region edges. This thresholds automatically quantizes items, so no unnecessary splts are
+-- 		of the region edges (usually caused by splitting items in region item borders).
+-- 		This thresholds automatically quantizes items, so no unnecessary splts are
 -- 		to happen. (could result in almost zero length items).
 -- 		Set to zero to skip this feature (note that you get informed if quantizing happend)
 
@@ -28,13 +29,17 @@
 -- Each script has its own set of settings
 
 RegionSelect = {
-	quantizeThreshold = 0.1,
+	quantizeThreshold = 0.001,
 	keepStartingIn = nil,
 	keepEndingIn = nil
 }
 
 RegionCopyScanPaste = {
-	quantizeThreshold = 0.1,
+	quantizeThreshold = 0.001,
 	keepStartingIn = nil,
 	keepEndingIn = false
+}
+
+CommonOptions = {
+	alertOnQuantize = true
 }

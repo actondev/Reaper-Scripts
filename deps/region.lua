@@ -374,7 +374,7 @@ function itemsExceedRegionEdges(regionItem, threshold)
 	end
 	-- !end for
 
-	if countQuantized > 0 then
+	if countQuantized > 0 and CommonOptions.alertOnQuantize then
 		reaper.ShowMessageBox(countQuantized .. " item(s) quantized in \"" .. regionNotes .. "\" region.\nDifference in edges was below " .. quantizeThreshold .. " ms (was probably a glitch in their positioning)\n\nUndo if action not desired, and create/edit the options.lua file for the desired threshold.", "Region: \"".. regionNotes .. "\"", 0)
 	end
 

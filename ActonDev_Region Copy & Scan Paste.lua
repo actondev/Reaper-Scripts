@@ -7,15 +7,13 @@ require 'Scripts.ActonDev.options-defaults'
 -- this will load YOUR settings and will overwrite defaults
 pcall(require, 'Scripts.ActonDev.options')
 
+debug_mode = 0
+
 
 quantizeThreshold = RegionCopyScanPaste.quantizeThreshold
 keepStartingIn = RegionCopyScanPaste.keepStartingIn
 keepEndingIn = RegionCopyScanPaste.keepEndingIn
 
-
-debug_mode = 0
-
-regionItems = {}
 label = 'ActonDev: Copy Region'
 
 function copyItems(sourceItem)
