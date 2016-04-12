@@ -23,12 +23,13 @@ function doRegionItems(regionItems)
 	-- keepEndingIn = false
 	local i
 	local flagSplitted = false
+	local cleanEnvelopeFixes = (#regionItems == 1)
 	for  i = 1, #regionItems do
 		-- unselect all items
 		-- reaperCMD(40289)
 		fdebug("HERE ASD")
 		-- fdebug(regionItems[i])
-		regionItemSelect(regionItems[i], false)
+		regionItemSelect(regionItems[i], cleanEnvelopeFixes)
 		local exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(regionItems[i], quantizeThreshold, true)
 		flagSplitted = flagSplitted or exceedStart or exceedEnd
 		handleExceededRegionEdges(regionItems[i], exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
@@ -56,7 +57,7 @@ function main()
 	reaper.PreventUIRefresh(1)
 
 	reaperCMD("_SWS_SAVETIME1")
-
+	mediaItemGarbageClean()
 	regionItems = getSelectedItems()
 	-- keep selected track
 	selTrack = reaper.GetMediaItemTrack(regionItems[1]);
@@ -65,14 +66,8 @@ function main()
 	-- retval, selName = reaper.GetSetMediaTrackInfo_String(selTrack, "P_NAME", "", false);
 	-- let the magic happen
 	local countSel = reaper.CountSelectedMediaItems(0)
-	if true then
-		-- reaper.ShowMessageBox("This action does not work so well with multiple media items", "Warning", 0)
-		doRegionItems(regionItems)
-	else
-		regionItemSelect(regionItems[1], true)
-		local exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(regionItems[1], quantizeThreshold, true)
-		handleExceededRegionEdges(regionItems[1], exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
-	end
+
+	doRegionItems(regionItems)
 	
 
 	-- select only our initially selected track

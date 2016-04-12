@@ -142,7 +142,7 @@ function mediaItemGarbageCleanSelected()
 		local item = reaper.GetSelectedMediaItem(0, countSel-i)
 		local notes = reaper.ULT_GetMediaItemNote(item)
 		fdebug(notes)
-		if notes == "envelope_fix" then
+		if notes == "ActonDev_fix" then
 			-- remove it!
 			local track = reaper.GetMediaItem_Track(item)
 			reaper.DeleteTrackMediaItem(track, item)
@@ -156,10 +156,11 @@ function firstTrackFix()
 	local startOut, endOut = reaper.GetSet_LoopTimeRange(false, false, 0, 0, 0)
 	reaper.SetMediaItemInfo_Value(tempItem, "D_POSITION", startOut)
 	reaper.SetMediaItemInfo_Value(tempItem, "D_LENGTH", endOut - startOut)
-	reaper.ULT_SetMediaItemNote(tempItem, "envelope_fix")
+	reaper.ULT_SetMediaItemNote(tempItem, "ActonDev_fix")
 	reaper.SetMediaItemSelected(tempItem, true)
 	local guid = reaper.BR_GetMediaItemGUID(tempItem)
 	appendExtState("MediaItemGarbageGUID", guid)
+	reaper.SetMediaItemInfo_Value(tempItem, "I_GROUPID ", 32)
 end
 
 -- insert an empty item wherever there is an envelope (so that envelope gets copied correctly)
@@ -183,10 +184,12 @@ function envelopeFix(item)
 			local startOut, endOut = reaper.GetSet_LoopTimeRange(false, false, 0, 0, 0)
 			reaper.SetMediaItemInfo_Value(tempItem, "D_POSITION", startOut)
 			reaper.SetMediaItemInfo_Value(tempItem, "D_LENGTH", endOut - startOut)
-			reaper.ULT_SetMediaItemNote(tempItem, "envelope_fix")
+			reaper.ULT_SetMediaItemNote(tempItem, "ActonDev_fix")
 			reaper.SetMediaItemSelected(tempItem, true)
 			local guid = reaper.BR_GetMediaItemGUID(tempItem)
 			appendExtState("MediaItemGarbageGUID", guid)
+			reaper.SetMediaItemInfo_Value(tempItem, "I_GROUPID", 32)
+			reaper.SetMediaItemInfo_Value(tempItem, "I_CUSTOMCOLOR", reaper.ColorToNative(0,0,0)|0x1000000)
 			-- local prevGarbage
 			-- _,prevGarbage = reaper.GetProjExtState(0, "ActonDev", "MediaItemGarbageGUID", string value)
 			-- local newGarbage = prevGarbage .. newGarbage .. ";" 
@@ -198,9 +201,10 @@ end
 
 -- region items are the empty items with notes (NOT midi notes! :P) in them
 function regionItemSelect(item, clean)
+	if clean == nil then clean = true end
 	if clean then
 		-- do not delete items when selection multiple regions (cause temporarily selected items get stores, then unselected and next region items get selected..)
-		-- final stage: select all items. If some have gotten deleted results in error: plus no envelope_fix
+		-- final stage: select all items. If some have gotten deleted results in error: plus no ActonDev_fix
 		mediaItemGarbageClean()
 	end
 
@@ -252,7 +256,7 @@ function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStart
 	local itemNotes = reaper.ULT_GetMediaItemNote(sourceItem)
 
 	if exceedStart then
-		local actionSelected = boolToDialog(keepEndingIn) or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?", "Region: \""..itemNotes.."\"", 4)
+		local actionSelected = boolToDialog(keepEndingIn) or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?\n\n(Option will be remembered if multiple regions are selected)", "Region \""..itemNotes.."\"", 4)
 		if actionSelected == 6 then
 			-- split? yes
 			keepEndingIn = false
@@ -262,7 +266,7 @@ function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStart
 		end
 	end
 	if exceedEnd then
-		local actionSelected = boolToDialog(keepStartingIn) or reaper.ShowMessageBox("Some of the selected items end after the region item\nSplit items?", "Region: \""..itemNotes.."\"", 4)
+		local actionSelected = boolToDialog(keepStartingIn) or reaper.ShowMessageBox("Some of the selected items end after the region item\nSplit items?\n\n(Option will be remembered if multiple regions are selected)", "Region \""..itemNotes.."\"", 4)
 		if actionSelected == 6 then
 			-- split? yes
 			keepStartingIn = false
@@ -284,6 +288,7 @@ function activeTakeName(item)
 end
 
 function itemsExceedRegionEdges(regionItem, threshold)
+	local diffFloor = 0.0000000000001
 	-- debug_mode = debug_mode-1
 	-- returns exceedStart, exceedEnd, countUpdated (depends on threshold)
 	-- 	 	countUpdated return value notes the number of edited items (changed item position/length)
@@ -314,17 +319,17 @@ function itemsExceedRegionEdges(regionItem, threshold)
 		if  tempItem ~= regionItem and (tempEnd>regionPosition and tempPosition<regionEnd) then 
 			fdebug("\tIn here")
 
-			local flagUpdated = false
+			local flagQuantized = false
 			
 			-- checking region starts
-			if diffStart > 0 then
+			if diffStart > diffFloor then
 				fdebug("\ttempPosition<regionPosition, true")
 				-- small glitches: fuck off
 				if threshold > 0 then
 					fdebug("\there 1")
 					if  diffStart < threshold then
 						-- fdebug("position diffStart " .. )
-						flagUpdated = true
+						flagQuantized = true
 						reaper.SetMediaItemPosition(tempItem, regionPosition, false)
 						tempPosition = regionPosition
 						-- keep same region end (since position -start- changed)
@@ -343,11 +348,11 @@ function itemsExceedRegionEdges(regionItem, threshold)
 
 			-- checking region ends (updating diffEnd cause it might changed with quantizing)
 			diffEnd = tempEnd - regionEnd
-			if diffEnd > 0 then
-				fdebug("\ttempEnd>regionEnd, true")
+			if diffEnd > diffFloor then
+				fdebug("\ttempEnd>regionEnd, true " .. diffEnd)
 				if threshold > 0 then
 					if  diffEnd<threshold then
-						flagUpdated = true
+						flagQuantized = true
 						reaper.SetMediaItemLength(tempItem, regionEnd-tempPosition, false)
 						tempLength = regionEnd-tempPosition
 						tempEnd = tempPosition + tempLength
@@ -360,7 +365,7 @@ function itemsExceedRegionEdges(regionItem, threshold)
 				end
 			end
 
-			if flagUpdated then
+			if flagQuantized then
 				countQuantized = countQuantized + 1
 			end
 		end
