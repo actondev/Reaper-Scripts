@@ -2,8 +2,8 @@ ActonDev.themeContent = nil
 ActonDev.themeFileName = ""
 ActonDev.themeError = nil
 ActonDev.themeFileNameFallback = debug.getinfo(1,'S').source:match("@(.+)[/\\].+$").. "/Default_5.0_unpacked.ReaperTheme"
-ActonDev.themeFileNameFallback = string.gsub(ActonDev.themeFileNameFallback, "\\", "/")
-
+-- package.config:sub(1,1) is the os path separator
+ActonDev.themeFileNameFallback = string.gsub(ActonDev.themeFileNameFallback, "/", package.config:sub(1,1))
 updateColorsCallback = nill
 
 -- if flag colorize to r,g,b
@@ -165,7 +165,7 @@ function checkThemeChange()
 			ActonDev.themeContent = theme:read("*a")
 			io.close(theme)
 		else
-			reaper.ShowMessageBox("Please unpack your current theme, so that .ReaperTheme file is readable", "Error", 0)
+			-- reaper.ShowMessageBox("Please unpack your current theme, so that .ReaperTheme file is readable", "Error", 0)
 			local theme = io.open(ActonDev.themeFileNameFallback, "r")
 			-- ActonDev.themeError = false
 			ActonDev.themeContent = theme:read("*a")
@@ -185,6 +185,9 @@ function themeColor(key, rgb)
 	-- if rgb == true, returns r,g,b values at [0-1] range
 	-- 		example: 0.2, 0.5654, 0.332
 
+	
+
+
 	-- window background: col_main_bg
 	-- Main window/transport text: col_main_text2
 	-- Main window/transport background: col_main_bg2 
@@ -201,14 +204,17 @@ function themeColor(key, rgb)
 	if rgb == nil then rgb = false; end
 	
 
-	-- if .ReaperTheme not available
-	-- if ActonDev.themeError then
-	-- 	local random =  math.random(0,255)
-	-- 	if rgb then return random/255,random/255,random/255 end
-	-- 	return random
-	-- end
+	-- ini file alternative.. reaper.ini does not get update on theme change?
+	-- local inipath = reaper.get_ini_file()
+	-- local ret, stringOut = reaper.BR_Win32_GetPrivateProfileString("color theme", key, "", inipath)
+	-- fdebug("HERE " .. key)
+	-- fdebug(ret)
+	-- fdebug(stringOut)
+	-- local color = stringOut
+
 
 	local color = string.match(ActonDev.themeContent,key.."=([%-%d]+)\n")
+
 	color = tonumber(color,10)
 	if color<0 then 
 		color = color + 2147483648 

@@ -1,13 +1,10 @@
--- Original script: eugen2777. HUGE APPRECIATION ABOUT THIS!
+require 'Scripts.Actondev.deps.template'
+require 'Scripts.Actondev.deps.colors'
+require 'Scripts.Actondev.deps.class'
+require 'Scripts.Actondev.deps.GuiBuffer'
+require 'Scripts.Actondev.deps.drawing'
 
-package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
--- reaper.ShowConsoleMsg(package.path)
-require 'ActonDev.deps.template'
-require 'ActonDev.deps.colors'
-require 'ActonDev.deps.class'
-require 'ActonDev.deps.GuiBuffer'
-require 'ActonDev.deps.drawing'
-debug_mode = 1
+debug_mode = 0
 
 label = "ActonDev: Fx Routing Matrix"
 
@@ -172,7 +169,8 @@ function draw_FX_labels(track, fx, x, y, w, h)
 			reaper.SNM_MoveOrRemoveTrackFX(track, fx, 0)
 		else
 			-- normal click, open Fx window
-			reaper.TrackFX_SetOpen(track, fx, not reaper.TrackFX_GetOpen(track, fx) )--not bool for change state
+			reaper.TrackFX_SetOpen(track, fx, 0)
+			reaper.TrackFX_SetOpen(track, fx, 1 )--not bool for change state
 			-- sleep(1)
 			reaperCMD("_BR_MOVE_WINDOW_TO_MOUSE_H_M_V_T")
 		end

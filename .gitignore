@@ -1,3 +1,4 @@
 *.zip
 Temp*
 _*
+options*.lua

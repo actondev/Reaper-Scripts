@@ -10,8 +10,8 @@ GuiBuffer = class(function(self,id)
 	self.outStartX, self.outStartY = 0,0
 	self.outEndX, self.outEndY = 0,0
 
-	self.inW, inH = 0,0
-	self.outW, outH = 0,0
+	self.inW, self.inH = 0,0
+	self.outW, self.outH = 0,0
 
 	self.scrollX, self.scrollY = 0,0
 

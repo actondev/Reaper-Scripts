@@ -1,21 +1,40 @@
-package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
--- reaper.ShowConsoleMsg(package.path)
-require 'ActonDev.deps.template'
-require 'ActonDev.deps.region'
+require 'Scripts.Actondev.deps.template'
+require 'Scripts.Actondev.deps.region'
+
+-- default options: copy this file on Scripts/ActonDev/ and rename it to options where you can freely change the values
+-- the file will still exist even after scripts updates, you won't loose your settings
+require 'Scripts.ActonDev.options-defaults'
+-- this will load YOUR settings and will overwrite defaults
+pcall(require, 'Scripts.ActonDev.options')
 
 debug_mode = 0
 
-regionItems = {}
+
+quantizeThreshold = RegionCopyScanPaste.quantizeThreshold
+keepStartingIn = RegionCopyScanPaste.keepStartingIn
+keepEndingIn = RegionCopyScanPaste.keepEndingIn
+
 label = 'ActonDev: Copy Region'
 
-function copyItems()
+function copyItems(sourceItem)
 	-- split items at time selection
 	-- reaperCMD(40061)
 	-- copy items
-	-- reaperCMD(40698)
+	-- fdebug(sourceItem)
+	-- fdebug(" HERE " .. reaper.ULT_GetMediaItemNote(sourceItem) )
+	local exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(sourceItem, quantizeThreshold, true)
+	-- gfx.init(200,300)
+	fdebug("exceedStart..")
+	fdebug(exceedStart)
 
-	-- copy selected are of items
-	reaperCMD(40060)
+	if (keepStartingIn==false or not exceedEnd) and keepEndingIn==false then
+		-- copy selected are of items
+		reaperCMD(40060)
+	else
+		handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
+		-- normal copy items (if we wanna keep exceedign items: gotta call handleExceededRegionEdges before)
+		reaperCMD(40698)		
+	end
 end
 
 -- item, notes are the source item, source notes
@@ -53,8 +72,14 @@ function scanPaste(targetRegionItems, sourceItem, sourceNotes)
 				-- remove items
 				-- reaperCMD(40006)
 
-				-- remove selected area of items
-				reaperCMD(40312)
+				if(keepStartingIn==false and keepEndingIn==false) then
+					-- remove selected area of items
+					reaperCMD(40312)
+				else
+					handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
+					-- remove items
+					reaperCMD(40006)	
+				end
 				-- paste
 				reaperCMD(40058)
 				
@@ -83,7 +108,7 @@ function doRegionItems(sourceRegionItems, targetRegionItems)
 		-- but it seems that if first track contains no item, then *SONG tracks have problem in pasting
 		firstTrackFix()
 
-		copyItems()
+		copyItems(sourceItem)
 		scanPaste(targetRegionItems, sourceItem, sourceNotes)
 	end
 end
@@ -101,12 +126,12 @@ function main()
 	reaperCMD("_SWS_SAVEVIEW")
 	reaperCMD("_BR_SAVE_CURSOR_POS_SLOT_1")
 	-- save selected region items
-	local sourceRegionItems = getRegionItems()
+	local sourceRegionItems = getSelectedItems()
 	fdebug("Source items N: " .. #sourceRegionItems)
 	-- select all items in track
 	reaperCMD(40421)
 	-- save all region items (to iterate through, and paste/replace)
-	local targetRegionItems = getRegionItems()
+	local targetRegionItems = getSelectedItems()
 	fdebug("Target items N:  " .. #targetRegionItems)
 	doRegionItems(sourceRegionItems, targetRegionItems)
 	

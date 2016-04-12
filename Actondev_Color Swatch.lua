@@ -1,9 +1,6 @@
--- local scriptPath = debug.getinfo(1,'S').source:match("@(.+)[/\\].+$")
-package.path = reaper.GetResourcePath()..'/Scripts/?.lua;' .. package.path
--- reaper.ShowConsoleMsg(scriptPath)
-require 'ActonDev.deps.template'
-require 'ActonDev.deps.colors'
-require 'ActonDev.deps.drawing'
+require 'Scripts.ActonDev.deps.template'
+require 'Scripts.ActonDev.deps.colors'
+require 'Scripts.ActonDev.deps.drawing'
 debug_mode = 0
 
 label = "ActonDev: Color Swatch"
@@ -28,6 +25,11 @@ b=0
 contextTracks = "TRACK(S)"
 contextItems = "ITEM(S)"
 
+function scriptColors()
+	gfx.clear = themeColor("col_main_bg2")
+	gui.textColor = {themeColor("col_main_text2", true)}
+end
+
 function init()
 	-- Add stuff to "gui" table
 	gui.settings = {}                 -- Add "settings" table to "gui" table 
@@ -35,8 +37,9 @@ function init()
 	gui.settings.docker_id = 0        -- try 0, 1, 257, 513, 1027 etc.
 	gui.font = "Verdana"
 	gui.fontSize = 15
-	gfx.clear = themeColor("col_main_bg2")
-	gui.textColor = {themeColor("col_main_text2", true)}
+	
+	scriptColors()
+
 	fdebug(gui.textColor[1])
 	---------------------------
 	-- Initialize gfx window --
@@ -64,6 +67,7 @@ end
 --------------
 
 function initDraw()
+	checkThemeChange()
 	gfx.set(table.unpack(gui.textColor))
 	if reaper.GetCursorContext2(true) == 0 then
 		context = contextTracks
