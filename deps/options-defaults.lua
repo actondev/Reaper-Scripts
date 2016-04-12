@@ -1,7 +1,9 @@
 --[[
 -------------------------------------
 DEFAULT OPTIONS: DO NOT EDIT FILE
+might and SHOULD get overwritten when you update the scripts
 -------------------------------------
+
 Make a copy of this file (in the same folder) and name it to 'options.lua'
 then edit that file as you plase
 

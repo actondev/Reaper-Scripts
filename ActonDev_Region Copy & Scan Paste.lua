@@ -121,7 +121,7 @@ function main()
 	reaper.SetOnlyTrackSelected(selTrack)
 
 	reaper.PreventUIRefresh(1)
-
+	mediaItemGarbageClean()
 	reaperCMD("_SWS_SAVETIME1")
 	reaperCMD("_SWS_SAVEVIEW")
 	reaperCMD("_BR_SAVE_CURSOR_POS_SLOT_1")
@@ -140,10 +140,12 @@ function main()
 	reaper.SetOnlyTrackSelected(selTrack)
 
 	setSelectedItems(sourceRegionItems)
+	mediaItemGarbageClean()
 
 	reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
 	reaperCMD("_SWS_RESTOREVIEW")
 	reaperCMD("_SWS_RESTTIME1")
+
 	reaper.PreventUIRefresh(-1)
 	reaper.UpdateArrange()
 
