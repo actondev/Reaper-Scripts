@@ -14,12 +14,23 @@ quantizeThreshold = RegionSelect.quantizeThreshold
 keepStartingIn = RegionSelect.keepStartingIn
 keepEndingIn = RegionSelect.keepEndingIn
 
-debug_mode = 0
+debug_mode = 1
 
 function doRegionItems(regionItems)
+	keepStartingIn = false
+	keepEndingIn = false
 	local i
+	local flagSplitted = false
 	for  i = 1, reaper.CountSelectedMediaItems(0) do
+		fdebug("HERE ASD")
+		fdebug(regionItems[i])
 		regionItemSelect(regionItems[i], false)
+		local exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(regionItems[i], quantizeThreshold, true)
+		flagSplitted = flagSplitted or exceedStart or exceedEnd
+		handleExceededRegionEdges(regionItems[i], true, true, false, false)
+	end
+	if flagSplitted then
+		reaper.ShowMessageBox("Some items have been splitted.\nThis action works better with single region items selected.", "ActonDev: Region Item Select", 0)
 	end
 end
 
@@ -39,7 +50,16 @@ function main()
 	-- local retval;
 	-- retval, selName = reaper.GetSetMediaTrackInfo_String(selTrack, "P_NAME", "", false);
 	-- let the magic happen
-	doRegionItems(regionItems)
+	local countSel = reaper.CountSelectedMediaItems(0)
+	if countSel > 1 then
+		-- reaper.ShowMessageBox("This action does not work so well with multiple media items", "Warning", 0)
+		doRegionItems(regionItems)
+	else
+		regionItemSelect(regionItems[1], false)
+		local exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(regionItems[1], quantizeThreshold, true)
+		handleExceededRegionEdges(regionItems[1], exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
+	end
+	
 
 	-- select only our initially selected track
 	reaper.SetOnlyTrackSelected(selTrack);

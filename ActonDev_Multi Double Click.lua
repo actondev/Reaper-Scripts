@@ -7,7 +7,7 @@ require 'Scripts.ActonDev.options-defaults'
 -- this will load YOUR settings and will overwrite defaults
 pcall(require, 'Scripts.ActonDev.options')
 
-debug_mode = 0
+debug_mode = 1
 
 
 quantizeThreshold = RegionSelect.quantizeThreshold
@@ -25,7 +25,7 @@ function main()
 	-- Source type possible values: MIDI, WAVE, MP3.. so i keep the first 3
 	-- if no <Source tag in the chunk, then it's an empty item (region item in my case, also known as notes items)
 	itemType = string.match(selChunk, "<SOURCE%s(%P%P%P).*\n")
-	fdebug(itemType)
+	-- fdebug(itemType)
 	if itemType == nil then
 		-- "folder/region" empty item
 		reaper.PreventUIRefresh(1)
@@ -39,15 +39,15 @@ function main()
 		-- if keepStartingIn or keepEndingIn or threshold > 0
 
 		exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(selItem, quantizeThreshold, true)
-		fdebug("exceedStart")
-		fdebug(exceedStart)
+		-- fdebug("exceedStart")
+		-- fdebug(exceedStart)
 		handleExceededRegionEdges(selItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
 
 
 		-- select only our initially selected track
 		reaper.SetOnlyTrackSelected(selTrack);
-		reaperCMD("_SWS_RESTTIME1")
-		reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
+		-- reaperCMD("_SWS_RESTTIME1")
+		-- reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
 		-- refresh ui, create undo point
 		
 		label = "ActonDev Region select: " .. countSelected

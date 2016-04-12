@@ -7,6 +7,24 @@ function setSelectedItems(items)
 	end
 end
 
+function setTimeSelectionToItem(item)
+	fdebug("setTimeSelectionToItem")
+	-- set time selection to items
+	reaperCMD(40290)
+	-- local itemPosition = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+	-- local itemLength = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+	-- reaper.GetSet_LoopTimeRange(true, false, itemPosition, itemPosition+itemLength, false)
+end
+
+function selectItemsInTimeSelection()
+	-- reapers default  command unselect previously selected items ugh..
+	reaperCMD(40718)
+	-- reaperCMD("_BR_SEL_ALL_ITEMS_TIME_SEL_MIDI")
+	-- reaperCMD("_BR_SEL_ALL_ITEMS_TIME_SEL_AUDIO")
+	-- reaperCMD("_BR_SEL_ALL_ITEMS_TIME_SEL_EMPTY")
+	-- reaperCMD("_BR_SEL_ALL_ITEMS_TIME_SEL_PIP")
+end
+
 function getRegionItems()
 	local retRegionItems = {}
 	local countItems = reaper.CountSelectedMediaItems(0)
@@ -49,10 +67,12 @@ function unselectSpecialTracks(ignoreTrackName)
 	end
 end
 
-function region_selectAll(trackName)
+function region_selectAll(item, trackName)
 	-- eg: "*SONG" titled track
 	-- will select all tracks
-	reaperCMD(40290) -- set time selection to items
+	-- reaperCMD(40290) -- set time selection to items
+	fdebug("region select all")
+	setTimeSelectionToItem(item)
 	reaperCMD(40296) -- select all tracks
 	unselectSpecialTracks(trackName)
 
@@ -63,13 +83,15 @@ function region_selectAll(trackName)
 	-- reaperCMD(40508) -- trim items to selected area
 end
 
-function region_folder()
+function region_folder(item)
 	reaperCMD("_SWS_SELCHILDREN2");
 	-- normal mode, will select children
 	-- set time selection to items
-	reaperCMD(40290)
+	-- reaperCMD(40290)
+	setTimeSelectionToItem(item)
 	-- select all items on selected tracks in current time selection
-	reaperCMD(40718)
+	-- reaperCMD(40718)
+	selectItemsInTimeSelection()
 end
 
 function region_ofParentFolder()
@@ -101,7 +123,7 @@ function mediaItemGarbageClean()
 	for token in string.gmatch(garbage, "[{%w%-}]+") do
 		fdebug(token)
 		local item = reaper.BR_GetMediaItemByGUID(0, token)
-		fdebug(item)
+		-- fdebug(item)
 		if item then
 			-- MediaTrack reaper.GetMediaItem_Track(MediaItem item)
 			local track = reaper.GetMediaItem_Track(item)
@@ -113,11 +135,13 @@ function mediaItemGarbageClean()
 end
 
 function mediaItemGarbageCleanSelected()
+	fdebug("mediaItemGarbageCleanSelected")
 	local countSel = reaper.CountSelectedMediaItems(0)
 	local i
 	for i=1,countSel do
 		local item = reaper.GetSelectedMediaItem(0, countSel-i)
 		local notes = reaper.ULT_GetMediaItemNote(item)
+		fdebug(notes)
 		if notes == "envelope_fix" then
 			-- remove it!
 			local track = reaper.GetMediaItem_Track(item)
@@ -196,7 +220,7 @@ function regionItemSelect(item, unselect)
 	-- old way, unnecessary: if string.match(trackName, "[*].*") == trackName then
 	if firstChar == "*" then
 		-- select across all tracks
-		region_selectAll(trackName)
+		region_selectAll(item, trackName)
 		-- % is escape character (^ is special)
 	elseif firstChar == "^" then
 		-- select the children of this tracks parent
@@ -210,7 +234,7 @@ function regionItemSelect(item, unselect)
 		region_followingTracks(selTrack, numToSelect)
 	else
 		-- normal behavior: item is on a folder, selecting items of children tracks
-		region_folder()
+		region_folder(item)
 	end
 	-- set first selected track as last touched track
 	reaperCMD(40914)
@@ -221,9 +245,8 @@ function regionItemSelect(item, unselect)
 end
 
 function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
-	local _,chunk =  reaper.GetItemStateChunk(sourceItem, "", 0)
-	local itemPosition = string.match(chunk, "POSITION ([0-9%.]+)\n")
-	local itemLength = string.match(chunk, "LENGTH ([0-9%.]+)\n")
+	local itemPosition = reaper.GetMediaItemInfo_Value(sourceItem, "D_POSITION")
+	local itemLength = reaper.GetMediaItemInfo_Value(sourceItem, "D_LENGTH")
 
 	if exceedStart then
 		local actionSelected = boolToDialog(keepEndingIn) or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?", "ActonDev: Region Item", 4)
@@ -247,49 +270,62 @@ function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStart
 	end
 end
 
+function activeTakeName(item)
+	local take = reaper.GetActiveTake(item)
+	-- fdebug(take)
+	if take == nil then
+		return reaper.ULT_GetMediaItemNote(item)
+	else
+		return reaper.GetTakeName(take)
+	end
+end
 
 function itemsExceedRegionEdges(regionItem, threshold)
+	-- debug_mode = debug_mode-1
 	-- returns exceedStart, exceedEnd, countUpdated (depends on threshold)
 	-- 	 	countUpdated return value notes the number of edited items (changed item position/length)
 
 	-- return values
-	fdebug(" HERE " .. reaper.ULT_GetMediaItemNote(regionItem) )
+	fdebug("itemsExceedRegionEdges " .. reaper.ULT_GetMediaItemNote(regionItem) )
 	local exceedStart, exceedEnd, countQuantized = false, false, 0
 
-	local _,chunk =  reaper.GetItemStateChunk(regionItem, "", 0)
-	local itemPosition = string.match(chunk, "POSITION ([0-9%.]+)\n")
-	local itemLength = string.match(chunk, "LENGTH ([0-9%.]+)\n")
-
+	-- local _,chunk =  reaper.GetItemStateChunk(regionItem, "", 0)
+	local itemPosition = reaper.GetMediaItemInfo_Value(regionItem, "D_POSITION")
+	local itemLength = reaper.GetMediaItemInfo_Value(regionItem, "D_LENGTH")
 	local itemEnd = itemPosition+itemLength
-	fdebug("Item\t" ..itemPosition .. "\t" .. itemLength)
+	
+	fdebug("\tItem\t" ..itemPosition .. "\t" .. itemEnd)
 	-- fdebug(itemLength)
 	local countSel = reaper.CountSelectedMediaItems(0)
 	for i=1,countSel do
 		local tempItem = reaper.GetSelectedMediaItem(0, i-1)
-		
-		if tempItem ~= regionItem then 
-			local _,tempChunk =  reaper.GetItemStateChunk(tempItem, "", 0)
-			local tempPosition = string.match(tempChunk, "POSITION ([0-9%.]+)\n")
-			local tempLength = string.match(tempChunk, "LENGTH ([0-9%.]+)\n")
-			local tempEnd = tempPosition + tempLength
-			fdebug("Temp\t" ..tempPosition .. "\t" .. tempLength)
+		local tempPosition = reaper.GetMediaItemInfo_Value(tempItem, "D_POSITION")
+		local tempLength = reaper.GetMediaItemInfo_Value(tempItem, "D_LENGTH")
+		local tempEnd = tempPosition + tempLength
+		local diffStart = itemPosition - tempPosition
+		local diffEnd = tempEnd - itemEnd
+		-- when selelcting multiple region items, ignore those that are off limits
+		-- also check tempItem ~= regionItem ?
+		fdebug("\tTemp\t" ..tempPosition .. "\t" .. tempEnd .. "\t" .. activeTakeName(tempItem))
+		if  tempItem ~= regionItem and (tempEnd>itemPosition and tempPosition<itemEnd) then 
+			fdebug("\tIn here")
 
 			local flagUpdated = false
-			local diff = itemPosition - tempPosition
+			
 			-- checking item starts
-			if diff > 0 then
-				fdebug("tempPosition<itemPosition, true")
+			if diffStart > 0 then
+				fdebug("\ttempPosition<itemPosition, true")
 				-- small glitches: fuck off
 				if threshold > 0 then
-					fdebug("here 1")
-					if  diff < threshold then
-						-- fdebug("position diff " .. )
+					fdebug("\there 1")
+					if  diffStart < threshold then
+						-- fdebug("position diffStart " .. )
 						flagUpdated = true
 						reaper.SetMediaItemPosition(tempItem, itemPosition, false)
 						tempPosition = itemPosition
 						-- keep same item end (since position -start- changed)
-						reaper.SetMediaItemLength(tempItem, tempLength - diff, true)
-						tempLength = tempLength - diff
+						reaper.SetMediaItemLength(tempItem, tempLength - diffStart, true)
+						tempLength = tempLength - diffStart
 						tempEnd = tempPosition + tempLength
 					else
 						exceedStart = true
@@ -301,13 +337,12 @@ function itemsExceedRegionEdges(regionItem, threshold)
 			end
 			-- !exceedStart
 
-			-- checking item ends
-			diff = tempEnd - itemEnd
-			if diff > 0 then
-				fdebug("tempEnd>itemEnd, true")
+			-- checking item ends (updating diffEnd cause it might changed with quantizing)
+			diffEnd = tempEnd - itemEnd
+			if diffEnd > 0 then
+				fdebug("\ttempEnd>itemEnd, true")
 				if threshold > 0 then
-					local diff = tempEnd - itemEnd
-					if  diff<threshold then
+					if  diffEnd<threshold then
 						flagUpdated = true
 						reaper.SetMediaItemLength(tempItem, itemEnd-tempPosition, false)
 						tempLength = itemEnd-tempPosition
@@ -326,7 +361,7 @@ function itemsExceedRegionEdges(regionItem, threshold)
 			end
 		end
 		-- end if same item as source
-	fdebug("")
+		fdebug("")
 	end
 	-- !end for
 
@@ -334,5 +369,6 @@ function itemsExceedRegionEdges(regionItem, threshold)
 		reaper.ShowMessageBox(countQuantized .. " item(s) quantized (difference in edges below " .. quantizeThreshold .. " ms)\nIt was probably a glitch in their positioning\nUndo if action not desired, and edit the .lua file for the desired threshold.", "ActonDev: Region item Select", 0)
 	end
 
+	-- debug_mode = debug_mode+1
 	return exceedStart, exceedEnd, countQuantized
 end
