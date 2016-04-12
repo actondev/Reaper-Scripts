@@ -29,7 +29,7 @@ function copyItems(sourceItem)
 	fdebug("exceedStart..")
 	fdebug(exceedStart)
 
-	if(keepStartingIn==false and keepEndingIn==false) then
+	if (keepStartingIn==false or not exceedEnd) and keepEndingIn==false then
 		-- copy selected are of items
 		reaperCMD(40060)
 	else
