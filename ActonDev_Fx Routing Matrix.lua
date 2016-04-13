@@ -37,6 +37,133 @@ function scriptColors()
 	colors.labelText = colors.back
 end
 
+function take_title(target)
+
+end
+
+
+function FX_GetChannelCount(target, context)
+	-- fdebug(context)
+	if target == nil then return 0 end
+	if context == "track" then
+		return math.min( reaper.GetMediaTrackInfo_Value(target, "I_NCHAN"), 32 )
+	else
+		local item = reaper.GetMediaItemTake_Item(target)
+		local takeIdx = reaper.GetMediaItemInfo_Value(item, "I_CURTAKE")
+		local _,chunk = reaper.GetItemStateChunk(item, "", false)
+		local takes = reaper.GetMediaItemNumTakes(item)
+		local channels = 2
+		if false or takes == 1 then
+			-- local pattern = 
+			channels = chunk:match("TAKEFX_NCH (%d+)") or 2
+			-- fdebug("FOUND " .. channels)
+		else
+			-- have to cut out the part of the chunk regarding this take
+			local pattern = ""
+			for i=0,takeIdx-1 do
+				pattern = "\nNAME .+" .. pattern
+			end
+			pattern = pattern .. "\n+NAME (.+)"
+			for i=takeIdx+1,takes-1 do
+				pattern = pattern .. "\n+NAME .+"
+			end
+			-- fdebug(pattern:gsub("\n","\\n"))
+			local chunkPart = chunk:match(pattern)
+			channels = chunkPart:match("TAKEFX_NCH (%d+)") or 2
+			-- fdebug(">>>>>>>>>>>>>")
+			-- fdebug(chunkPart)
+			-- fdebug("FOUND " .. channels)
+			-- fdebug("<<<<<<<<<<<<<<")
+		end
+
+
+		local pattern = "NAME .+"
+		for i=1,takeIdx do
+
+		end
+		-- fdebug(takeIdx)
+		return channels
+	end
+end
+
+function FX_TargetName(target, context)
+	if context == "track" then
+		local _, track_name = reaper.GetSetMediaTrackInfo_String(target, "P_NAME", "", false)
+		return track_name
+	else
+		return "Take"
+	end
+end
+
+function targetLabel(target, context)
+	local label = ""
+	if context == "track" then
+		label = "Track " .. math.floor(reaper.GetMediaTrackInfo_Value(target, "IP_TRACKNUMBER"))
+		local _, track_name = reaper.GetSetMediaTrackInfo_String(target, "P_NAME", "", false)
+		if track_name:len()>0 then
+			label = label .. "  "..track_name..""
+		end
+		return label
+	else
+		local takeName = reaper.GetTakeName(target)
+		local item = reaper.GetMediaItemTake_Item(target)
+		local takeIdx = math.floor(reaper.GetMediaItemInfo_Value(item, "I_CURTAKE"))
+		local takes = reaper.GetMediaItemNumTakes(item)
+
+		label = "Take " .. takeIdx+1 .. "/" .. takes
+		label = label .. "  "..takeName .. ""
+	end
+	return label
+end
+-- if targetName:len()>0 then targetName = "\""..targetName.."\"" end
+-- gfx.printf("Track " .. math.floor(targetId) .. "  " .. targetName)
+
+function FX_TargetId(target, context)
+	if context == "track" then
+		return reaper.GetMediaTrackInfo_Value(target, "IP_TRACKNUMBER")
+	else
+		return 0
+	end
+end
+
+context = "track"
+function setFxContext(what)
+	context = what
+	if what == "track" then
+		FX_GetPinMappings = reaper.TrackFX_GetPinMappings
+		FX_SetPinMappings = reaper.TrackFX_SetPinMappings
+		-- TakeFX_GetFXName
+		FX_GetFXName = reaper.TrackFX_GetFXName
+		FX_GetIOSize = reaper.TrackFX_GetIOSize
+		FX_GetEnabled = reaper.TrackFX_GetEnabled
+		FX_SetEnabled = reaper.TrackFX_SetEnabled
+		FX_SetOpen = reaper.TrackFX_SetOpen
+		FX_GetCount = reaper.TrackFX_GetCount
+		FX_Show = reaper.TrackFX_Show
+
+		FX_Remove =
+		function(target,fx)
+			reaper.SNM_MoveOrRemoveTrackFX(target, fx, 0)
+		end
+	else
+		FX_GetPinMappings = reaper.TakeFX_GetPinMappings
+		FX_SetPinMappings = reaper.TakeFX_SetPinMappings
+		-- TakeFX_GetFXName
+		FX_GetFXName = reaper.TakeFX_GetFXName
+		FX_GetIOSize = reaper.TakeFX_GetIOSize
+		FX_GetEnabled = reaper.TakeFX_GetEnabled
+		FX_SetEnabled = reaper.TakeFX_SetEnabled
+		FX_SetOpen = reaper.TakeFX_SetOpen
+		FX_GetCount = reaper.TakeFX_GetCount
+		FX_Show = reaper.TakeFX_Show
+		FX_Remove =
+		function(target, fx)
+			-- well...
+		end
+	end
+end
+
+
 function init()
 	----------------------------------------------------------------------------------------------------
 	----------------------------------------------------------------------------------------------------
@@ -90,8 +217,8 @@ end
 ----------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------
 ---draw current pin---------------------------------------------------------------------------------
-function draw_pin(track,fx,isOut,pin,chans, x,y,w,h, alphaIn)
-	local Low32,Hi32 = reaper.TrackFX_GetPinMappings(track, fx, isOut, pin)--Get current pin
+function draw_pin(target,fx,isOut,pin,chans, x,y,w,h, alphaIn)
+	local Low32,Hi32 = FX_GetPinMappings(target, fx, isOut, pin)--Get current pin
 	local bit,val
 	local Click = mouseClick()
 	gfx.a=1
@@ -118,7 +245,7 @@ function draw_pin(track,fx,isOut,pin,chans, x,y,w,h, alphaIn)
 			else
 				Low32 = Low32 + bit
 			end 
-			reaper.TrackFX_SetPinMappings(track, fx, isOut , pin, Low32, Hi32)--Set pin 
+			FX_SetPinMappings(target, fx, isOut , pin, Low32, Hi32)--Set pin 
 		end
 
 		gfx.a = alphaIn
@@ -137,10 +264,10 @@ function calcWindowWidth(track)
 end
 
 ---draw_FX_labels-----------------------------------------
-function draw_FX_labels(track, fx, x, y, w, h)
-	local _, fx_name = reaper.TrackFX_GetFXName(track, fx, "");
+function draw_FX_labels(target, fx, x, y, w, h)
+	local _, fx_name = FX_GetFXName(target, fx, "");
 	fx_name = " ".. string.gsub(fx_name, "[VSTiJS]+: ", "")
-	local _, in_Pins,out_Pins = reaper.TrackFX_GetIOSize(track,fx)
+	local _, in_Pins,out_Pins = FX_GetIOSize(target,fx)
 	if out_Pins==-1 and in_Pins~=-1 then out_Pins=in_Pins end --in some JS outs ret "-1" 
 
 	w,h = w*(in_Pins+out_Pins+1.2)-2,h-1 --correct values for label position
@@ -149,7 +276,7 @@ function draw_FX_labels(track, fx, x, y, w, h)
 	if fx_name:len() > maxChars then
 		fx_name = fx_name:sub(1, maxChars-1)..".."
 	end
-	local fxEnabled = reaper.TrackFX_GetEnabled(track,fx)
+	local fxEnabled = FX_GetEnabled(target,fx)
 	-----------------------
 	gfx.x, gfx.y = x, y+(h-gfx.texth)/2
 	gfx.set(colors.labelBack[1], colors.labelBack[2], colors.labelBack[3])
@@ -163,14 +290,19 @@ function draw_FX_labels(track, fx, x, y, w, h)
 	if mouseClick() and pointIN(x+select(1,fxBuffer:mouseOffset()),y+select(2,fxBuffer:mouseOffset()),w,h) then
 		if Shift then
 			-- Toggle Bypass
-			reaper.TrackFX_SetEnabled(track, fx, not fxEnabled)
+			FX_SetEnabled(target, fx, not fxEnabled)
 		elseif Alt then
 			-- Remove Fx
-			reaper.SNM_MoveOrRemoveTrackFX(track, fx, 0)
+			FX_Remove(target, fx)
 		else
 			-- normal click, open Fx window
-			reaper.TrackFX_SetOpen(track, fx, 0)
-			reaper.TrackFX_SetOpen(track, fx, 1 )--not bool for change state
+			-- close floating fx for selected track
+			-- gfx.mouse_y = gfx.mouse_y-200
+			-- reaperCMD("_S&M_WNCLS5")
+			FX_Show(target, 0, 0)
+			FX_Show(target,fx,1)
+			
+			-- FX_SetOpen(target, fx, 1 )--not bool for change state
 			-- sleep(1)
 			reaperCMD("_BR_MOVE_WINDOW_TO_MOUSE_H_M_V_T")
 		end
@@ -182,19 +314,19 @@ end
 
 
 ---draw current FX--------------------------------------
-function draw_FX_pins(track, fx, chans, x,y,w,h, alphaTrack)
-	local _, in_Pins,out_Pins = reaper.TrackFX_GetIOSize(track,fx) 
+function draw_FX_pins(target, fx, chans, x,y,w,h, alphaAll)
+	local _, in_Pins,out_Pins = FX_GetIOSize(target,fx) 
 	--for some JS-plug-ins---------------------------------
 	if out_Pins==-1 and in_Pins~=-1 then out_Pins=in_Pins end --in some JS outs ret "-1" 
 
 	local enabled, alphaFX
-	if reaper.TrackFX_GetEnabled(track,fx) then
+	if FX_GetEnabled(target,fx) then
 		alphaFX = 1
 	else
 		alphaFX = alphaBypass
 	end
 
-	local alpha = math.min(alphaTrack,alphaFX)
+	local alpha = math.min(alphaAll, alphaFX)
 
 	---------------------------------
 	--------------------------------
@@ -207,7 +339,7 @@ function draw_FX_pins(track, fx, chans, x,y,w,h, alphaTrack)
 	-- local xStart = x
 	for i=1,in_Pins do
 		-- highlight_column(x,w-2,y,chans*w)
-		_,tempY = draw_pin(track,fx,isOut, i-1,chans, x,y,w,h, alpha)--(track,fx,isOut, pin,chans, x,y,  w,h)
+		_,tempY = draw_pin(target,fx,isOut, i-1,chans, x,y,w,h, alpha)
 		
 		x = x + w --next x
 	end
@@ -218,7 +350,7 @@ function draw_FX_pins(track, fx, chans, x,y,w,h, alphaTrack)
 	local isOut=1 
 	for i=1,out_Pins do
 		-- highlight_column(x,w-2,y,chans*w)
-		_,tempY = draw_pin(track,fx,isOut, i-1,chans, x,y,w,h, alpha)--(track,fx,isOut, pin,chans, x,y,  w,h)
+		_,tempY = draw_pin(target,fx,isOut, i-1,chans, x,y,w,h, alpha)
 		maxY = math.max(maxY, tempY)
 		
 		x = x + w --next x
@@ -241,7 +373,7 @@ function draw_rows(chans, x, y, w, h)
 	for i=1,chans,2 do
 		gfx.set(table.unpack(colors.odd))
 		-- if gfx.mouse_y  >= tempY and gfx.mouse_y <= tempY + h then
-		if mouseOver(0,tempY,gfx.w,h) then
+		if mouseOver(0,tempY,gfx.w,h-1) then
 			-- highlight row
 			gfx.set(table.unpack(colors.highlightRow))
 		end
@@ -253,7 +385,7 @@ function draw_rows(chans, x, y, w, h)
 	for i=2,chans,2 do
 		gfx.set(table.unpack(colors.even))
 		-- if gfx.mouse_y  >= tempY and gfx.mouse_y <= tempY + h then
-		if mouseOver(0,tempY,gfx.w,h) then
+		if mouseOver(0,tempY,gfx.w,h-1) then
 			-- highlight row
 			gfx.set(table.unpack(colors.highlightRow))
 		end
@@ -263,7 +395,7 @@ function draw_rows(chans, x, y, w, h)
 end
 
 --draw in-out +/- buttons-----------------------
-function draw_track_chan_add_sub(track,chans, x,y,w,h)
+function draw_target_chan_add_sub(target,chans, x,y,w,h)
 	-- y=y+0.5*h
 	gfx.set(table.unpack(colors.text))
 	-- "-" --
@@ -273,7 +405,13 @@ function draw_track_chan_add_sub(track,chans, x,y,w,h)
 	gfx.x, gfx.y = x + (w-1.2*s_w)/2 , y + (h-1.2*s_h)/2 
 	gfx.printf("-")
 	-- y = y + h
-	if mouseClick() and pointIN(x,y,w,h) then reaper.SetMediaTrackInfo_Value(track, "I_NCHAN", math.max(chans-2,2))  end 
+	if mouseClick() and pointIN(x,y,w,h) then
+		if context == "track" then
+			reaper.SetMediaTrackInfo_Value(target, "I_NCHAN", math.max(chans-2,2)) 
+		else
+			-- item
+		end
+	end 
 
 	-- "+" --
 	-- Add channels
@@ -283,7 +421,14 @@ function draw_track_chan_add_sub(track,chans, x,y,w,h)
 	gfx.x, gfx.y = x + (w-1.2*s_w)/2 , y + (h-1.2*s_h)/2 
 	gfx.printf("+")
 	
-	if mouseClick() and pointIN(x,y,w,h) then reaper.SetMediaTrackInfo_Value(track, "I_NCHAN", math.min(chans+2,32)) end 
+	if mouseClick() and pointIN(x,y,w,h) then
+		if context == "track" then
+			reaper.SetMediaTrackInfo_Value(target, "I_NCHAN", math.min(chans+2,32))
+		else
+			-- item
+		end
+	end 
+
 	return x+w
 end
 ------------------------------------------------
@@ -303,14 +448,14 @@ function draw_track_in_out(type,track,chans, x,y,w,h)
 		gfx.set(table.unpack(colors.back))
 		if i < 10 then gfx.x =x+4 else gfx.x =x end
 		-- drawString(i, "center", x,y,w,h)
-		 gfx.y =y-1
-		 gfx.printf(i)
+		gfx.y =y-1
+		gfx.printf(i)
 		y = y + h
 	end
 	return x,y
 end
 
-function draw_FX_enabled(track, enabled, x, y, w, h)
+function draw_FX_enabledToggle(track, enabled, x, y, w, h)
 	local statusText
 	gfx.rect(x,y,w-2,h-2, 0)
 	if(enabled == 1) then
@@ -330,7 +475,29 @@ function draw_FX_enabled(track, enabled, x, y, w, h)
 	end
 end
 
-function draw_FX_add(x,y, w, h)
+function draw_FX_list(target, x,y,w,h)
+	local text = " FX "
+	local s_w, s_h = gfx.measurestr(text)
+	x = x
+	y=y+2
+	gfx.x = x
+	gfx.y = y
+	
+	-- gfx.y = y-2*w
+	gfx.set(table.unpack(colors.text))
+	gfx.rect(x,y,s_w,s_h, 1)
+	gfx.set(table.unpack(colors.back))
+	gfx.printf(text)
+	if mouseClick() and pointIN(x,y,s_w,s_h) then
+		-- close floating fx for current track
+		reaperCMD("_S&M_WNCLS5")
+		-- show chain
+		FX_Show(target, 0, 1)
+		reaperCMD("_BR_MOVE_WINDOW_TO_MOUSE_H_M_V_T")
+	end
+end
+
+function draw_FX_add(target, x,y, w, h)
 	local text = " Add FX "
 	local s_w, s_h = gfx.measurestr(text)
 	x = x
@@ -345,7 +512,12 @@ function draw_FX_add(x,y, w, h)
 	gfx.printf(text)
 	if mouseClick() and pointIN(x,y,s_w,s_h) then
 		-- open FX browser
-		reaperCMD(40271)
+		if context == "track" then
+			reaperCMD(40271)
+		else
+			FX_Show(target,0,1)
+		end
+		-- reaper.TakeFX_AddByName(target, "eq", 1)
 		reaperCMD("_BR_MOVE_WINDOW_TO_MOUSE_H_M_V_T")
 	end
 end
@@ -381,9 +553,9 @@ function drawScrollbar(x,y,w,h)
 	end
 end
 
----Main DRAW function---------------------------
-lastTrack = nil
-function DRAW()
+---Main draw_loop function---------------------------
+lastTarget = nil
+function draw_loop(target)
 	x=0
 	y=0
 
@@ -396,38 +568,36 @@ function DRAW()
 	local M_Wheel
 	----
 	gfx.set(colors.text[1], colors.text[2], colors.text[3])
-	local track = reaper.GetSelectedTrack(0, 0)
-	if lastTrack ~= track then scrollX = 0 end
-	lastTrack = track
-	if track then
-		local trackId = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
-		local _, track_name = reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "", false)
-		local fx_count = reaper.TrackFX_GetCount(track)
-		local chans = math.min( reaper.GetMediaTrackInfo_Value(track, "I_NCHAN"), 32 ) -- max value for visible chans
+
+	if lastTarget ~= target then scrollX = 0 end
+	-- global lastTarget
+	lastTarget = target
+	-- local context = "track"
+
+	if target then
+		-- local trackId = reaper.GetMediaTrackInfo_Value(track, "IP_TRACKNUMBER")
+		local targetId = FX_TargetId(target, context)
+		-- local _, targetName = reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "", false)
+		local targetName = FX_TargetName(target, context)
+		
+		local fx_count = FX_GetCount(target)
+		local chans = FX_GetChannelCount(target, context)
+
 		--------------------------------------------------------
 		--------------------------------------------------------
 		---Zoom------
-		if Ctrl and not Shift then
+		if false and Ctrl and not Shift then
 			M_Wheel = gfx.mouse_wheel;gfx.mouse_wheel = 0
 			if M_Wheel>0 then
-				-- Z = math.min(Z+1, 30)
+				Z = math.min(Z+1, 30)
 			elseif M_Wheel<0 then
-				-- Z = math.max(Z-1, 8)
-			end
-			gfx.setfont(1,gui.font, Z)
-		end
-		---Rewind---
-		if Shift and not Ctrl then
-			M_Wheel = gfx.mouse_wheel;gfx.mouse_wheel = 0
-			if M_Wheel<0 then
-				R = math.min(R+1, fx_count)
-			elseif M_Wheel>0 then
-				R = math.max(R-1, 1)
+				Z = math.max(Z-1, 8)
 			end
 			gfx.setfont(1,gui.font, Z)
 		end
 
 		if not Shift and not Ctrl then
+			-- scroll horizontally
 			M_Wheel = gfx.mouse_wheel;gfx.mouse_wheel = 0
 			if M_Wheel<0 then
 				scrollX = scrollX + scrollStep
@@ -440,18 +610,33 @@ function DRAW()
 		gfx.x, gfx.y = w, h
 
 		local alpha = 1
-		local fxEnabled = reaper.GetMediaTrackInfo_Value(track, "I_FXEN")
-		if fxEnabled == 0 then
-			alpha = 0.7
+
+		-- takes do not have fx bypass (just per fx enable/disable)
+		local fxEnabled = 1
+		if context == "track" then
+			fxEnabled = reaper.GetMediaTrackInfo_Value(target, "I_FXEN")
+			if fxEnabled == 0 then
+				alpha = 0.7
+			end
 		end
 
-		draw_FX_enabled(track,fxEnabled, 0.5*w,y,w,h)
+		if context == "track" then
+			draw_FX_enabledToggle(target,fxEnabled, 0.5*w,y,w,h)
+		end
 
 		gfx.x, gfx.y = 4*w, y
-		if track_name:len()>0 then track_name = "\""..track_name.."\"" end
-		gfx.printf("Track " .. math.floor(trackId) .. "  ".. track_name.."  |  FXs: "..fx_count .. "   |    ")
-
-		draw_FX_add(gfx.x, gfx.y, w, h)
+		
+		gfx.printf(targetLabel(target, context))
+		gfx.x = gfx.x+w
+		-- |  FXs: "..fx_count .. "   |    "
+		draw_FX_list(target, gfx.x, y-2, w, h)
+		gfx.set(table.unpack(colors.text))
+		gfx.x = gfx.x+w/2
+		gfx.printf(fx_count)
+		-- gfx.x = gfx.x+w/2
+		if context == "track" then
+			draw_FX_add(target, gfx.w-100, y-2, w, h)
+		end
 		y = gfx.y+3*h
 
 		-- gfx.printf("Add")
@@ -461,8 +646,10 @@ function DRAW()
 		draw_rows(chans,x,y,w,h)
 		gfx.x, gfx.y = x, h
 		
-		x, tempY = draw_track_in_out("IN", track,chans, x+w,y,w,h)
-		draw_track_chan_add_sub(track,chans, x-1.5*w,tempY-h,w,h)
+		x, tempY = draw_track_in_out("IN", target,chans, x+w,y,w,h)
+		if context == "track" then
+			draw_target_chan_add_sub(target,chans, x-1.5*w,tempY-h,w,h)
+		end
 		x=x+1.5*w
 		
 		-- drawing on FX buffer (to make it scrollable)
@@ -470,28 +657,23 @@ function DRAW()
 		local fx_x,fx_y = 0,0
 		-- local tempY = 0
 		for i=1, fx_count do --R = 1-st drawing FX(used for rewind FXs)
-			fx_x = draw_FX_labels(track, i-1, fx_x, fx_y, w, h, alpha)
-			fx_x, tempY = draw_FX_pins(track, i-1,chans, fx_x, 0, w, h,alpha) -- offset for next FX
+			fx_x = draw_FX_labels(target, i-1, fx_x, fx_y, w, h, alpha)
+			fx_x, tempY = draw_FX_pins(target, i-1,chans, fx_x, 0, w, h,alpha) -- offset for next FX
 			fx_x = fx_x + w
 		end
+		-- drawing back on on-screen buffer
+		gfx.dest = -1;
 
 		-- setting actual drawn size (to calculate maxScroll)
 		-- 		adding some padding to make it work with scrollStep size
 		fxBuffer:setInSize(math.floor(fx_x-w), tempY)
-
-		-- drawing back on on-screen buffer
-		gfx.dest = -1;
-		
-		draw_track_in_out("OUT",track,chans, gfx.w-2*w,y,w,h)
-		----------------------------
-		-- gfx.a=1
-		
+		draw_track_in_out("OUT",target,chans, gfx.w-2*w,y,w,h)		
 	else
 		-- track nill
-		gfx.x, gfx.y = 4*w, h; gfx.printf("No selected track!") 
+		gfx.x, gfx.y = 4*w, h; gfx.printf("No tracks or takes selected!") 
 	end
 	-- gfx.update()
-	gfx.dest = -1
+
 	gfx.x=0;gfx.y=0
 	gfx.mode = 0
 
@@ -524,7 +706,22 @@ function mainloop()
 	----------------------
 	--MAIN DRAW function--
 	checkThemeChange()
-	DRAW()
+
+	target = nil
+	if reaper.GetCursorContext2(true) == 1 and reaper.CountSelectedMediaItems(0)>0 then
+		local item = reaper.GetSelectedMediaItem(0,0)
+		local take = reaper.GetActiveTake(item)
+		if take ~=nil then
+			target = take
+			setFxContext("item")
+		end
+	end
+	if target == nil then
+		setFxContext("track")
+		target = reaper.GetSelectedTrack(0,0)
+	end
+
+	draw_loop(target)
 	----------------------
 	----------------------
 	last_mouse_cap = gfx.mouse_cap
