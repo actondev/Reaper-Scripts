@@ -1,6 +1,6 @@
-require 'Scripts.Actondev.deps.template'
+require 'Scripts.ActonDev.deps.template'
 -- required for unselectSpecialTracks
-require 'Scripts.Actondev.deps.region'
+require 'Scripts.ActonDev.deps.region'
 
 debug_mode = 1
 

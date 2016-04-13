@@ -1,8 +1,8 @@
-require 'Scripts.Actondev.deps.template'
-require 'Scripts.Actondev.deps.colors'
-require 'Scripts.Actondev.deps.class'
-require 'Scripts.Actondev.deps.GuiBuffer'
-require 'Scripts.Actondev.deps.drawing'
+require 'Scripts.ActonDev.deps.template'
+require 'Scripts.ActonDev.deps.colors'
+require 'Scripts.ActonDev.deps.class'
+require 'Scripts.ActonDev.deps.GuiBuffer'
+require 'Scripts.ActonDev.deps.drawing'
 
 debug_mode = 0
 

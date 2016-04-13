@@ -1,5 +1,5 @@
-require 'Scripts.Actondev.deps.template'
-require 'Scripts.Actondev.deps.region'
+require 'Scripts.ActonDev.deps.template'
+require 'Scripts.ActonDev.deps.region'
 
 -- default options: copy this file on Scripts/ActonDev/ and rename it to options where you can freely change the values
 -- the file will still exist even after scripts updates, you won't loose your settings
