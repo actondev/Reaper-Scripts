@@ -7,6 +7,28 @@ function setSelectedItems(items)
 	end
 end
 
+function getItemType(item)
+	local _,selChunk =  reaper.GetItemStateChunk(item, "", 0)
+	local  itemType = string.match(selChunk, "<SOURCE%s(%P%P%P).*\n")
+	if itemType == nil then
+		return "empty"
+	elseif itemType == "MID" then
+		return "midi"
+	else
+		return "audio"
+	end
+end
+
+function getRegionName(item)
+	if getItemType(item) == "empty" then
+		return reaper.ULT_GetMediaItemNote(item)
+	else
+		local take = reaper.GetActiveTake(item)
+		local takeName = reaper.GetTakeName(take)
+		return takeName
+	end
+end
+
 function setTimeSelectionToItem(item)
 	fdebug("setTimeSelectionToItem")
 	-- set time selection to items
@@ -33,7 +55,7 @@ function getSelectedItems()
 	for i = 1, countItems do
 		-- fdebug("i " .. i)
 		local tempItem = reaper.GetSelectedMediaItem(0, i-1)
-		local state = reaper.ULT_GetMediaItemNote(tempItem)
+		-- local state = reaper.ULT_GetMediaItemNote(tempItem)
 		-- fdebug("state len " .. string.len(state))
 		-- fdebug(state)
 		retRegionItems[i] = tempItem
@@ -253,10 +275,10 @@ end
 function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
 	local itemPosition = reaper.GetMediaItemInfo_Value(sourceItem, "D_POSITION")
 	local itemLength = reaper.GetMediaItemInfo_Value(sourceItem, "D_LENGTH")
-	local itemNotes = reaper.ULT_GetMediaItemNote(sourceItem)
+	local regionName = getRegionName(sourceItem)
 
 	if exceedStart then
-		local actionSelected = boolToDialog(keepEndingIn) or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?\n\n(Option will be remembered if multiple regions are selected)", "Region \""..itemNotes.."\"", 4)
+		local actionSelected = boolToDialog(keepEndingIn) or reaper.ShowMessageBox("Some of the selected items start before of the region item\nSplit items?\n\n(Option will be remembered if multiple regions are selected)", "Region \""..regionName.."\"", 4)
 		if actionSelected == 6 then
 			-- split? yes
 			keepEndingIn = false
@@ -266,9 +288,10 @@ function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStart
 		end
 	end
 	if exceedEnd then
-		local actionSelected = boolToDialog(keepStartingIn) or reaper.ShowMessageBox("Some of the selected items end after the region item\nSplit items?\n\n(Option will be remembered if multiple regions are selected)", "Region \""..itemNotes.."\"", 4)
+		local actionSelected = boolToDialog(keepStartingIn) or reaper.ShowMessageBox("Some of the selected items end after the region item\nSplit items?\n\n(Option will be remembered if multiple regions are selected)", "Region \""..regionName.."\"", 4)
 		if actionSelected == 6 then
 			-- split? yes
+			fdebug("split, select left")
 			keepStartingIn = false
 			reaper.SetEditCurPos(itemPosition+itemLength, false, false)
 			-- split at edit cursor, select left

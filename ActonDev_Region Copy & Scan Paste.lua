@@ -51,13 +51,12 @@ function scanPaste(targetRegionItems, sourceItem, sourceNotes)
 			fdebug(i .. " type " .. type(tempItem))
 			-- fdebug(chunk)
 			local tempNotes = reaper.ULT_GetMediaItemNote(tempItem)
-			local tempNotes = reaper.ULT_GetMediaItemNote(tempItem)
 			
 			fdebug(i .."#   " .. tempNotes)
 			if tempItem == sourceItem then
 				-- it's our initial region item, whose region we want to copy
 				fdebug("    :::IGNORE:::")
-			elseif tempNotes == sourceNotes then
+			elseif getRegionName(tempItem) == getRegionName(sourceItem) then
 				fdebug("    :::PASTE:::")
 				targetRegionItems[i] = 0
 				-- paste here
