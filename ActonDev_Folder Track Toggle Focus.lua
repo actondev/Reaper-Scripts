@@ -2,16 +2,12 @@ require 'Scripts.Actondev.deps.template'
 -- required for unselectSpecialTracks
 require 'Scripts.Actondev.deps.region'
 
-debug_mode = 0
+debug_mode = 1
 
 label = "ActonDev: Folder Track Toggle Focus"
 
 function showAll()
-	fdebug("Show all 1")
-	if( getExtState("FolderFocus") ~= "true") then
-		return
-	end
-	fdebug("Show all 2")
+	fdebug("Show all")
 	label = "ActonDev: Show all"
 	reaperCMD("_SWSTL_SHOWALLTCP")
 	reaperCMD("_SWS_SELALLPARENTS")
@@ -125,11 +121,13 @@ function main()
 	local focus = false
 	reaper.Undo_BeginBlock()
 	reaper.PreventUIRefresh(1)
-	local selTrack = reaper.GetSelectedTrack(0, 0)
 	
+	fdebug("Ext state" .. getExtState("FolderFocus"))
+	local stateFocused = getExtState("FolderFocus")
 	-- saveHiddenTracks()
 	
-	if selTrack and getExtState("FolderFocus")~= "true" then
+	if reaper.CountSelectedTracks(0)>0 and stateFocused~= "true" then
+		local selTrack = reaper.GetSelectedTrack(0, 0)
 		local folderDepth = reaper.GetMediaTrackInfo_Value(selTrack, "I_FOLDERDEPTH")
 		local trackDepth = reaper.GetTrackDepth(selTrack)
 
@@ -140,9 +138,9 @@ function main()
 			-- focus = true
 			folderFocus()
 		else
-			showAll()
+			-- showAll()
 		end
-	else
+	elseif stateFocused== "true" then
 		showAll()
 	end
 
@@ -151,6 +149,7 @@ function main()
 	end
 	
 	-- reaper.UpdateArrange()
+	fdebug("Ext state" .. getExtState("FolderFocus"))
 	reaper.PreventUIRefresh(-1)
 	reaper.Undo_EndBlock(label, -1) 
 
