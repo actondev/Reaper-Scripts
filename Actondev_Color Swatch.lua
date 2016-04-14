@@ -1,3 +1,4 @@
+package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 require 'Scripts.ActonDev.deps.template'
 require 'Scripts.ActonDev.deps.colors'
 require 'Scripts.ActonDev.deps.drawing'

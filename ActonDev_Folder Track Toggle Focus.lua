@@ -1,3 +1,4 @@
+package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 require 'Scripts.ActonDev.deps.template'
 -- required for unselectSpecialTracks
 require 'Scripts.ActonDev.deps.region'
