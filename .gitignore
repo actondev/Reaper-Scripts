@@ -1,6 +1,12 @@
 *.zip
-Temp*
+# temp files (personal testing)
+temp*
+# also temp files
 _*
+# user options (ignore mine :P)
 options*.lua
 
+# i previously ignored options*
 !deps/options-defaults.lua
+# i previously ignored temp*
+!deps/template.lua
