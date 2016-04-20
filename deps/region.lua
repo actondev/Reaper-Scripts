@@ -47,20 +47,31 @@ function selectItemsInTimeSelection()
 	-- reaperCMD("_BR_SEL_ALL_ITEMS_TIME_SEL_PIP")
 end
 
-function getSelectedItems()
+function getRegionItems()
 	local retRegionItems = {}
 	local countItems = reaper.CountSelectedMediaItems(0)
 	-- fdebug("countItems: " .. countItems)
-	local i
+	local i,j = 1,1
 	for i = 1, countItems do
 		-- fdebug("i " .. i)
 		local tempItem = reaper.GetSelectedMediaItem(0, i-1)
-		-- local state = reaper.ULT_GetMediaItemNote(tempItem)
-		-- fdebug("state len " .. string.len(state))
-		-- fdebug(state)
-		retRegionItems[i] = tempItem
+		if getItemType(tempItem) == "empty" then
+			retRegionItems[j] = tempItem
+			j=j+1
+		end		
 	end
 	return retRegionItems
+end
+
+function getSelectedTracks()
+	local retTracks = {}
+	local countTracks = reaper.CountSelectedTracks(0)
+	local i
+	for i = 1, countTracks do
+		local tempTrack = reaper.GetSelectedTrack(0, i-1)
+		retTracks[i] = tempTrack
+	end
+	return retTracks
 end
 
 function unselectSpecialTracks(ignoreTrackName)
@@ -89,13 +100,15 @@ function unselectSpecialTracks(ignoreTrackName)
 	end
 end
 
-function region_selectAll(item, trackName)
+function region_selectAll(item, trackName, selectiveRegion)
 	-- eg: "*SONG" titled track
 	-- will select all tracks
 	-- reaperCMD(40290) -- set time selection to items
 	fdebug("region select all")
 	setTimeSelectionToItem(item)
-	reaperCMD(40296) -- select all tracks
+	if not selectiveRegion then
+		reaperCMD(40296) -- select all tracks
+	end
 	unselectSpecialTracks(trackName)
 
 	
@@ -222,8 +235,9 @@ function envelopeFix(item)
 end
 
 -- region items are the empty items with notes (NOT midi notes! :P) in them
-function regionItemSelect(item, clean)
+function regionItemSelect(item, clean, selectiveRegion)
 	if clean == nil then clean = true end
+
 	if clean then
 		-- do not delete items when selection multiple regions (cause temporarily selected items get stores, then unselected and next region items get selected..)
 		-- final stage: select all items. If some have gotten deleted results in error: plus no ActonDev_fix
@@ -236,7 +250,7 @@ function regionItemSelect(item, clean)
 	reaperCMD(40289)
 	reaper.SetMediaItemSelected(item, true)
 	local selTrack = reaper.GetMediaItemTrack(item)
-	reaper.SetOnlyTrackSelected(selTrack)
+	
 	-- set first selected track as last touched track
 	reaperCMD(40914)
 
@@ -248,12 +262,14 @@ function regionItemSelect(item, clean)
 	-- old way, unnecessary: if string.match(trackName, "[*].*") == trackName then
 	if firstChar == "*" then
 		-- select across all tracks
-		region_selectAll(item, trackName)
+		region_selectAll(item, trackName, selectiveRegion)
 		-- % is escape character (^ is special)
 	elseif firstChar == "^" then
+		reaper.SetOnlyTrackSelected(selTrack)
 		-- select the children of this tracks parent
 		region_ofParentFolder()
 	elseif firstChar == ">" then
+		reaper.SetOnlyTrackSelected(selTrack)
 		-- select folling n tracks (siblings)
 		local numToSelect = string.match(trackName, ">(%d+).*")
 		if numToSelect == nil then
@@ -261,6 +277,7 @@ function regionItemSelect(item, clean)
 		end
 		region_followingTracks(selTrack, numToSelect)
 	else
+		reaper.SetOnlyTrackSelected(selTrack)
 		-- normal behavior: item is on a folder, selecting items of children tracks
 		region_folder(item)
 	end
@@ -285,6 +302,8 @@ function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStart
 			reaper.SetEditCurPos(itemPosition, false, false)
 			-- split at edit cursor, select right
 			reaperCMD(40759)
+		else
+			keepEndingIn = true
 		end
 	end
 	if exceedEnd then
@@ -296,8 +315,11 @@ function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStart
 			reaper.SetEditCurPos(itemPosition+itemLength, false, false)
 			-- split at edit cursor, select left
 			reaperCMD(40758)
+		else
+			keepStartingIn = true
 		end
 	end
+	return keepStartingIn, keepEndingIn
 end
 
 function activeTakeName(item)
