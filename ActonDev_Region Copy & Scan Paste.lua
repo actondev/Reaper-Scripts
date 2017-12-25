@@ -163,7 +163,7 @@ function main()
 	end
 
 	setSelectedItems(sourceRegionItems)
-	-- mediaItemGarbageClean()
+	mediaItemGarbageClean()
 
 	reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
 	reaperCMD("_SWS_RESTOREVIEW")
