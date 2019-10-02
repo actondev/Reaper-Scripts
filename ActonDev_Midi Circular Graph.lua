@@ -16,7 +16,10 @@ integer reaper.FNG_CountMidiNotes(RprMidiTake midiTake)
 RprMidiNote reaper.FNG_GetMidiNote(RprMidiTake midiTake, integer index)
 [FNG] Get a MIDI note from a MIDI take at specified index
 
- retval, notecnt, ccevtcnt, textsyxevtcnt = reaper.MIDI_CountEvts( take )
+ retval, selected, muted, ppqpos, chanmsg, chan, msg2, msg3 = reaper.MIDI_GetCC( take, ccidx )
+
+retval, notecnt, ccevtcnt, textsyxevtcnt = reaper.MIDI_CountEvts( take )
+
 
 gfx.triangle(x1,y1,x2,y2,x3,y3[x4,y4...] )
 
@@ -27,12 +30,29 @@ https://www.extremraym.com/cloud/reascript-doc/#FNG_GetMidiNote
 --]]
 local gui = {}
 
+local white = {1, 1, 1}
+local black = {0, 0, 0}
+local red = {1, 0, 0}
+-- starting from A/La/440Hz
+local keyColors = {
+    white, -- A
+    black, -- A#
+    white, -- B
+    white, -- C
+    black, -- C#
+    white, -- D
+    black, -- D#
+    white, -- E
+    white, -- F
+    black, -- F#
+    white, -- G
+    black -- G#
+}
 
 -- todo
 -- function: draw circular piano notes
 -- function: draw midi notes
 -- support pitch bend?
-
 function rgbToString(rgb)
     local text = "rgb(" .. rgb[1] .. "," .. rgb[2] .. "," .. rgb[3] .. ")"
     return text
@@ -42,15 +62,32 @@ function unpackRgb(rgb)
     return rgb[1], rgb[2], rgb[3]
 end
 
+function midi2f(note)
+    return 2^((note-69)/12) * 440
+end
+
+function log2(x)
+    return math.log(x) / math.log(2)
+end
+
+function f2angle(root, f)
+    return 2 * math.pi * log2(f/root)
+end
+
+function rad2deg(rad)
+    return (rad * 180)/math.pi
+end
+
 -- As suggested in https://github.com/ReaTeam/ReaScripts/blob/master/Various/Lokasenna_Radial%20Menu.lua#L6886
 function arcArea(cx, cy, r1, r2, angle1, angle2)
     for r = r1, r2, 0.5 do
-        gfx.arc(cx, cy, r, angle1, angle2, 1) -- last paremeter is antialias
+        gfx.arc(cx, cy, r, angle1, angle2, 1)-- last paremeter is antialias
     end
 end
 
 function tempActiveMidi()
-    local item =  reaper.GetSelectedMediaItem(0, 0)
+    local root = 440
+    local item = reaper.GetSelectedMediaItem(0, 0)
     if item == nil then
         fdebug("nill item")
         return
@@ -59,38 +96,74 @@ function tempActiveMidi()
     -- retval, notecnt, ccevtcnt, textsyxevtcnt = reaper.MIDI_CountEvts( take )
     local _, midiNotesCnt, midiCcCnt, _ = reaper.MIDI_CountEvts(take)
     fdebug("midi notes: " .. midiNotesCnt)
+    local midiTake =  reaper.FNG_AllocMidiTake( take )
+    for i = 0,midiNotesCnt-1 do
+        local note = reaper.FNG_GetMidiNote( midiTake, i )
+        local pitch = reaper.FNG_GetMidiNoteIntProperty(note, "PITCH")
+        local f = midi2f(pitch)
+        local angle = f2angle(root, f)
+        local deg = rad2deg(angle)
+        fdebug("midi note " .. i .. " pitch " .. pitch .. " f " .. midi2f(pitch) .. " deg " .. deg)
+    end
+end
+
+function selectedMidiFrequencies()
+    local item = reaper.GetSelectedMediaItem(0, 0)
+    if item == nil then
+        return {}
+    end
+    local take = reaper.GetActiveTake(item)
+    local _, midiNotesCnt, midiCcCnt, _ = reaper.MIDI_CountEvts(take)
+    local midiTake =  reaper.FNG_AllocMidiTake( take )
+    local freqs = {}
+    for i = 0,midiNotesCnt-1 do
+        local note = reaper.FNG_GetMidiNote( midiTake, i )
+        local pitch = reaper.FNG_GetMidiNoteIntProperty(note, "PITCH")
+        local f = midi2f(pitch)
+        table.insert(freqs, f)
+    end
+
+    return freqs
+end
+
+function drawSelectedMidiFrequencies(opts)
+    local r = opts.r
+    local root = opts.root
+    local cx = opts.cx
+    local cy = opts.cy
+    local freqs = selectedMidiFrequencies()
+    gfx.set(1,1,1)
+    for i,f in pairs(freqs) do
+        fdebug ("i " .. i .. " f " .. f)
+        local angle = f2angle(root, f)
+        angle = angle - math.pi/2 -- 0 at 12 o'clock
+        local x = cx + r * math.cos(angle)
+        local y = cy + r * math.sin(angle)
+        gfx.circle(x,y,10, true)
+        fdebug("midi note " .. i .. " f " .. f .. " deg " .. rad2deg(angle))
+    end
 end
 
 function pianoRoll(cx, cy, r1, r2)
+    local r3 = r2 + 10
     local A = 440;
-    local white = {1,1,1}
-    local black = {0,0,0}
-    local colors = {white, -- A
-        black, -- A#
-        white, -- B
-        white, -- C
-        black, -- C#
-        white, -- D
-        black, -- D#
-        white, -- E
-        white, -- F
-        black, -- F#
-        white, -- G
-        black -- G#
-    }
-    local key_angle = 2*math.pi / 12
+    local key_angle =  2 * math.pi / 12
     local angle_width = 0.8 * key_angle
     local angle_width_half = angle_width / 2
-
-    for i,key_color in pairs(colors) do
+    
+    for i, key_color in pairs(keyColors) do
         i = i - 1
-        local angle = i * key_angle - math.pi/2 -- -math.pi/2 to make 0 be at the top (12 o'clock)
+        local angle = i * key_angle 
         local angle_start = angle - angle_width_half
         local angle_end = angle + angle_width_half
-        local x = cx + r1*math.cos(angle)
-        local y = cy + r1*math.sin(angle)
         gfx.set(unpackRgb(key_color))
-        arcArea(cx,cy,r1,r2,angle_start,angle_end)
+        arcArea(cx, cy, r1, r2, angle_start, angle_end)
+
+        -- angle = angle - math.pi/2
+        -- local x = cx + r3 * math.cos(angle)
+        -- local y = cy + r3 * math.sin(angle)
+        -- gfx.circle(x, y, 4, true)
+        -- fdebug("i " .. i .. " color " .. rgbToString(key_color) .. " deg " .. rad2deg(angle))
     end
 end
 
@@ -113,7 +186,7 @@ function init()
     gui.font = "Verdana"
     gui.fontSize = 15
     scriptColors()
-
+    
     ---------------------------
     -- Initialize gfx window --
     ---------------------------
@@ -124,6 +197,7 @@ function init()
     gfx.setfont(1, gui.font, gui.fontSize)
 end
 
+local opts = {["root"] = 440, ["r"] = 80, ["cx"] = 50, ["cy"] = 50}
 
 function draw()
     checkThemeChange()-- from colors.lua
@@ -139,6 +213,9 @@ function draw()
     
     gfx.x = 0
     gfx.y = 10
+
+    opts.cx = gfx.w/2
+    opts.cy = gfx.h/2
     
     gfx.setfont(1, gui.font, gui.fontSize)
     drawString("context ")
@@ -146,22 +223,31 @@ function draw()
     drawString(context)
     gfx.setfont(1, gui.font, gui.fontSize)
     
-    pianoRoll(gfx.w/2,gfx.h/2, 40, 50)
+    pianoRoll(gfx.w / 2, gfx.h / 2, 40, 50)
+    drawSelectedMidiFrequencies(opts)
 end
 
+local redraw = true
+
 function mainloop()
-    draw()
-    gfx.update()
     local c = gfx.getchar()
-    
-    if c==97 then -- 97 is 'a'
-        tempActiveMidi()
+    -- draw()
+    gfx.update()
+    if c > 0 then -- 97 is 'a'
+        redraw = true
     end
     -- it's -1 when closed, and 27 at ESC
+
+    if redraw == true then
+        draw()
+    end
+    redraw = false
+
     if c >= 0 and c ~= 27 and not exit then
         reaper.defer(mainloop)
     end
 end
 init()
-tempActiveMidi()
+-- tempActiveMidi()
+drawSelectedMidiFrequencies(opts)
 mainloop()
