@@ -42,4 +42,4 @@ function class(base, init)
    end
    setmetatable(c, mt)
    return c
-end
+end

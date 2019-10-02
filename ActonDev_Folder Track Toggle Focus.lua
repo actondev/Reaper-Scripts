@@ -3,7 +3,7 @@ require 'Scripts.ActonDev.deps.template'
 -- required for unselectSpecialTracks
 require 'Scripts.ActonDev.deps.region'
 
-debug_mode = 1
+debug_mode = 0
 
 label = "ActonDev: Folder Track Toggle Focus"
 

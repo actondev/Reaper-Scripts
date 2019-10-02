@@ -155,6 +155,7 @@ function getThemeFileName()
 	end
 end
 
+-- TODO should not check scriptColors function, but work with callbaks. duh..
 function checkThemeChange()
 	if reaper.GetLastColorThemeFile() ~= ActonDev.themeFileName then
 		ActonDev.themeFileName = reaper.GetLastColorThemeFile()
@@ -243,4 +244,4 @@ function TcpRedraw()
 	end
 	reaper.SetMediaTrackInfo_Value(track, "I_FOLDERCOMPACT", trackparam)
 	reaper.PreventUIRefresh(-1)
-end
+end

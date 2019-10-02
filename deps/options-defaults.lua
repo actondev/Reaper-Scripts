@@ -45,4 +45,4 @@ RegionCopyScanPaste = {
 
 CommonOptions = {
 	alertOnQuantize = true
-}
+}

@@ -23,4 +23,4 @@ function drawRectBorder(x,y,w,h,b)
 	gfx.rect(x,y,b,h,1)
 	-- right
 	gfx.rect(x+w-b,y,b,h,1)
-end
+end

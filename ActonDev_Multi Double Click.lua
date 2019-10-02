@@ -35,7 +35,7 @@ function main()
 		reaperCMD("_BR_SAVE_CURSOR_POS_SLOT_1")
 
 		
-		local countSelected, fixesInserted = regionItemSelect(selItem)
+		local countSelected = regionItemSelect(selItem)
 		local exceedStart, exceedEnd, countQuantized = false, false, 0
 		-- if keepStartingIn or keepEndingIn or threshold > 0
 
@@ -52,9 +52,6 @@ function main()
 		-- refresh ui, create undo point
 		
 		label = "ActonDev Region select: " .. countSelected
-		if fixesInserted > 0 then
-			label = label .. "+" .. fixesInserted .. "*"
-		end
 		reaper.PreventUIRefresh(-1)
 		reaper.UpdateArrange()
 

@@ -92,4 +92,4 @@ end
 
 function GuiBuffer:mouseOffset()
 	return self.outStartX-self.scrollX, self.outStartY-self.scrollY
-end
+end

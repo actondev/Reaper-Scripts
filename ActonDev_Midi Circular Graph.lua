@@ -4,7 +4,7 @@ require 'Scripts.ActonDev.deps.colors'
 require 'Scripts.ActonDev.deps.drawing'
 debug_mode = 1
 
-label = "ActonDev: Midi Circular Graph 3"
+label = "ActonDev: Midi Circular Graph"
 
 --[[
 boolean retval, boolean selected, boolean muted, number startppqpos, number endppqpos, number chan, number pitch, number vel = reaper.MIDI_GetNote(MediaItem_Take take, integer noteidx)
@@ -91,10 +91,8 @@ function init()
     gui.settings.docker_id = 0 -- try 0, 1, 257, 513, 1027 etc.
     gui.font = "Verdana"
     gui.fontSize = 15
-    
     scriptColors()
-    fdebug(gui.textColor[1])
-    
+
     ---------------------------
     -- Initialize gfx window --
     ---------------------------

@@ -285,8 +285,8 @@ function regionItemSelect(item, clean, selectiveRegion)
 	reaperCMD(40914)
 	mediaItemGarbageCleanSelected()
 	local countItemsSelected = reaper.CountSelectedMediaItems(0) - 1
-	local fixesInserted = envelopeFix(item)
-	return countItemsSelected, fixesInserted
+	-- local fixesInserted = envelopeFix(item)
+	return countItemsSelected
 end
 
 function handleExceededRegionEdges(sourceItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
@@ -425,4 +425,4 @@ function itemsExceedRegionEdges(regionItem, threshold)
 
 	-- debug_mode = debug_mode+1
 	return exceedStart, exceedEnd, countQuantized
-end
+end
