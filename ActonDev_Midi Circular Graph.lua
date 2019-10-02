@@ -40,6 +40,13 @@ function unpackRgb(rgb)
     return rgb[1], rgb[2], rgb[3]
 end
 
+-- As suggested in https://github.com/ReaTeam/ReaScripts/blob/master/Various/Lokasenna_Radial%20Menu.lua#L6886
+function arcArea(cx, cy, r1, r2, angle1, angle2)
+    for r = r1, r2, 0.5 do
+        gfx.arc(cx, cy, r, angle1, angle2, 1) -- last paremeter is antialias
+    end
+end
+
 function pianoRoll(cx, cy, r1, r2)
     local A = 440;
     local white = {1,1,1}
@@ -69,7 +76,7 @@ function pianoRoll(cx, cy, r1, r2)
         local x = cx + r1*math.cos(angle)
         local y = cy + r1*math.sin(angle)
         gfx.set(unpackRgb(key_color))
-        gfx.circle(x, y, r2-r1, true)
+        arcArea(cx,cy,r1,r2,angle_start,angle_end)
     end
 end
 
@@ -125,9 +132,7 @@ function draw()
     drawString(context)
     gfx.setfont(1, gui.font, gui.fontSize)
     
-    -- drawDot()
-    pianoRoll(gfx.w/2,gfx.h/2, 40, 48)
-
+    pianoRoll(gfx.w/2,gfx.h/2, 40, 50)
 end
 
 function mainloop()
