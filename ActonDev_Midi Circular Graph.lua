@@ -20,6 +20,9 @@ RprMidiNote reaper.FNG_GetMidiNote(RprMidiTake midiTake, integer index)
 
 retval, notecnt, ccevtcnt, textsyxevtcnt = reaper.MIDI_CountEvts( take )
 
+for efficiency
+boolean retval, string hash = reaper.MIDI_GetHash(MediaItem_Take take, boolean notesonly, string hash)
+ retval, hash = reaper.MIDI_GetHash( take, notesonly, hash )
 
 gfx.triangle(x1,y1,x2,y2,x3,y3[x4,y4...] )
 
@@ -81,30 +84,16 @@ end
 -- As suggested in https://github.com/ReaTeam/ReaScripts/blob/master/Various/Lokasenna_Radial%20Menu.lua#L6886
 function arcArea(cx, cy, r1, r2, angle1, angle2)
     for r = r1, r2, 0.5 do
-        gfx.arc(cx, cy, r, angle1, angle2, 1)-- last paremeter is antialias
+        gfx.arc(cx, cy, r, angle1, angle2, 1) -- last paremeter is antialias
     end
 end
 
-function tempActiveMidi()
-    local root = 440
+function getActiveTake()
     local item = reaper.GetSelectedMediaItem(0, 0)
     if item == nil then
-        fdebug("nill item")
-        return
+        return nil
     end
-    local take = reaper.GetActiveTake(item)
-    -- retval, notecnt, ccevtcnt, textsyxevtcnt = reaper.MIDI_CountEvts( take )
-    local _, midiNotesCnt, midiCcCnt, _ = reaper.MIDI_CountEvts(take)
-    fdebug("midi notes: " .. midiNotesCnt)
-    local midiTake =  reaper.FNG_AllocMidiTake( take )
-    for i = 0,midiNotesCnt-1 do
-        local note = reaper.FNG_GetMidiNote( midiTake, i )
-        local pitch = reaper.FNG_GetMidiNoteIntProperty(note, "PITCH")
-        local f = midi2f(pitch)
-        local angle = f2angle(root, f)
-        local deg = rad2deg(angle)
-        fdebug("midi note " .. i .. " pitch " .. pitch .. " f " .. midi2f(pitch) .. " deg " .. deg)
-    end
+    return reaper.GetActiveTake(item)
 end
 
 function selectedMidiFrequencies()
@@ -122,7 +111,6 @@ function selectedMidiFrequencies()
         local f = midi2f(pitch)
         table.insert(freqs, f)
     end
-
     return freqs
 end
 
@@ -134,13 +122,12 @@ function drawSelectedMidiFrequencies(opts)
     local freqs = selectedMidiFrequencies()
     gfx.set(1,1,1)
     for i,f in pairs(freqs) do
-        fdebug ("i " .. i .. " f " .. f)
         local angle = f2angle(root, f)
         angle = angle - math.pi/2 -- 0 at 12 o'clock
         local x = cx + r * math.cos(angle)
         local y = cy + r * math.sin(angle)
         gfx.circle(x,y,10, true)
-        fdebug("midi note " .. i .. " f " .. f .. " deg " .. rad2deg(angle))
+        -- fdebug("midi note " .. i .. " f " .. f .. " deg " .. rad2deg(angle))
     end
 end
 
@@ -158,18 +145,7 @@ function pianoRoll(cx, cy, r1, r2)
         local angle_end = angle + angle_width_half
         gfx.set(unpackRgb(key_color))
         arcArea(cx, cy, r1, r2, angle_start, angle_end)
-
-        -- angle = angle - math.pi/2
-        -- local x = cx + r3 * math.cos(angle)
-        -- local y = cy + r3 * math.sin(angle)
-        -- gfx.circle(x, y, 4, true)
-        -- fdebug("i " .. i .. " color " .. rgbToString(key_color) .. " deg " .. rad2deg(angle))
     end
-end
-
-function drawDot()
-    gfx.set(table.unpack(gui.textColor));
-    gfx.circle(100, 100, 10)
 end
 
 -- this is called from the colors.lua lib
@@ -200,6 +176,7 @@ end
 local opts = {["root"] = 440, ["r"] = 80, ["cx"] = 50, ["cy"] = 50}
 
 function draw()
+    fdebug("drawing")
     checkThemeChange()-- from colors.lua
     gfx.set(table.unpack(gui.textColor))
     if reaper.GetCursorContext2(true) == 0 then
@@ -227,27 +204,57 @@ function draw()
     drawSelectedMidiFrequencies(opts)
 end
 
-local redraw = true
+local cache_take = nil
+function shouldRedrawForTake()
+    local take = getActiveTake()
+    local shouldRedraw = cache_take ~= take
+    cache_take = take
 
+    return shouldRedraw
+end
+shouldRedrawForTake() -- initializing the cache
+
+local cache_hash = nil
+function shouldRedrawForMidiHash()
+    local take = getActiveTake()
+    if take == nil then 
+        return false
+    end
+    local _, hash = reaper.MIDI_GetHash(take, false, "")
+    local shouldRedraw = cache_hash ~= hash
+    cache_hash = hash
+
+    return shouldRedraw
+end
+shouldRedrawForMidiHash() -- initializing the cache
+
+local cache_winsize = {}
+function shouldRedrawForResize()
+    local shouldRedraw = table.concat(cache_winsize) ~= table.concat({gfx.w, gfx.h})
+    cache_winsize = {gfx.w, gfx.h}
+
+    return shouldRedraw
+end
+shouldRedrawForResize() -- initializing the cache
+
+function shouldRedraw()
+    return shouldRedrawForTake()
+        or shouldRedrawForResize()
+        or shouldRedrawForMidiHash()
+end
+
+local redraw = true
 function mainloop()
     local c = gfx.getchar()
-    -- draw()
     gfx.update()
-    if c > 0 then -- 97 is 'a'
-        redraw = true
-    end
-    -- it's -1 when closed, and 27 at ESC
-
+    redraw = c>0 or shouldRedraw()
     if redraw == true then
         draw()
     end
     redraw = false
-
     if c >= 0 and c ~= 27 and not exit then
         reaper.defer(mainloop)
     end
 end
 init()
--- tempActiveMidi()
-drawSelectedMidiFrequencies(opts)
 mainloop()
