@@ -16,6 +16,8 @@ integer reaper.FNG_CountMidiNotes(RprMidiTake midiTake)
 RprMidiNote reaper.FNG_GetMidiNote(RprMidiTake midiTake, integer index)
 [FNG] Get a MIDI note from a MIDI take at specified index
 
+ retval, notecnt, ccevtcnt, textsyxevtcnt = reaper.MIDI_CountEvts( take )
+
 gfx.triangle(x1,y1,x2,y2,x3,y3[x4,y4...] )
 
 class RprMidiNote https://github.com/reaper-oss/sws/blob/400c3c13949805afc37b87627a0c8664f436508f/Fingers/RprMidiTake.h#L39
@@ -45,6 +47,18 @@ function arcArea(cx, cy, r1, r2, angle1, angle2)
     for r = r1, r2, 0.5 do
         gfx.arc(cx, cy, r, angle1, angle2, 1) -- last paremeter is antialias
     end
+end
+
+function tempActiveMidi()
+    local item =  reaper.GetSelectedMediaItem(0, 0)
+    if item == nil then
+        fdebug("nill item")
+        return
+    end
+    local take = reaper.GetActiveTake(item)
+    -- retval, notecnt, ccevtcnt, textsyxevtcnt = reaper.MIDI_CountEvts( take )
+    local _, midiNotesCnt, midiCcCnt, _ = reaper.MIDI_CountEvts(take)
+    fdebug("midi notes: " .. midiNotesCnt)
 end
 
 function pianoRoll(cx, cy, r1, r2)
@@ -139,10 +153,15 @@ function mainloop()
     draw()
     gfx.update()
     local c = gfx.getchar()
+    
+    if c==97 then -- 97 is 'a'
+        tempActiveMidi()
+    end
     -- it's -1 when closed, and 27 at ESC
     if c >= 0 and c ~= 27 and not exit then
         reaper.defer(mainloop)
     end
 end
 init()
+tempActiveMidi()
 mainloop()
