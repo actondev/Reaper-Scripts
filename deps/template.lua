@@ -67,4 +67,4 @@ function boolToDialog(value)
 		-- value probably nil => handle the 0 to prompt user
 		return nil
 	end
-end
+end
