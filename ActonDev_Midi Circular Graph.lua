@@ -2,13 +2,17 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1, 1) .. '?.lua;' 
 require 'Scripts.ActonDev.deps.template'
 require 'Scripts.ActonDev.deps.colors'
 require 'Scripts.ActonDev.deps.drawing'
-debug_mode = 0
+debug_mode = 1
 
 label = "ActonDev: Midi Circular Graph"
 
+--[[
+TODOs:
+- show as "moons" the drawn notes depending on playhead
+--]]
 -- these are changes later on. read either from projectExtState, or setting C as the key
 local keyFreq = 440
-local keyName ="A"
+local keyName = "A"
 
 local gui = {}
 
@@ -40,7 +44,7 @@ function unpackRgb(rgb)
 end
 
 function midi2f(note)
-    return 2^((note-69)/12) * 440
+    return 2 ^ ((note - 69) / 12) * 440
 end
 
 function log2(x)
@@ -48,17 +52,17 @@ function log2(x)
 end
 
 function f2angle(root, f)
-    return 2 * math.pi * log2(f/root)
+    return 2 * math.pi * log2(f / root)
 end
 
 function rad2deg(rad)
-    return (rad * 180)/math.pi
+    return (rad * 180) / math.pi
 end
 
 -- As suggested in https://github.com/ReaTeam/ReaScripts/blob/master/Various/Lokasenna_Radial%20Menu.lua#L6886
 function arcArea(cx, cy, r1, r2, angle1, angle2)
     for r = r1, r2, 0.5 do
-        gfx.arc(cx, cy, r, angle1, angle2, 1) -- last paremeter is antialias
+        gfx.arc(cx, cy, r, angle1, angle2, 1)-- last paremeter is antialias
     end
 end
 
@@ -70,22 +74,114 @@ function getActiveTake()
     return reaper.GetActiveTake(item)
 end
 
+function ms2s(ms)
+    return ms / 1000
+end
+
+function noteInfo(cursorPos, itemStart, itemEnd, noteStart, noteEnd)
+    if cursorPos > noteEnd then
+        -- return "past-item"
+        return nil
+    elseif cursorPos > noteEnd then
+        -- return "past-note"
+        return nil
+    elseif cursorPos < noteStart then
+        -- return "future" -- how to show the future??
+        local a = cursorPos / noteStart -- 0 .. till 1 when it's about to play
+        return -a -- return -0..-1
+    else
+        -- inside the note
+        return (cursorPos - noteStart) / (noteEnd - noteStart)
+    end
+end
+
 function selectedMidiFrequencies()
     local item = reaper.GetSelectedMediaItem(0, 0)
     if item == nil then
         return {}
     end
+    local itemStart = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+    local itemEnd = itemStart + reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+    cursorPos = reaper.GetCursorPosition()-- it's in seconds
+    fdebug("item start " .. itemStart)
+    fdebug("cur time " .. cursorPos)
     local take = reaper.GetActiveTake(item)
     local _, midiNotesCnt, midiCcCnt, _ = reaper.MIDI_CountEvts(take)
-    local midiTake =  reaper.FNG_AllocMidiTake( take )
+    local midiTake = reaper.FNG_AllocMidiTake(take)
     local freqs = {}
-    for i = 0,midiNotesCnt-1 do
-        local note = reaper.FNG_GetMidiNote( midiTake, i )
-        local pitch = reaper.FNG_GetMidiNoteIntProperty(note, "PITCH")
+    for i = 0, midiNotesCnt - 1 do
+        local _, selected, muted, startppqpos, endppqpos, chan, pitch, vel = reaper.MIDI_GetNote(take, i)
+        local noteStartQn = reaper.MIDI_GetProjQNFromPPQPos(take, startppqpos)
+        local noteStart = reaper.TimeMap2_QNToTime(0, noteStartQn)
+        local noteEndQn = reaper.MIDI_GetProjQNFromPPQPos(take, endppqpos)
+        local noteEnd = reaper.TimeMap2_QNToTime(0, noteEndQn)
+        
+        local noteInfo = noteInfo(cursorPos, itemStart, itemEnd, noteStart, noteEnd)
+        -- local note = reaper.FNG_GetMidiNote( midiTake, i )
+        -- local notePos = reaper.FNG_GetMidiNoteIntProperty(note, "POSITION")
+        -- local pitch = reaper.FNG_GetMidiNoteIntProperty(note, "PITCH")
         local f = midi2f(pitch)
-        table.insert(freqs, f)
+        table.insert(freqs, {
+            ["f"] = f,
+            ["pos"] = noteStart,
+            ["info"] = noteInfo
+        })
+    -- table.insert(freqs, {["pos"] = reaper.FNG_GetMidiNoteIntProperty(note, "PITCH")})
     end
     return freqs
+end
+
+function drawLunar(cx, cy, r, isWaxing, fillFactor)
+    local shadow = {0,0,0}
+    local relf = {1,1,1}
+
+    r=20
+    
+    local angle_start, angle_end = 0,0
+
+    if isWaxing then
+        angle_start = 0
+        angle_end = fillFactor * 2 * math.pi
+    else
+        angle_start = fillFactor * 2 * math.pi
+        angle_end = 2 * math.pi
+    end
+
+    gfx.circle(cx,cy,20,false)
+
+    -- angle_start = 0
+    -- angle_end = math.pi/4
+
+    angle_start,angle_end = angle_start - math.pi/2, angle_end - math.pi/2
+
+    gfx.x = cx
+    gfx.y = cy
+
+    local x1,y1 = cx+r*math.cos(angle_start), cy+r*math.sin(angle_start)
+    local x2,y2 = cx+r*math.cos(angle_end), cy+r*math.sin(angle_end)
+
+    gfx.triangle(cx,cy,x1,y1,x2,y2)
+
+end
+
+function drawWarningLunar(x, y, r, factor)
+
+end
+
+function drawLunarValue(x, y, value)
+    -- value > 0 : note playing and will stop. warning
+    -- value < 0 : note will play in the future. waxing.
+    if value == nil then
+        gfx.circle(x, y, 10, false)
+    else
+        local isWaxing = value < 0
+        drawLunar(x,y,10,isWaxing,math.abs(value))
+        -- local fill = value > 0
+        -- if value < 0 then
+            -- value = 1 - value
+        -- end
+        -- gfx.circle(x, y, value * 10, fill)
+    end
 end
 
 function drawSelectedMidiFrequencies(opts)
@@ -94,14 +190,22 @@ function drawSelectedMidiFrequencies(opts)
     local cx = opts.cx
     local cy = opts.cy
     local freqs = selectedMidiFrequencies()
-    gfx.set(1,1,1)
-    for i,f in pairs(freqs) do
+    for i, freq in pairs(freqs) do
+        local f = freq.f
+        local pos = freq.pos
         local angle = f2angle(root, f)
-        angle = angle - math.pi/2 -- 0 at 12 o'clock
+        angle = angle - math.pi / 2 -- 0 at 12 o'clock
         local x = cx + r * math.cos(angle)
         local y = cy + r * math.sin(angle)
-        gfx.circle(x,y,10, true)
-        -- fdebug("midi note " .. i .. " f " .. f .. " deg " .. rad2deg(angle))
+        gfx.set(1, 1, 1)
+        -- gfx.circle(x,y,10, true)
+        drawLunarValue(x, y, freq.info)
+        -- gfx.text()
+        gfx.set(1, 0, 0)
+        gfx.x = x
+        gfx.y = y
+        drawString(freq.info)
+    -- fdebug("midi note " .. i .. " f " .. f .. " deg " .. rad2deg(angle))
     end
 end
 
@@ -150,7 +254,7 @@ end
 
 function getOpts()
     -- r is for the place to start drawing the notes
-    return {["root"] = keyFreq, ["r"] = 80, ["cx"] = gfx.w/2, ["cy"] = gfx.h/2}
+    return {["root"] = keyFreq, ["r"] = 80, ["cx"] = gfx.w / 2, ["cy"] = gfx.h / 2}
 end
 
 function draw()
@@ -162,7 +266,7 @@ function draw()
     gfx.y = 10
     
     gfx.setfont(1, gui.font, gui.fontSize)
-    drawString("Press (k) to select key | key: " .. keyName )
+    drawString("Press (k) to select key | key: " .. keyName)
     
     pianoRoll(gfx.w / 2, gfx.h / 2, 40, 50)
     drawSelectedMidiFrequencies(getOpts())
@@ -173,42 +277,59 @@ function shouldRedrawForTake()
     local take = getActiveTake()
     local shouldRedraw = cache_take ~= take
     cache_take = take
-
+    
     return shouldRedraw
-end
-shouldRedrawForTake() -- initializing the cache
+end; shouldRedrawForTake()-- initializing the cache
 
 local cache_hash = nil
 function shouldRedrawForMidiHash()
     local take = getActiveTake()
-    if take == nil then 
+    if take == nil then
         return false
     end
     local _, hash = reaper.MIDI_GetHash(take, false, "")
     local shouldRedraw = cache_hash ~= hash
     cache_hash = hash
-
+    
     return shouldRedraw
-end
-shouldRedrawForMidiHash() -- initializing the cache
+end; shouldRedrawForMidiHash()-- initializing the cache
+
+local cache_edit_pos = nil
+function shouldRedrawForEditCursor()
+    local pos = reaper.GetCursorPosition()-- it's in seconds
+    local shouldRedraw = cache_edit_pos ~= pos
+    cache_edit_pos = pos
+    
+    return shouldRedraw
+end; shouldRedrawForEditCursor()
+
+local cache_play_pos = 0
+function shouldRedrawForPlayPosition()
+    local pos = reaper.GetPlayPosition()
+    local shouldRedraw = math.abs(cache_play_pos - pos) > 0.3
+    cache_play_pos = pos
+    
+    return shouldRedraw
+end; shouldRedrawForPlayPosition()
 
 local cache_winsize = {}
 function shouldRedrawForResize()
     local shouldRedraw = table.concat(cache_winsize) ~= table.concat({gfx.w, gfx.h})
     cache_winsize = {gfx.w, gfx.h}
-
+    
     return shouldRedraw
 end
-shouldRedrawForResize() -- initializing the cache
+shouldRedrawForResize()-- initializing the cache
 
 function shouldRedraw()
     return shouldRedrawForTake()
         or shouldRedrawForResize()
         or shouldRedrawForMidiHash()
+        or shouldRedrawForEditCursor()
 end
 
 function indexOf(coll, search)
-    for i,val in ipairs(coll) do
+    for i, val in ipairs(coll) do
         if val == search then
             return i
         end
@@ -219,14 +340,14 @@ end
 local noteNames = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}
 function getKeyFreqFromUserMenu()
     -- creating menu string from noteNames table
-    local menuStr = table.concat(noteNames,"|")
+    local menuStr = table.concat(noteNames, "|")
     local sel = gfx.showmenu(menuStr)
     if sel > 0 then
         local noteName = noteNames[sel]
         setExtState("midi_graph_key", noteName)
         keyName = noteName
         -- i will be from 1 to 11, 1 meaning C. middle C is 60
-        return midi2f(sel+59)
+        return midi2f(sel + 59)
     end
     return nil
 end
@@ -237,29 +358,31 @@ function getKeyFreqFromProject()
     keyName = val
     noteIndex = indexOf(noteNames, val)
     -- i will be from 1 to 11, 1 meaning C. middle C is 60
-    local f = midi2f(noteIndex+59)
+    local f = midi2f(noteIndex + 59)
     return f
 end
 
 local redraw = true
 function mainloop()
     local c = gfx.getchar()
+    local forceRedraw = false
     gfx.update()
-
+    
     if c == 107 then -- k
         local f = getKeyFreqFromUserMenu()
         if f ~= nil then
             keyFreq = f
+            forceRedraw = true
             fdebug("Got f " .. f)
         else
             fdebug("Nill f")
         end
     end
-
-    if shouldRedraw() == true then
+    
+    if forceRedraw or shouldRedraw() == true then
         draw()
     end
-
+    
     redraw = false
     if c >= 0 and c ~= 27 and not exit then
         reaper.defer(mainloop)
