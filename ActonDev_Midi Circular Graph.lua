@@ -39,8 +39,13 @@ function rgb2string(rgb)
     return text
 end
 
-function unpackRgb(rgb)
-    return rgb[1], rgb[2], rgb[3]
+-- taken from http://www.lua.org/pil/5.1.html
+function unpack(t, i)
+    -- i = i or 1
+    -- if t[i] ~= nil then
+    --     return t[i], unpack(t, i + 1)
+    -- end
+    return table.unpack(t)
 end
 
 function midi2f(note)
@@ -78,21 +83,29 @@ function ms2s(ms)
     return ms / 1000
 end
 
-function noteInfo(cursorPos, itemStart, itemEnd, noteStart, noteEnd)
+function noteLunarInfo(cursorPos, itemStart, itemEnd, noteStart, noteEnd)
     if cursorPos > noteEnd then
         -- return "past-item"
-        return nil
+        return {["fill"] = 0, ["waxing"] = false}
     elseif cursorPos > noteEnd then
         -- return "past-note"
-        return nil
+        return {["fill"] = 0, ["waxing"] = false}
     elseif cursorPos < noteStart then
         -- return "future" -- how to show the future??
         local a = cursorPos / noteStart -- 0 .. till 1 when it's about to play
-        return -a -- return -0..-1
+        -- return -a -- return -0..-1
+        return {["fill"] = cursorPos / noteStart, ["waxing"] = true}
     else
         -- inside the note
-        return (cursorPos - noteStart) / (noteEnd - noteStart)
+        local playedFactor = (cursorPos - noteStart) / (noteEnd - noteStart)
+        -- return (cursorPos - noteStart) / (noteEnd - noteStart)
+        return {["fill"] = 1-playedFactor, ["waxing"] = false}
     end
+end
+
+-- either edit cursor or play, depending on playback status
+function getCurrentPosition()
+    return reaper.GetPlayPosition()
 end
 
 function selectedMidiFrequencies()
@@ -102,9 +115,7 @@ function selectedMidiFrequencies()
     end
     local itemStart = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
     local itemEnd = itemStart + reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
-    cursorPos = reaper.GetCursorPosition()-- it's in seconds
-    fdebug("item start " .. itemStart)
-    fdebug("cur time " .. cursorPos)
+    cursorPos = getCurrentPosition()-- it's in seconds
     local take = reaper.GetActiveTake(item)
     local _, midiNotesCnt, midiCcCnt, _ = reaper.MIDI_CountEvts(take)
     local midiTake = reaper.FNG_AllocMidiTake(take)
@@ -116,71 +127,99 @@ function selectedMidiFrequencies()
         local noteEndQn = reaper.MIDI_GetProjQNFromPPQPos(take, endppqpos)
         local noteEnd = reaper.TimeMap2_QNToTime(0, noteEndQn)
         
-        local noteInfo = noteInfo(cursorPos, itemStart, itemEnd, noteStart, noteEnd)
-        -- local note = reaper.FNG_GetMidiNote( midiTake, i )
-        -- local notePos = reaper.FNG_GetMidiNoteIntProperty(note, "POSITION")
-        -- local pitch = reaper.FNG_GetMidiNoteIntProperty(note, "PITCH")
+        local noteLunarInfo = noteLunarInfo(cursorPos, itemStart, itemEnd, noteStart, noteEnd)
         local f = midi2f(pitch)
         table.insert(freqs, {
             ["f"] = f,
-            ["pos"] = noteStart,
-            ["info"] = noteInfo
+            ["lunar"] = noteLunarInfo
         })
     -- table.insert(freqs, {["pos"] = reaper.FNG_GetMidiNoteIntProperty(note, "PITCH")})
     end
     return freqs
 end
 
-function drawLunar(cx, cy, r, isWaxing, fillFactor)
-    local shadow = {0,0,0}
-    local relf = {1,1,1}
-
-    r=20
+-- reference: https://gist.github.com/actonDev/144d156bd3424c223324c8c754ce1eeb
+function drawMoon(cx, cy, r, isWaxing, litFactor, points)
+    local shadow = {0, 0, 0}
+    local lit = {1, 1, 1}
+    local litWaxing = {0.5, 0.5, 0.5}
+    local litWarning = {0.7, 0, 0}
     
-    local angle_start, angle_end = 0,0
+    -- drawing the shadow
+    gfx.set(table.unpack(shadow))
+    gfx.circle(cx, cy, r, true)
 
-    if isWaxing then
-        angle_start = 0
-        angle_end = fillFactor * 2 * math.pi
-    else
-        angle_start = fillFactor * 2 * math.pi
-        angle_end = 2 * math.pi
+    r = r+1
+
+    if litFactor < 0.001 then
+        return
     end
 
-    gfx.circle(cx,cy,20,false)
-
-    -- angle_start = 0
-    -- angle_end = math.pi/4
-
-    angle_start,angle_end = angle_start - math.pi/2, angle_end - math.pi/2
-
-    gfx.x = cx
-    gfx.y = cy
-
-    local x1,y1 = cx+r*math.cos(angle_start), cy+r*math.sin(angle_start)
-    local x2,y2 = cx+r*math.cos(angle_end), cy+r*math.sin(angle_end)
-
-    gfx.triangle(cx,cy,x1,y1,x2,y2)
-
-end
-
-function drawWarningLunar(x, y, r, factor)
-
-end
-
-function drawLunarValue(x, y, value)
-    -- value > 0 : note playing and will stop. warning
-    -- value < 0 : note will play in the future. waxing.
-    if value == nil then
-        gfx.circle(x, y, 10, false)
+    if isWaxing then
+        gfx.set(table.unpack(litWaxing))
     else
-        local isWaxing = value < 0
-        drawLunar(x,y,10,isWaxing,math.abs(value))
-        -- local fill = value > 0
-        -- if value < 0 then
-            -- value = 1 - value
-        -- end
-        -- gfx.circle(x, y, value * 10, fill)
+        gfx.set(table.unpack(litWarning))
+    end
+    
+    -- drawing the lit part
+    dtheta = math.pi / (points - 1)
+    
+    local angleTop = -math.pi / 2
+    local dir = 1
+    if isWaxing == false then
+        dir = -1
+    end
+    
+    local vertices = {}
+    local verticesIn = {}
+    local verticesOut = {}
+    -- the inside arc
+    rin = r * (1 - 2 * litFactor);
+    for i = 0, points - 1 do
+        -- for i=points-1,0,-1 do
+        local theta = angleTop + i * dtheta * dir
+        local x = cx + rin * math.cos(theta)
+        local y = cy + r * math.sin(theta)
+        table.insert(vertices, x)
+        table.insert(vertices, y)
+
+        table.insert(verticesIn, x)
+        table.insert(verticesIn, y)
+        
+        gfx.x = x
+        gfx.y = y
+        gfx.setpixel(0, 1, 0)
+    end
+    
+    -- the outside arc
+    for i = 0, points - 1 do
+        -- for i=points-1,0,-1 do
+        local theta = angleTop + i * dtheta * dir
+        local x = cx + r * math.cos(theta)
+        local y = cy + r * math.sin(theta)
+        table.insert(vertices, x)
+        table.insert(vertices, y)
+
+        table.insert(verticesOut, x)
+        table.insert(verticesOut, y)
+        
+        gfx.x = x
+        gfx.y = y
+        gfx.setpixel(1, 0, 0)
+    end
+
+    for i=1,2*points-2,2 do
+        gfx.triangle(
+            verticesIn[i], -- 2nd point x,y
+            verticesIn[i+1],
+            verticesIn[i+2], -- 3d point x,y
+            verticesIn[i+3],
+            verticesOut[i], -- 2nd point x,y
+            verticesOut[i+1],
+            verticesOut[i+2], -- 3d point x,y
+            verticesOut[i+3]
+            ,true
+        )
     end
 end
 
@@ -198,13 +237,11 @@ function drawSelectedMidiFrequencies(opts)
         local x = cx + r * math.cos(angle)
         local y = cy + r * math.sin(angle)
         gfx.set(1, 1, 1)
-        -- gfx.circle(x,y,10, true)
-        drawLunarValue(x, y, freq.info)
-        -- gfx.text()
+        drawMoon(x, y, 20, freq.lunar.waxing, freq.lunar.fill, 36)
         gfx.set(1, 0, 0)
         gfx.x = x
         gfx.y = y
-        drawString(freq.info)
+    -- drawString(freq.info)
     -- fdebug("midi note " .. i .. " f " .. f .. " deg " .. rad2deg(angle))
     end
 end
@@ -222,7 +259,7 @@ function pianoRoll(cx, cy, r1, r2)
         local angle = f2angle(keyFreq, f)
         local angle_start = angle - angle_width_half
         local angle_end = angle + angle_width_half
-        gfx.set(unpackRgb(key_color))
+        gfx.set(table.unpack(key_color))
         arcArea(cx, cy, r1, r2, angle_start, angle_end)
     end
 end
@@ -254,7 +291,7 @@ end
 
 function getOpts()
     -- r is for the place to start drawing the notes
-    return {["root"] = keyFreq, ["r"] = 80, ["cx"] = gfx.w / 2, ["cy"] = gfx.h / 2}
+    return {["root"] = keyFreq, ["r"] = 90, ["cx"] = gfx.w / 2, ["cy"] = gfx.h / 2}
 end
 
 function draw()
@@ -306,8 +343,10 @@ end; shouldRedrawForEditCursor()
 local cache_play_pos = 0
 function shouldRedrawForPlayPosition()
     local pos = reaper.GetPlayPosition()
-    local shouldRedraw = math.abs(cache_play_pos - pos) > 0.3
-    cache_play_pos = pos
+    local shouldRedraw = math.abs(cache_play_pos - pos) > 0.03
+    if shouldRedraw then
+        cache_play_pos = pos
+    end
     
     return shouldRedraw
 end; shouldRedrawForPlayPosition()
@@ -326,6 +365,7 @@ function shouldRedraw()
         or shouldRedrawForResize()
         or shouldRedrawForMidiHash()
         or shouldRedrawForEditCursor()
+        or shouldRedrawForPlayPosition()
 end
 
 function indexOf(coll, search)
