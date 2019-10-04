@@ -6,6 +6,8 @@ debug_mode = 0
 
 label = "ActonDev: Midi Circular Graph"
 
+local cursor_now = 0
+
 --[[
 TODOs:
 - show as "moons" the drawn notes depending on playhead
@@ -15,6 +17,20 @@ local keyFreq = 440
 local keyName = "A"
 
 local gui = {}
+
+function dump(o)
+    if type(o) == 'table' then
+       local s = '{ '
+       for k,v in pairs(o) do
+          if type(k) ~= 'number' then k = '"'..k..'"' end
+          s = s .. '['..k..'] = ' .. dump(v) .. ','
+       end
+       return s .. '} '
+    else
+       return tostring(o)
+    end
+ end
+ 
 
 local white = {1, 1, 1}
 local black = {0, 0, 0}
@@ -91,21 +107,18 @@ function noteLunarInfo(cursorPos, itemStart, itemEnd, noteStart, noteEnd)
         -- return "past-note"
         return {["fill"] = 0, ["waxing"] = false}
     elseif cursorPos < noteStart then
-        -- return "future" -- how to show the future??
-        local a = cursorPos / noteStart -- 0 .. till 1 when it's about to play
-        -- return -a -- return -0..-1
-        return {["fill"] = cursorPos / noteStart, ["waxing"] = true}
+        return {["fill"] = (cursorPos-itemStart)/(noteStart - itemStart), ["waxing"] = true}
     else
-        -- inside the note
         local playedFactor = (cursorPos - noteStart) / (noteEnd - noteStart)
-        -- return (cursorPos - noteStart) / (noteEnd - noteStart)
         return {["fill"] = 1-playedFactor, ["waxing"] = false}
     end
 end
 
 -- either edit cursor or play, depending on playback status
 function getCurrentPosition()
-    return reaper.GetPlayPosition()
+    -- return reaper.GetPlayPosition()
+    -- return reaper.GetCursorPosition()
+    return cursor_now
 end
 
 function selectedMidiFrequencies()
@@ -115,6 +128,7 @@ function selectedMidiFrequencies()
     end
     local itemStart = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
     local itemEnd = itemStart + reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+    -- fdebug("item end " .. itemEnd)
     cursorPos = getCurrentPosition()-- it's in seconds
     local take = reaper.GetActiveTake(item)
     local _, midiNotesCnt, midiCcCnt, _ = reaper.MIDI_CountEvts(take)
@@ -126,20 +140,43 @@ function selectedMidiFrequencies()
         local noteStart = reaper.TimeMap2_QNToTime(0, noteStartQn)
         local noteEndQn = reaper.MIDI_GetProjQNFromPPQPos(take, endppqpos)
         local noteEnd = reaper.TimeMap2_QNToTime(0, noteEndQn)
+
+        if (muted == false)
+            -- and cursor_now < noteEnd -- hide past notes?
+            and ((noteStart >= itemStart and noteStart < itemEnd) or (noteEnd > itemStart and noteEnd <itemEnd)) then
+            noteStart = math.max(itemStart, noteStart)
+            noteEnd = math.min(itemEnd, noteEnd)
+            -- fdebug("pitch " .. pitch .. " noteStart " .. noteStart .. " noteEnd " .. noteEnd .. " itemStart " .. itemStart .. " itemEnd " .. itemEnd)
+            local noteLunarInfo = noteLunarInfo(cursorPos, itemStart, itemEnd, noteStart, noteEnd)
+            local f = midi2f(pitch)
+            table.insert(freqs, {
+                ["f"] = f,
+                ["lunar"] = noteLunarInfo
+            })
+        end
         
-        local noteLunarInfo = noteLunarInfo(cursorPos, itemStart, itemEnd, noteStart, noteEnd)
-        local f = midi2f(pitch)
-        table.insert(freqs, {
-            ["f"] = f,
-            ["lunar"] = noteLunarInfo
-        })
+
     -- table.insert(freqs, {["pos"] = reaper.FNG_GetMidiNoteIntProperty(note, "PITCH")})
     end
+
+
+    -- sorting: waxing first, and minimum lit first. warning should be last to draw-replace
+    table.sort(freqs,
+        function(a,b) return a.lunar.fill < b.lunar.fill
+        end)
+
+    table.sort(freqs,
+    function(a,b) return a.lunar.waxing == true and b.lunar.waxing == false
+    end)
+
+    -- fdebug("freqs")
+    -- fdebug(dump(freqs))
     return freqs
 end
 
 -- reference: https://gist.github.com/actonDev/144d156bd3424c223324c8c754ce1eeb
 function drawMoon(cx, cy, r, isWaxing, litFactor, points)
+    -- fdebug("draw moon lit " .. litFactor .. " wax " .. tostring(isWaxing) .. " cx " .. cx .. " cy " .. cy)
     local shadow = {0, 0, 0}
     local lit = {1, 1, 1}
     local litWaxing = {0.5, 0.5, 0.5}
@@ -336,6 +373,7 @@ function shouldRedrawForEditCursor()
     local pos = reaper.GetCursorPosition()-- it's in seconds
     local shouldRedraw = cache_edit_pos ~= pos
     cache_edit_pos = pos
+    cursor_now = pos
     
     return shouldRedraw
 end; shouldRedrawForEditCursor()
@@ -343,10 +381,12 @@ end; shouldRedrawForEditCursor()
 local cache_play_pos = 0
 function shouldRedrawForPlayPosition()
     local pos = reaper.GetPlayPosition()
-    local shouldRedraw = math.abs(cache_play_pos - pos) > 0.03
+    local shouldRedraw = math.abs(cache_play_pos - pos) > 0.01
     if shouldRedraw then
         cache_play_pos = pos
+        cursor_now = pos
     end
+
     
     return shouldRedraw
 end; shouldRedrawForPlayPosition()
