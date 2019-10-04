@@ -10,7 +10,8 @@ local cursor_now = 0
 
 --[[
 TODOs:
-- show as "moons" the drawn notes depending on playhead
+- [x] show as "moons" the drawn notes depending on playhead
+- [x] see the problem with the bassline in nin - hurt
 --]]
 -- these are changes later on. read either from projectExtState, or setting C as the key
 local keyFreq = 440
@@ -102,10 +103,7 @@ end
 function noteLunarInfo(cursorPos, itemStart, itemEnd, noteStart, noteEnd)
     if cursorPos > noteEnd then
         -- return "past-item"
-        return {["fill"] = 0, ["waxing"] = false}
-    elseif cursorPos > noteEnd then
-        -- return "past-note"
-        return {["fill"] = 0, ["waxing"] = false}
+        return {["fill"] = 0, ["waxing"] = true, ["past"] = true}
     elseif cursorPos < noteStart then
         return {["fill"] = (cursorPos-itemStart)/(noteStart - itemStart), ["waxing"] = true}
     else
@@ -154,20 +152,16 @@ function selectedMidiFrequencies()
                 ["lunar"] = noteLunarInfo
             })
         end
-        
-
-    -- table.insert(freqs, {["pos"] = reaper.FNG_GetMidiNoteIntProperty(note, "PITCH")})
     end
-
 
     -- sorting: waxing first, and minimum lit first. warning should be last to draw-replace
     table.sort(freqs,
-        function(a,b) return a.lunar.fill < b.lunar.fill
+        function(a,b)
+            if a.lunar.waxing == b.lunar.waxing then
+                return a.lunar.fill < b.lunar.fill
+            end
+            return a.lunar.waxing == true and b.lunar.waxing == false
         end)
-
-    table.sort(freqs,
-    function(a,b) return a.lunar.waxing == true and b.lunar.waxing == false
-    end)
 
     -- fdebug("freqs")
     -- fdebug(dump(freqs))
@@ -181,6 +175,8 @@ function drawMoon(cx, cy, r, isWaxing, litFactor, points)
     local lit = {1, 1, 1}
     local litWaxing = {0.5, 0.5, 0.5}
     local litWarning = {0.7, 0, 0}
+
+    if isWaxing then r = r-1 end -- warning: playing moons bigger (hiding the below artifact)
     
     -- drawing the shadow
     gfx.set(table.unpack(shadow))
