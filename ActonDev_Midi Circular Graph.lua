@@ -2,7 +2,7 @@ package.path = reaper.GetResourcePath() .. package.config:sub(1, 1) .. '?.lua;' 
 require 'Scripts.ActonDev.deps.template'
 require 'Scripts.ActonDev.deps.colors'
 require 'Scripts.ActonDev.deps.drawing'
-debug_mode = 1
+debug_mode = 0
 
 label = "ActonDev: Midi Circular Graph"
 
@@ -394,7 +394,9 @@ end
 
 function getKeyFreqFromProject()
     local val = getExtState("midi_graph_key")
-    val = val or "C"
+    if val == "" then
+        val = "C"
+    end
     keyName = val
     noteIndex = indexOf(noteNames, val)
     -- i will be from 1 to 11, 1 meaning C. middle C is 60

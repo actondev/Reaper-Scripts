@@ -21,8 +21,7 @@ function fdebug(str)
 end
 
 function getExtState(key)
-	local ret
-	_, ret = reaper.GetProjExtState(0, "ActonDev", key)
+	local i, ret = reaper.GetProjExtState(0, "ActonDev", key)
 	return ret
 end
 
