@@ -91,7 +91,7 @@ example `.vscode/tasks/json` for vscode development
         {
             "label": "lua tests",
             "type": "shell",
-            "command": "lua53.exe test/test*.lua",
+            "command" : "for f in test/test*.lua; do lua53.exe $f -v; done",
             "group": {
                 "isDefault": true,
                 "kind": "test"
