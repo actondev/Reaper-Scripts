@@ -21,17 +21,33 @@ local function dump(o)
 function midiHelper.relevantFrequenciesFromMidiStructure(data, t)
     print("hi from midi helper")
     local relevantF = {}
+    if data == nil then return {} end
+    if data.item == nil then return {} end
     local itemStart = data.item.tstart
     local itemEnd = data.item.tend
     for _,event in pairs(data.frequencies) do
-        local tend = itemStart + event.tend - t
-        if tend > 0 then -- if not, the event has already ended
-            local tstart = itemStart + event.tstart - t
-            local f = event.f
-            table.insert(relevantF, {["f"] = f, ["tstart"] = tstart, ["tend"] = tend})
+        local noteStart = event.tstart
+        local noteEnd = event.tend
+        if t < event.tend
+        and (
+            (noteStart >= itemStart and noteStart < itemEnd)
+            or (noteEnd > itemStart and noteEnd < itemEnd)
+        )
+        then
+            noteStart = math.max(itemStart, noteStart)
+            noteEnd = math.min(itemEnd, noteEnd)
+            local tend = noteEnd - t
+            -- if tend > 0 then -- if not, the event has already ended
+                local tstart = noteStart - t
+                local f = event.f
+                table.insert(relevantF, {f = f, tstart = tstart, tend = tend})
+            -- end
         end
     end
-    return relevantF
+    return {
+        item = {tstart = itemStart - t, tend = itemEnd - t},
+        frequencies = relevantF
+    }
 end
 
 return midiHelper;
