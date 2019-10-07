@@ -10,3 +10,4 @@ options*.lua
 !deps/options-defaults.lua
 # i previously ignored temp*
 !deps/template.lua
+/.vscode/

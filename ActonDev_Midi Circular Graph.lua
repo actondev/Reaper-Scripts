@@ -12,6 +12,9 @@ local cursor_now = 0
 TODOs:
 - [x] show as "moons" the drawn notes depending on playhead
 - [x] see the problem with the bassline in nin - hurt
+- [ ] fix bagpipe at nin-hurt: the future note doesn't show loading
+- [ ] read midi file only once -> fill a table with the midi notes timings
+      reread midi file only if hash is changed
 --]]
 -- these are changes later on. read either from projectExtState, or setting C as the key
 local keyFreq = 440

@@ -78,3 +78,25 @@ Take FX functionality is a little limited compared to Track FX because of curren
 `C` : Random Color  
 `Shift+C` : Color Swatch  
 `Alt+F` : Fx Routing Matrix  
+
+## Running the tests
+On windows
+- install lua53 with chocolatey `install lua53`
+- on the root folder of this git project run `lua53.exe test/test*.lua`
+
+example `.vscode/tasks/json` for vscode development
+``` json
+{
+    "tasks": [
+        {
+            "label": "lua tests",
+            "type": "shell",
+            "command": "lua53.exe test/test*.lua",
+            "group": {
+                "isDefault": true,
+                "kind": "test"
+            }
+        }
+    ]
+}
+```
