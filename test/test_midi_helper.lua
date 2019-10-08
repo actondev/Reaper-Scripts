@@ -29,4 +29,10 @@ function testRelativeTimings()
     lu.assertEquals(actual, expected)
 end
 
+function testNormalizedKey()
+    lu.assertEquals(midi.getNormalizedKey(130, midiStructure01), 130/2)
+    lu.assertEquals(midi.getNormalizedKey(60, midiStructure01), 120)
+    lu.assertEquals(midi.getNormalizedKey(30, midiStructure01), 120)
+end
+
 os.exit(lu.LuaUnit.run())

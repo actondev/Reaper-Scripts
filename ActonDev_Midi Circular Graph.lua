@@ -3,7 +3,7 @@ require 'Scripts.ActonDev.deps.template'
 require 'Scripts.ActonDev.deps.colors'
 require 'Scripts.ActonDev.deps.drawing'
 local midiHelper = require('Scripts.ActonDev.deps.midi_helper')
-debug_mode = 0
+debug_mode = 1
 
 label = "ActonDev: Midi Circular Graph"
 
@@ -16,12 +16,12 @@ TODOs:
 reread midi file only if hash is changed
 --]]
 -- these are changes later on. read either from projectExtState, or setting C as the key
-local keyFreq = 440
-local keyName = "A"
+local g_key = 440
+local g_keyName = "A"
 
 -- stored/cached values accessible from all around the file
 local g_midi_structure = {}
-local g_midi_relevant = {} -- notes relevant to current playing/editing time
+local g_midi_relative = {} -- notes relevant to current playing/editing time
 
 local gui = {}
 
@@ -122,10 +122,14 @@ local function getSelectedMidiStructure()
     --         end
     --         return a.lunar.waxing == true and b.lunar.waxing == false
     --     end)
-    return {
+    local structure = {
         item = {tstart = itemStart, tend = itemEnd},
         frequencies = freqs
     }
+
+    structure.key = midiHelper.getNormalizedKey(g_key, structure)
+
+    return structure
 end
 
 -- reference: https://gist.github.com/actonDev/144d156bd3424c223324c8c754ce1eeb
@@ -221,10 +225,10 @@ local function drawSelectedMidiFrequencies(opts)
     local root = opts.root
     local cx = opts.cx
     local cy = opts.cy
-    local midi_relevant = g_midi_relevant
-    if g_midi_relevant == nil then return {} end
-    if g_midi_relevant.item == nil then return {} end
-    local itemRelStart = g_midi_relevant.item.tstart
+    local midi_relevant = g_midi_relative
+    if g_midi_relative == nil then return {} end
+    if g_midi_relative.item == nil then return {} end
+    local itemRelStart = g_midi_relative.item.tstart
     for i, freq in pairs(midi_relevant.frequencies) do
         local relStart = freq.tstart
         local relEnd = freq.tend
@@ -263,7 +267,7 @@ local function pianoRoll(cx, cy, r1, r2)
         i = i - 1 -- 0 will be A
         local pianoRollNote = 69 + i -- 69 is A4, 440Hz
         local f = midi2f(pianoRollNote)
-        local angle = f2angle(keyFreq, f)
+        local angle = f2angle(g_key, f)
         local angle_start = angle - angle_width_half
         local angle_end = angle + angle_width_half
         gfx.set(table.unpack(key_color))
@@ -298,7 +302,7 @@ end
 
 local function getOpts()
     -- r is for the place to start drawing the notes
-    return {root = keyFreq, r = 90, cx = gfx.w / 2, cy = gfx.h / 2}
+    return {root = g_key, r = 90, cx = gfx.w / 2, cy = gfx.h / 2}
 end
 
 local function draw()
@@ -310,7 +314,7 @@ local function draw()
     gfx.y = 10
     
     gfx.setfont(1, gui.font, gui.fontSize)
-    drawString("Press (k) to select key | key: " .. keyName)
+    drawString("Press (k) to select key | key: " .. g_keyName)
     
     pianoRoll(gfx.w / 2, gfx.h / 2, 40, 50)
     drawSelectedMidiFrequencies(getOpts())
@@ -339,7 +343,7 @@ end; shouldRedrawForMidiItem()
 
 local function updateTimeAndRelevantMidiStructure(t)
     g_t = t
-    g_midi_relevant = midiHelper.midiStructureToRelativeTimings(g_midi_structure, t)
+    g_midi_relative = midiHelper.midiStructureToRelativeTimings(g_midi_structure, t)
 end
 
 local cache_edit_pos = nil
@@ -404,7 +408,7 @@ local function getKeyFreqFromUserMenu()
     if sel > 0 then
         local noteName = noteNames[sel]
         setExtState("midi_graph_key", noteName)
-        keyName = noteName
+        g_keyName = noteName
         -- i will be from 1 to 11, 1 meaning C. middle C is 60
         return midi2f(sel + 59)
     end
@@ -416,7 +420,7 @@ local function getKeyFreqFromProject()
     if val == "" then
         val = "C"
     end
-    keyName = val
+    g_keyName = val
     noteIndex = indexOf(noteNames, val)
     -- i will be from 1 to 11, 1 meaning C. middle C is 60
     local f = midi2f(noteIndex + 59)
@@ -432,7 +436,7 @@ local function mainloop()
     if c == 107 then -- k
         local f = getKeyFreqFromUserMenu()
         if f ~= nil then
-            keyFreq = f
+            g_key = f
             forceRedraw = true
         end
     end
@@ -447,5 +451,5 @@ local function mainloop()
     end
 end
 init()
-keyFreq = getKeyFreqFromProject()
+g_key = getKeyFreqFromProject()
 mainloop()
