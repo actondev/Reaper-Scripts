@@ -113,15 +113,6 @@ local function getSelectedMidiStructure()
             })
         end
     end
-    
-    -- sorting: waxing first, and minimum lit first. warning should be last to draw-replace
-    -- table.sort(freqs,
-    --     function(a,b)
-    --         if a.lunar.waxing == b.lunar.waxing then
-    --             return a.lunar.fill < b.lunar.fill
-    --         end
-    --         return a.lunar.waxing == true and b.lunar.waxing == false
-    --     end)
     local structure = {
         item = {tstart = itemStart, tend = itemEnd},
         frequencies = freqs
@@ -284,25 +275,6 @@ function scriptColors()
     gui.textColor = {themeColor("col_main_text2", true)}
 end
 
-function init()
-    -- Add stuff to "gui" table
-    gui.settings = {}-- Add "settings" table to "gui" table
-    gui.settings.font_size = 14 -- font size
-    gui.settings.docker_id = 0 -- try 0, 1, 257, 513, 1027 etc.
-    gui.font = "Verdana"
-    gui.fontSize = 15
-    scriptColors()
-    
-    ---------------------------
-    -- Initialize gfx window --
-    ---------------------------
-    gfx.init(label, 500, 500)
-    
-    reaperCMD("_BR_MOVE_WINDOW_TO_MOUSE_H_M_V_B")
-    
-    gfx.setfont(1, gui.font, gui.fontSize)
-end
-
 local function getOpts()
     -- r is for the place to start drawing the notes
     return {
@@ -330,6 +302,11 @@ local function draw()
     drawSelectedMidiFrequencies(getOpts())
 end
 
+local function updateKeyInMidiStructure()
+    g_midi_structure.key = midiHelper.getNormalizedKey(g_key, g_midi_structure)
+    g_midi_relative.key = g_midi_structure.key
+end
+
 local cache_item_info = {}
 local function shouldRedrawForMidiItem()
     local item = reaper.GetSelectedMediaItem(0, 0)
@@ -345,16 +322,18 @@ local function shouldRedrawForMidiItem()
     if shouldRedraw then
         -- fdebug("should redraw: midi item")
         g_midi_structure = getSelectedMidiStructure()
-        g_midi_structure.key = midiHelper.getNormalizedKey(g_key, g_midi_structure)
+        updateKeyInMidiStructure()
         cache_item_info = info
     end
     
     return shouldRedraw
-end; shouldRedrawForMidiItem()
+end;
 
 local function updateTimeAndRelevantMidiStructure(t)
     g_t = t
     g_midi_relative = midiHelper.midiStructureToRelativeTimings(g_midi_structure, t)
+    -- fdebug(dump(g_midi_relative))
+    midiHelper.orderForCurrentPlayingPriority(g_midi_relative)
 end
 
 local cache_edit_pos = nil
@@ -368,7 +347,7 @@ local function shouldRedrawForEditCursor()
     cursor_now = pos
     
     return shouldRedraw
-end; shouldRedrawForEditCursor()
+end; -- i initialize this "cache" myself in init()
 
 local cache_play_pos = 0
 local function shouldRedrawForPlayPosition()
@@ -418,7 +397,7 @@ local function getKeyFreqFromUserMenu()
     local sel = gfx.showmenu(menuStr)
     if sel > 0 then
         local noteName = noteNames[sel]
-        setExtState("midi_graph_key", noteName)
+        setExtState("midi_graph_key_name", noteName)
         g_keyName = noteName
         -- i will be from 1 to 11, 1 meaning C. middle C is 60
         return midi2f(sel + 59)
@@ -427,7 +406,7 @@ local function getKeyFreqFromUserMenu()
 end
 
 local function getKeyFreqFromProject()
-    local val = getExtState("midi_graph_key")
+    local val = getExtState("midi_graph_key_name")
     if val == "" then
         val = "C"
     end
@@ -436,6 +415,31 @@ local function getKeyFreqFromProject()
     -- i will be from 1 to 11, 1 meaning C. middle C is 60
     local f = midi2f(noteIndex + 59)
     return f
+end
+
+function init()
+    -- Add stuff to "gui" table
+    gui.settings = {}-- Add "settings" table to "gui" table
+    gui.settings.font_size = 14 -- font size
+    gui.settings.docker_id = 0 -- try 0, 1, 257, 513, 1027 etc.
+    gui.font = "Verdana"
+    gui.fontSize = 15
+    scriptColors()
+    
+    ---------------------------
+    -- Initialize gfx window --
+    ---------------------------
+    gfx.init(label, 500, 500)
+    
+    reaperCMD("_BR_MOVE_WINDOW_TO_MOUSE_H_M_V_B")
+    
+    gfx.setfont(1, gui.font, gui.fontSize)
+
+    g_key = getKeyFreqFromProject()
+
+    -- getting midi info, and time from edit cursor
+    shouldRedrawForMidiItem()
+    shouldRedrawForEditCursor()
 end
 
 local redraw = true
@@ -448,6 +452,7 @@ local function mainloop()
         local f = getKeyFreqFromUserMenu()
         if f ~= nil then
             g_key = f
+            updateKeyInMidiStructure()
             forceRedraw = true
         end
     end
@@ -462,5 +467,4 @@ local function mainloop()
     end
 end
 init()
-g_key = getKeyFreqFromProject()
 mainloop()
