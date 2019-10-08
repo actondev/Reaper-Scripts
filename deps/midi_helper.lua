@@ -18,8 +18,7 @@ local function dump(o)
     end
  end
 
-function midiHelper.relevantFrequenciesFromMidiStructure(data, t)
-    print("hi from midi helper")
+function midiHelper.midiStructureToRelativeTimings(data, t)
     local relevantF = {}
     if data == nil then return {} end
     if data.item == nil then return {} end
@@ -28,14 +27,17 @@ function midiHelper.relevantFrequenciesFromMidiStructure(data, t)
     for _,event in pairs(data.frequencies) do
         local noteStart = event.tstart
         local noteEnd = event.tend
-        if t < event.tend
-        and (
+
+        -- "cropping" notes to the borders of the item
+        noteStart = math.max(itemStart, noteStart)
+        noteEnd = math.min(itemEnd, noteEnd)
+        if
+        (
             (noteStart >= itemStart and noteStart < itemEnd)
             or (noteEnd > itemStart and noteEnd < itemEnd)
         )
         then
-            noteStart = math.max(itemStart, noteStart)
-            noteEnd = math.min(itemEnd, noteEnd)
+            
             local tend = noteEnd - t
             -- if tend > 0 then -- if not, the event has already ended
                 local tstart = noteStart - t
@@ -48,6 +50,14 @@ function midiHelper.relevantFrequenciesFromMidiStructure(data, t)
         item = {tstart = itemStart - t, tend = itemEnd - t},
         frequencies = relevantF
     }
+end
+
+function midiHelper.midi2f(note)
+    return 2 ^ ((note - 69) / 12) * 440
+end
+
+function midiHelper.getNormalizedKey(key, midiStructure)
+
 end
 
 return midiHelper;

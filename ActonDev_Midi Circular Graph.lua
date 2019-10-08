@@ -339,7 +339,7 @@ end; shouldRedrawForMidiItem()
 
 local function updateTimeAndRelevantMidiStructure(t)
     g_t = t
-    g_midi_relevant = midiHelper.relevantFrequenciesFromMidiStructure(g_midi_structure, t)
+    g_midi_relevant = midiHelper.midiStructureToRelativeTimings(g_midi_structure, t)
 end
 
 local cache_edit_pos = nil
