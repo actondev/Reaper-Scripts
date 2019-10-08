@@ -11,7 +11,9 @@ midiStructure01 = {
         {f = 120, tstart = 2.0, tend = 3.0},
         {f = 130, tstart = 3.0, tend = 4.0},
         {f = 135, tstart = 3.5, tend = 4.0},
-        {f = 199, tstart = 0.0, tend = 10.0} -- for example tstart should be converted to 2 and end to 5
+        {f = 199, tstart = 0.0, tend = 10.0}, -- for example tstart should be converted to 2 and end to 5
+        {f = 200, tstart = 6.0, tend = 10.0}, -- should be filtered out, outside of the item
+        {f = 201, tstart = 0.0, tend = 1.0} -- should be filtered out, outside of the item
     }
 }
 

@@ -21,7 +21,7 @@ local g_keyName = "A"
 
 -- stored/cached values accessible from all around the file
 local g_midi_structure = {}
-local g_midi_relative = {} -- notes relevant to current playing/editing time
+local g_midi_relative = {}-- notes relevant to current playing/editing time
 
 local gui = {}
 
@@ -126,9 +126,9 @@ local function getSelectedMidiStructure()
         item = {tstart = itemStart, tend = itemEnd},
         frequencies = freqs
     }
-
+    
     structure.key = midiHelper.getNormalizedKey(g_key, structure)
-
+    
     return structure
 end
 
@@ -222,35 +222,38 @@ end
 
 local function drawSelectedMidiFrequencies(opts)
     local r = opts.r
-    local root = opts.root
+    local octaveOffset = opts.octave_offset
     local cx = opts.cx
     local cy = opts.cy
     local midi_relevant = g_midi_relative
     if g_midi_relative == nil then return {} end
     if g_midi_relative.item == nil then return {} end
+    local key = g_midi_relative.key
     local itemRelStart = g_midi_relative.item.tstart
     for i, freq in pairs(midi_relevant.frequencies) do
         local relStart = freq.tstart
         local relEnd = freq.tend
         local length = relEnd + math.abs(relStart)
-        local isWaxing = freq.tstart>0
+        local isWaxing = freq.tstart > 0
         local fill = 0;
+        local f = freq.f
+        local offset = log2(f / key) * octaveOffset
+        local rWithOffset = r + offset
         if itemRelStart > 0 then
             fill = 0;
         elseif isWaxing then
-            fill = itemRelStart/(itemRelStart-relStart)
+            fill = itemRelStart / (itemRelStart - relStart)
         else
-            fill = 1-math.abs(relStart/length)
+            fill = 1 - math.abs(relStart / length)
         end
-
-        local f = freq.f
-        local angle = f2angle(root, f)
+        
+        local angle = f2angle(key, f)
         angle = angle - math.pi / 2 -- 0 at 12 o'clock
-        local x = cx + r * math.cos(angle)
-        local y = cy + r * math.sin(angle)
+        local x = cx + rWithOffset * math.cos(angle)
+        local y = cy + rWithOffset * math.sin(angle)
         
         gfx.set(1, 1, 1)
-        drawMoon(x, y, 20, isWaxing, fill, 36)
+        drawMoon(x, y, opts.r_moon, isWaxing, fill, 36)
         gfx.set(1, 0, 0)
         gfx.x = x
         gfx.y = y
@@ -302,7 +305,14 @@ end
 
 local function getOpts()
     -- r is for the place to start drawing the notes
-    return {root = g_key, r = 90, cx = gfx.w / 2, cy = gfx.h / 2}
+    return {
+        root = g_key,
+        r = 90,
+        r_moon = 20,
+        octave_offset = 50,
+        cx = gfx.w / 2,
+        cy = gfx.h / 2
+    }
 end
 
 local function draw()
@@ -335,9 +345,10 @@ local function shouldRedrawForMidiItem()
     if shouldRedraw then
         -- fdebug("should redraw: midi item")
         g_midi_structure = getSelectedMidiStructure()
+        g_midi_structure.key = midiHelper.getNormalizedKey(g_key, g_midi_structure)
         cache_item_info = info
     end
-
+    
     return shouldRedraw
 end; shouldRedrawForMidiItem()
 
@@ -388,7 +399,7 @@ local function shouldRedraw()
         or shouldRedrawForMidiItem()
         or shouldRedrawForPlayPosition()
         or shouldRedrawForEditCursor()
-        
+
 end
 
 local function indexOf(coll, search)

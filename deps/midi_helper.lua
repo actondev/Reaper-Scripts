@@ -35,16 +35,16 @@ function midiHelper.midiStructureToRelativeTimings(data, t)
     for _,event in pairs(data.frequencies) do
         local noteStart = event.tstart
         local noteEnd = event.tend
-
-        -- "cropping" notes to the borders of the item
-        noteStart = math.max(itemStart, noteStart)
-        noteEnd = math.min(itemEnd, noteEnd)
         if
         (
-            (noteStart >= itemStart and noteStart < itemEnd)
-            or (noteEnd > itemStart and noteEnd < itemEnd)
+            (noteStart >= itemStart and noteStart < itemEnd) -- starts in
+            or (noteEnd > itemStart and noteEnd < itemEnd)  -- ends in
+            or (noteStart < itemStart and noteEnd > itemEnd) -- starts before, ends after
         )
         then
+            -- "cropping" notes to the borders of the item
+            noteStart = math.max(itemStart, noteStart)
+            noteEnd = math.min(itemEnd, noteEnd)
             local tend = noteEnd - t
             -- if tend > 0 then -- if not, the event has already ended
                 local tstart = noteStart - t
