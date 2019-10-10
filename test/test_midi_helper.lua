@@ -77,4 +77,10 @@ function testNormalizedKey()
     lu.assertEquals(midi.getNormalizedKey(30, midiStructure01), 120)
 end
 
+function testNormalizedKeys()
+    -- 120 minF, 201 maxF
+    lu.assertEquals(midi.getNormalizedKeys(130, midiStructure01), {low = 130 / 2, high = 130*2})
+    lu.assertEquals(midi.getNormalizedKeys(60, midiStructure01), {low=120, high=240})
+end
+
 os.exit(lu.LuaUnit.run())

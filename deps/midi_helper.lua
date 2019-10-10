@@ -52,7 +52,7 @@ function midiHelper.midiStructureToRelativeTimings(data, t)
             -- "cropping" notes to the borders of the item
             noteStart = math.max(itemStart, noteStart)
             noteEnd = math.min(itemEnd, noteEnd)
-            
+
             local tend = noteEnd - t
             local tstart = noteStart - t
             local f = event.f
@@ -103,7 +103,7 @@ function midiHelper.midi2f(note)
     return 2 ^ ((note - 69) / 12) * 440
 end
 
-local function minimumFrequency(midiStructure, t)
+local function minimumFrequency(midiStructure)
     local min = nil
     if midiStructure.frequencies == nil then
         return nil
@@ -117,7 +117,59 @@ local function minimumFrequency(midiStructure, t)
     return min
 end
 
+local function maximumFrequency(midiStructure)
+    local max = 0
+    if midiStructure.frequencies == nil then
+        return nil
+    end
+    for _, event in pairs(midiStructure.frequencies) do
+        local f = event.f
+        max = math.max(max, f)
+    end
+    
+    return max
+end
+
+local function getClosestKeyFrequency(key, f, asc)
+    if asc then
+        while key > 2*f do
+            key = key / 2
+        end
+        while key < f do
+            key = key * 2
+        end
+    else
+        -- desc
+        while key <= f/2 do
+            -- we are lower
+            key = key * 2
+        end
+        while key > f do
+            -- we are higher
+            key = key / 2
+        end
+    end
+    return key
+end
+
 function midiHelper.getNormalizedKey(key, midiStructure)
+    local minF = minimumFrequency(midiStructure)
+    if minF == nil then return key end
+    local normalizedKey = getClosestKeyFrequency(key, minF, false)
+    
+    return normalizedKey
+end
+
+function midiHelper.getNormalizedKeys(key, midiStructure)
+    local minF = minimumFrequency(midiStructure)
+    local maxF = maximumFrequency(midiStructure)
+    local keyLow = getClosestKeyFrequency(key, minF, false)
+    local keyHigh = getClosestKeyFrequency(key, maxF, true)
+    
+    return {low = keyLow, high = keyHigh}
+end
+
+function midiHelper.getKeyMinMax(key, midiStructure)
     local minF = minimumFrequency(midiStructure)
     if minF == nil then return key end
     local normalizedKey = key
