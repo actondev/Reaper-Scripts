@@ -1,5 +1,6 @@
 local Common = require('utils.common')
 local Log = require('utils.log')
+local Store = require('utils.store')
 local Track = require('utils.track')
 local Item = require('utils.item')
 local TimeSelection = require('utils.time_selection')
@@ -76,7 +77,7 @@ local function shouldPropagate(source, target)
     
     local sourceType = Item.type(source)
     local targetType = Item.type(target)
-
+    
     if sourceType ~= targetType then
         return false
     end
@@ -93,6 +94,9 @@ end
 -- propagates/copies this region (item) to other matching ones in the same track
 function module.propagate(regionItem)
     Common.undoBeginBlock()
+    Store.storeArrangeView()
+    Store.storeCursorPosition()
+    Common.preventUIRefresh(1)
     
     local track = Track.fromItem(regionItem)
     Track.selectOnly(track)
@@ -113,7 +117,25 @@ function module.propagate(regionItem)
         end
     end
     
+    Item.unselectAll()
+    Item.setSelected(regionItem, true)
+    
+    Store.restoreArrangeView()
+    Store.restoreCursorPosition()
+    Common.preventUIRefresh(-1)
     Common.undoEndBlock("ActonDev/Region items: propagate")
+end
+
+function module.clear(regionItem)
+    Common.undoBeginBlock()
+    Common.preventUIRefresh(1)
+    
+    module.select(regionItem)
+    Item.setSelected(regionItem, false)
+    Item.deleteSelected()
+    
+    Common.preventUIRefresh(-1)
+    Common.undoEndBlock("ActonDev/Region items: clear")
 end
 
 return module
