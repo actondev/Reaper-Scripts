@@ -10,15 +10,28 @@ local siblings = Track.selectSiblings()
 
 local midiItem = reaper.GetSelectedMediaItem(0, 0)
 
-for _, sibling in pairs(siblings) do
-    local itemToInsert = Track.previousItem(sibling)
-    local trackName = Track.name(sibling)
+--[[
+- maybe match also keywords?
+   - kick should translate to 36 (note C1), GM "Bass Drum 1"
+   - snare should translate to 38 (note D1), GM "Acoustic Snare"
+   - see GM drum maphttps://musescore.org/sites/musescore.org/files/General%20MIDI%20Standard%20Percussion%20Set%20Key%20Map.pdf
+]]
+function pitchMatchesTrack(pitch, track)
+    local pitchStr = tostring(pitch)
+    local trackName = Track.name(track)
+
+    return string.match(trackName,pitchStr)
+end
+
+for _, track in pairs(siblings) do
+    local itemToInsert = Track.previousItem(track)
 
     local cb = function(opts)
-        local pitchStr = tostring(opts['pitch'])
-        local pitch_track_match = string.match(trackName,pitchStr)
-        if pitch_track_match then
-            Track.insertCopyOfItem(sibling, itemToInsert, opts['tstart'])
+        local pitch = opts['pitch']
+        if pitchMatchesTrack(pitch, track) then
+            local vol = opts['vel']/127
+            local insertedItem = Track.insertCopyOfItem(track, itemToInsert, opts['tstart'])
+            Item.setVolume(insertedItem, vol)
         end
     end
     Item.iterateMidiNotes(midiItem, cb)

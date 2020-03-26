@@ -9,8 +9,12 @@ function Item.position(item)
     return reaper.GetMediaItemInfo_Value(item, "D_POSITION")
 end
 
-function Item.midiNotes(item)
-    local notesCounts = reaper
+function Item.setVolume(item, vol)
+    reaper.SetMediaItemInfo_Value(item, "D_VOL", vol)
+end
+-- https://www.extremraym.com/cloud/reascript-doc/#GetSetMediaItemInfo_String
+function Item.getVolume(item)
+    return reaper.GetMediaItemInfo_Value( item, "D_VOL")
 end
 
 function Item.countMidiNotes(item)
