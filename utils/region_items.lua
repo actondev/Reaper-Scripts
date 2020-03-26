@@ -25,17 +25,19 @@ local function getSelectMode(track)
 end
 
 local function selectAll()
-
+    Track.selectAllTopLevel()
+    Track.unselectWithRegex("-(.+)")
+    Track.selectChildren()
 end
 
 local function selectSiblings(track)
     Track.selectSiblings(track)
-    Item.selectInTimeSelectionAcrossSelectedTracks()
-
+    Track.unselectWithRegex("-(.+)")
 end
 
 local function selectChildren()
-
+    Track.selectChildren()
+    Track.unselectWithRegex("-(.+)")
 end
 
 function module.select(regionItem)
@@ -47,7 +49,12 @@ function module.select(regionItem)
     local selMode = getSelectMode(track)
     if selMode == SELECT_MODE.SIBLINGS then
         selectSiblings(track)
+    elseif selMode == SELECT_MODE.ALL then
+        selectAll()
+    elseif selMode == SELECT_MODE.CHILDREN then
+        selectChildren()
     end
+    Item.selectInTimeSelectionAcrossSelectedTracks()
 
     TimeSelection.remove()
 

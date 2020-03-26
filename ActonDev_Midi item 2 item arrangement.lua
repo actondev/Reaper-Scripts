@@ -9,7 +9,8 @@ local ArrangeView = require('utils.arrange_view')
 Log.isdebug = true
 
 local currentTrack = reaper.GetSelectedTrack(0, 0)
-local siblings = Track.selectSiblings(currentTrack)
+Track.selectSiblings(currentTrack)
+local siblings = Track.selected()
 
 local midiItem = reaper.GetSelectedMediaItem(0, 0)
 

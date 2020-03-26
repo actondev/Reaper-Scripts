@@ -29,16 +29,55 @@ function module.selectSiblings(track)
     Common.cmd('_SWS_SELPARENTS')
     Common.cmd('_SWS_SELCHILDREN')
     reaper.SetTrackSelected(track, false)
-    local siblingsCount = reaper.CountSelectedTracks(0)
+end
 
-    local siblings = {}
+function module.selected()
+    local selCount = reaper.CountSelectedTracks(0)
 
-    for i=0,siblingsCount-1 do
+    local tracks = {}
+
+    for i=0,selCount-1 do
         local track = reaper.GetSelectedTrack(0, i)
-        table.insert(siblings,track)
+        table.insert(tracks,track)
     end
 
-    return siblings
+    return tracks
+end
+
+function module.selectAll()
+    -- Track: Select all tracks
+    Common.cmd(40296)
+end
+
+function module.selectAllTopLevel()
+    -- Track: Select all top level tracks
+    Common.cmd(41803)
+end
+
+function module.setSelected(track, selected)
+    local flag = 0
+    if selected then
+        flag = 1
+    end
+    reaper.SetMediaTrackInfo_Value( track, "I_SELECTED", flag )
+end
+
+function module.unselectWithRegex(regex)
+    local tracks = module.selected()
+    for _, track in pairs(tracks) do
+        local trackName = module.name(track)
+        if string.match(trackName, regex) then
+            module.setSelected(track, false)
+        end
+    end
+end
+
+function module.selectOnlyChildren()
+    Common.cmd('_SWS_SELCHILDREN')
+end
+
+function module.selectChildren()
+    Common.cmd('_SWS_SELCHILDREN2')
 end
 
 -- has side effects: track selections
