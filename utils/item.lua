@@ -28,10 +28,10 @@ function Item.iterateMidiNotes(item, cb)
     local take = reaper.GetActiveTake(item)
     
     for i = 0, Item.countMidiNotes(item) - 1 do
-        local retval, selected, muted, startppqpos, endppqpos, chan, pitch, vel = reaper.MIDI_GetNote(take, i)
+        local _retval, _selected, muted, startppqpos, endppqpos, chan, pitch, vel = reaper.MIDI_GetNote(take, i)
         local tstart = reaper.MIDI_GetProjTimeFromPPQPos(take, startppqpos)
         local tend = reaper.MIDI_GetProjTimeFromPPQPos(take, endppqpos)
-        local opts =
+        local noteMap =
             {muted = muted,
             tstart = tstart,
             tend = tend,
@@ -39,7 +39,7 @@ function Item.iterateMidiNotes(item, cb)
             pitch = pitch,
             vel = vel
             }
-        cb(opts)
+        cb(noteMap)
     end
 end
 
