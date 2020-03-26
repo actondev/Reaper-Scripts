@@ -1,24 +1,24 @@
-local helper = require('ActonDev.utils.helper')
-local Navigation = require('ActonDev.utils.navigation')
-local log = require('ActonDev.utils.log')
-local Track = {}
+local Navigation = require('utils.navigation')
+local Common = require('utils.common')
+-- local Log = require('utils.log')
+local module = {}
 
-function Track.selectAndMoveToPreviousItem()
+function module.selectAndMoveToPreviousItem()
     -- Item navigation: Select and move to previous item
-    helper.reaperCMD(40416)
+    Common.cmd(40416)
 end
 
-function Track.name(track)
+function module.name(track)
     local name = ""
     _, name = reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "", false )
 
     return name
 end
 
-function Track.selectSiblings()
+function module.selectSiblings()
     local currentTrack = reaper.GetSelectedTrack(0, 0)
-    helper.reaperCMD('_SWS_SELPARENTS')
-    helper.reaperCMD('_SWS_SELCHILDREN')
+    Common.cmd('_SWS_SELPARENTS')
+    Common.cmd('_SWS_SELCHILDREN')
     reaper.SetTrackSelected( currentTrack, false)
     local siblingsCount = reaper.CountSelectedTracks(0)
 
@@ -33,17 +33,17 @@ function Track.selectSiblings()
 end
 
 -- has side effects: track selections
-function Track.previousItem(track)
+function module.previousItem(track)
     reaper.SetOnlyTrackSelected(track)
 
     Navigation.storeEditCursorPosition()
-    Track.selectAndMoveToPreviousItem()
+    module.selectAndMoveToPreviousItem()
     Navigation.recallEditCursorPosition()
     
     return reaper.GetSelectedMediaItem(0, 0)
 end
 
-function Track.insertCopyOfItem(track, item, position)
+function module.insertCopyOfItem(track, item, position)
     local new_item = reaper.AddMediaItemToTrack(track)
 	local new_item_guid = reaper.BR_GetMediaItemGUID(new_item)
     local _, item_chunk =  reaper.GetItemStateChunk(item, '')
@@ -55,4 +55,4 @@ function Track.insertCopyOfItem(track, item, position)
 	return new_item
 end
 
-return Track
+return module

@@ -1,9 +1,9 @@
-local dirSeparator = package.config:sub(1, 1)
--- see https://forum.cockos.com/showthread.php?t=190342
-package.path = reaper.GetResourcePath() .. dirSeparator .. 'Scripts' .. dirSeparator .. '?.lua;' .. package.path
-local Track = require('ActonDev.utils.track')
-local Log = require('ActonDev.utils.log')
-local Item = require('Actondev.utils.item')
+package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
+
+local Track = require('utils.track')
+local Log = require('utils.log')
+local Item = require('utils.item')
+local Common = require('utils.common')
 
 Log.isdebug = true
 
@@ -24,8 +24,8 @@ function pitchMatchesTrack(pitch, track)
     return string.match(trackName,pitchStr)
 end
 
-reaper.Undo_BeginBlock()
-reaper.PreventUIRefresh(1)
+Common.undoBeginBlock()
+Common.preventUIRefresh(1)
 for _, track in pairs(siblings) do
     local itemToInsert = Track.previousItem(track)
 
@@ -40,5 +40,5 @@ for _, track in pairs(siblings) do
     Item.iterateMidiNotes(midiItem, cb)
 end
 
-reaper.PreventUIRefresh(-1)
-reaper.Undo_EndBlock("Midi item 2 item arrangement", -1)
+Common.preventUIRefresh(-1)
+Common.undoEndBlock("Midi item 2 item arrangement")

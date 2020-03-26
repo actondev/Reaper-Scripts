@@ -1,12 +1,12 @@
-local helper = require('ActonDev.utils.helper')
-local navigation = {}
+local Common = require('utils.common')
+local module = {}
 
-function navigation.storeEditCursorPosition()
-    helper.reaperCMD('_XENAKIOS_DOSTORECURPOS')
+function module.storeEditCursorPosition()
+    Common.cmd('_XENAKIOS_DOSTORECURPOS')
 end
 
-function navigation.recallEditCursorPosition()
-    helper.reaperCMD('_XENAKIOS_DORECALLCURPOS')
+function module.recallEditCursorPosition()
+    Common.cmd('_XENAKIOS_DORECALLCURPOS')
 end
 
-return navigation
+return module

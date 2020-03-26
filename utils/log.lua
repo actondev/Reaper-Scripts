@@ -1,9 +1,9 @@
-local log = {}
+local module = {}
 
-log.isdebug = false
+module.isdebug = false
 
-function log.debug(str)
-	if log.isdebug==true then
+function module.debug(str)
+	if module.isdebug==true then
 		if str ~= nil then
 			reaper.ShowConsoleMsg(os.date() .. "   " .. tostring(str) .. "\n")
 		else
@@ -12,12 +12,12 @@ function log.debug(str)
 	end
 end
 
-function log.dump(o)
+function module.dump(o)
     if type(o) == 'table' then
         local s = '{ '
         for k, v in pairs(o) do
             if type(k) ~= 'number' then k = '"' .. k .. '"' end
-            s = s .. '[' .. k .. '] = ' .. log.dump(v) .. ','
+            s = s .. '[' .. k .. '] = ' .. module.dump(v) .. ','
         end
         return s .. '} '
     else
@@ -25,4 +25,4 @@ function log.dump(o)
     end
 end
 
-return log;
+return module;

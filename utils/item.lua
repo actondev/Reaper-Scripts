@@ -1,33 +1,33 @@
-local Item = {}
+local module = {}
 
-function Item.chunk(item)
+function module.chunk(item)
     local retval, itemChunk = reaper.GetItemStateChunk(item, '')
     return itemChunk
 end
 
-function Item.position(item)
+function module.position(item)
     return reaper.GetMediaItemInfo_Value(item, "D_POSITION")
 end
 
-function Item.setVolume(item, vol)
+function module.setVolume(item, vol)
     reaper.SetMediaItemInfo_Value(item, "D_VOL", vol)
 end
 -- https://www.extremraym.com/cloud/reascript-doc/#GetSetMediaItemInfo_String
-function Item.getVolume(item)
+function module.getVolume(item)
     return reaper.GetMediaItemInfo_Value( item, "D_VOL")
 end
 
-function Item.countMidiNotes(item)
+function module.countMidiNotes(item)
     local take = reaper.GetActiveTake(item)
     _retval, notecnt, _ccevtcnt, _textsyxevtcnt = reaper.MIDI_CountEvts(take)
     
     return notecnt
 end
 
-function Item.iterateMidiNotes(item, cb)
+function module.iterateMidiNotes(item, cb)
     local take = reaper.GetActiveTake(item)
     
-    for i = 0, Item.countMidiNotes(item) - 1 do
+    for i = 0, module.countMidiNotes(item) - 1 do
         local _retval, _selected, muted, startppqpos, endppqpos, chan, pitch, vel = reaper.MIDI_GetNote(take, i)
         local tstart = reaper.MIDI_GetProjTimeFromPPQPos(take, startppqpos)
         local tend = reaper.MIDI_GetProjTimeFromPPQPos(take, endppqpos)
@@ -43,4 +43,4 @@ function Item.iterateMidiNotes(item, cb)
     end
 end
 
-return Item;
+return module;
