@@ -15,7 +15,7 @@ function module.name(track)
     return name
 end
 
-function module.getFromItem(item)
+function module.fromItem(item)
     return reaper.GetMediaItem_Track(item)
 end
 
@@ -33,7 +33,6 @@ end
 
 function module.selected()
     local selCount = reaper.CountSelectedTracks(0)
-
     local tracks = {}
 
     for i=0,selCount-1 do

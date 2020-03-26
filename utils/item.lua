@@ -1,13 +1,47 @@
 local Common = require('utils.common')
+local Log = require('utils.log')
 local module = {}
 
+module.TYPE = {
+    EMPTY = 0,
+    MIDI = 1,
+    AUDIO = 2
+}
+
+
 function module.chunk(item)
-    local retval, itemChunk = reaper.GetItemStateChunk(item, '')
+    local _retval, itemChunk = reaper.GetItemStateChunk(item, '')
     return itemChunk
+end
+
+
+-- probably should think of other items in the future.. Project In Project eg?
+-- @return the item's type. eg empty,midi,audio
+function module.type(item)
+    local chunk = module.chunk(item)
+	local  itemType = string.match(chunk, "<SOURCE%s(%P%P%P).*\n")
+	if itemType == nil then
+		return module.TYPE.EMPTY
+	elseif itemType == "MID" then
+		return module.TYPE.MIDI
+	else
+		return module.TYPE.AUDIO
+	end
 end
 
 function module.position(item)
     return reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+end
+
+function module.activeTake(item)
+    return reaper.GetActiveTake(item)
+end
+
+function module.name(item)
+    local take = module.activeTake(item)
+    local _, name = reaper.GetSetMediaItemTakeInfo_String(take,'P_NAME', '', false)
+
+    return name
 end
 
 function module.setVolume(item, vol)
@@ -49,6 +83,11 @@ function module.selectInTimeSelectionAcrossSelectedTracks()
     Common.cmd(40718)
 end
 
+function module.selectAllInSelectedTrack()
+    -- Item: Select all items in track
+    Common.cmd(40421)
+end
+
 function module.unselectAll()
     -- Item: Unselect all items
     Common.cmd(40289)
@@ -56,6 +95,37 @@ end
 
 function module.setSelected(item, selected)
     reaper.SetMediaItemSelected( item, selected )
+end
+
+function module.selected()
+    local selCount = reaper.CountSelectedMediaItems(0)
+    local items = {}
+    
+    for i=0,selCount-1 do
+        local item = reaper.GetSelectedMediaItem(0, i)
+        table.insert(items,item)
+    end
+
+    return items
+end
+
+function module.notes(item)
+    return reaper.ULT_GetMediaItemNote(item)
+end
+
+function module.copySelected()
+    -- Edit: Copy items
+    Common.cmd(40698)
+end
+
+function module.deleteSelected()
+    -- Item: Remove items
+    Common.cmd(40006)
+end
+
+function module.paste()
+    -- Item: Paste items/tracks
+    Common.cmd(40058)
 end
 
 return module;

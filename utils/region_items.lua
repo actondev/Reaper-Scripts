@@ -1,10 +1,12 @@
 local Common = require('utils.common')
+local Log = require('utils.log')
 local Track = require('utils.track')
 local Item = require('utils.item')
 local TimeSelection = require('utils.time_selection')
 
 local module = {}
 
+-- select mode "enum"
 local SELECT_MODE = {
     ALL = 0,
     SIBLINGS = 1,
@@ -13,8 +15,8 @@ local SELECT_MODE = {
 
 local function getSelectMode(track)
     local trackName = Track.name(track)
-    local firstChar = string.sub(trackName, 1,1)
-
+    local firstChar = string.sub(trackName, 1, 1)
+    
     if firstChar == "*" then
         return SELECT_MODE.ALL
     elseif firstChar == ">" then
@@ -43,9 +45,12 @@ end
 function module.select(regionItem)
     Common.undoBeginBlock()
     Common.preventUIRefresh(1)
-
+    
+    Item.unselectAll()
+    Item.setSelected(regionItem, true)
+    
     TimeSelection.setToSelectedItems()
-    local track = Track.getFromItem(regionItem)
+    local track = Track.fromItem(regionItem)
     local selMode = getSelectMode(track)
     if selMode == SELECT_MODE.SIBLINGS then
         selectSiblings(track)
@@ -55,13 +60,60 @@ function module.select(regionItem)
         selectChildren()
     end
     Item.selectInTimeSelectionAcrossSelectedTracks()
-
+    
     TimeSelection.remove()
-
+    
     Track.selectOnly(track)
     
     Common.preventUIRefresh(-1)
     Common.undoEndBlock("ActonDev/Region items: select")
+end
+
+local function shouldPropagate(source, target)
+    if source == target then
+        return false
+    end
+    
+    local sourceType = Item.type(source)
+    local targetType = Item.type(target)
+
+    if sourceType ~= targetType then
+        return false
+    end
+    
+    if sourceType == Item.TYPE.EMPTY then
+        return Item.notes(source) == Item.notes(target)
+    end
+    local sourceName = Item.name(source)
+    local targetName = Item.name(target)
+    
+    return sourceName == targetName
+end
+
+-- propagates/copies this region (item) to other matching ones in the same track
+function module.propagate(regionItem)
+    Common.undoBeginBlock()
+    
+    local track = Track.fromItem(regionItem)
+    Track.selectOnly(track)
+    Item.selectAllInSelectedTrack()
+    
+    local items = Item.selected()
+    
+    module.select(regionItem)
+    Item.copySelected()
+    Item.unselectAll()
+    
+    for _, item in pairs(items) do
+        if shouldPropagate(regionItem, item) then
+            -- Log.debug("propagating from " .. Item.notes(regionItem) .. " to " .. Item.notes(item))
+            module.select(item)
+            Item.deleteSelected()
+            Item.paste()
+        end
+    end
+    
+    Common.undoEndBlock("ActonDev/Region items: propagate")
 end
 
 return module
