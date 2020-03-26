@@ -8,6 +8,13 @@ function Track.selectAndMoveToPreviousItem()
     helper.reaperCMD(40416)
 end
 
+function Track.name(track)
+    local name = ""
+    _, name = reaper.GetSetMediaTrackInfo_String(track, "P_NAME", "", false )
+
+    return name
+end
+
 function Track.selectSiblings()
     local currentTrack = reaper.GetSelectedTrack(0, 0)
     helper.reaperCMD('_SWS_SELPARENTS')
@@ -25,8 +32,8 @@ function Track.selectSiblings()
     return siblings
 end
 
--- side effects
-function Track.trackPreviousItem(track)
+-- has side effects: track selections
+function Track.previousItem(track)
     reaper.SetOnlyTrackSelected(track)
 
     Navigation.storeEditCursorPosition()
