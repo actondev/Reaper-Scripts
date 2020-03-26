@@ -15,11 +15,20 @@ function module.name(track)
     return name
 end
 
-function module.selectSiblings()
-    local currentTrack = reaper.GetSelectedTrack(0, 0)
+function module.getFromItem(item)
+    return reaper.GetMediaItem_Track(item)
+end
+
+function module.selectOnly(track)
+    reaper.SetOnlyTrackSelected(track)
+end
+
+-- also return the sibling tracks
+function module.selectSiblings(track)
+    reaper.SetOnlyTrackSelected(track)
     Common.cmd('_SWS_SELPARENTS')
     Common.cmd('_SWS_SELCHILDREN')
-    reaper.SetTrackSelected( currentTrack, false)
+    reaper.SetTrackSelected(track, false)
     local siblingsCount = reaper.CountSelectedTracks(0)
 
     local siblings = {}

@@ -1,3 +1,4 @@
+local Common = require('utils.common')
 local module = {}
 
 function module.chunk(item)
@@ -41,6 +42,20 @@ function module.iterateMidiNotes(item, cb)
             }
         cb(noteMap)
     end
+end
+
+function module.selectInTimeSelectionAcrossSelectedTracks()
+    -- Item: Select all items on selected tracks in current time selection
+    Common.cmd(40718)
+end
+
+function module.unselectAll()
+    -- Item: Unselect all items
+    Common.cmd(40289)
+end
+
+function module.setSelected(item, selected)
+    reaper.SetMediaItemSelected( item, selected )
 end
 
 return module;

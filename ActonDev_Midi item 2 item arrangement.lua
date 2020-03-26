@@ -4,10 +4,12 @@ local Track = require('utils.track')
 local Log = require('utils.log')
 local Item = require('utils.item')
 local Common = require('utils.common')
+local ArrangeView = require('utils.arrange_view')
 
 Log.isdebug = true
 
-local siblings = Track.selectSiblings()
+local currentTrack = reaper.GetSelectedTrack(0, 0)
+local siblings = Track.selectSiblings(currentTrack)
 
 local midiItem = reaper.GetSelectedMediaItem(0, 0)
 
@@ -26,6 +28,8 @@ end
 
 Common.undoBeginBlock()
 Common.preventUIRefresh(1)
+ArrangeView.store()
+
 for _, track in pairs(siblings) do
     local itemToInsert = Track.previousItem(track)
 
@@ -39,6 +43,13 @@ for _, track in pairs(siblings) do
     end
     Item.iterateMidiNotes(midiItem, cb)
 end
+
+Item.unselectAll()
+Item.setSelected(midiItem, true)
+Track.selectOnly(currentTrack)
+
+ArrangeView.restore()
+reaper.UpdateArrange()
 
 Common.preventUIRefresh(-1)
 Common.undoEndBlock("Midi item 2 item arrangement")
