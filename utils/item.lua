@@ -9,6 +9,15 @@ module.TYPE = {
     AUDIO = 2
 }
 
+module.PARAM = {
+    POSITION = 'D_POSITION',
+    LENGTH = 'D_LENGTH'
+}
+
+module.TAKE_PARAM = {
+    START_OFFSET = 'D_STARTOFFS'
+}
+
 
 function module.chunk(item)
     local _retval, itemChunk = reaper.GetItemStateChunk(item, '')
@@ -122,6 +131,36 @@ function module.startEnd(item)
     return tstart, tend
 end
 
+function module.getInfo(item, param)
+    return reaper.GetMediaItemInfo_Value( item, param)
+end
+
+function module.setInfo(item, param, value)
+    reaper.SetMediaItemInfo_Value( item, param, value)
+end
+
+function module.setActiveTakeInfo(item, param, value)
+    local take = module.activeTake(item)
+    reaper.SetMediaItemTakeInfo_Value( take, param, value)
+end
+
+function module.getActiveTakeInfo(item, param)
+    local take = module.activeTake(item)
+    return reaper.GetMediaItemTakeInfo_Value( take, param)
+end
+
+function module.adjustStart(item, adjust)
+    local start =  module.getInfo(item, module.PARAM.POSITION)
+    module.setInfo( item, module.PARAM.POSITION,start+adjust)
+end
+
+function module.adjustStartSelected(adjust)
+    local items = module.selected()
+    for _,item in pairs(items) do
+        module.adjustStart(item, adjust)
+    end
+end
+
 function module.notes(item)
     return reaper.ULT_GetMediaItemNote(item)
 end
@@ -154,6 +193,7 @@ function module.deleteSelectedOutsideOfRange(tstart, tend)
     end
     Common.updateArrange()
 end
+
 
 function module.splitSelected(t)
     EditCursor.setPosition(t)

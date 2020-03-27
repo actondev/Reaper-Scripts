@@ -128,6 +128,8 @@ local function propagate(regionItem)
             Track.selectOnly(firstTrack)
             Item.paste()
 
+            local otherRegionOffset = Item.getActiveTakeInfo(otherRegionItem, Item.TAKE_PARAM.START_OFFSET)
+            Item.adjustStartSelected(-otherRegionOffset)
             -- trimming pasted items to this region time range
             local tstart,tend = Item.startEnd(otherRegionItem)
             Item.splitSelected(tstart)
