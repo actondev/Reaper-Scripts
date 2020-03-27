@@ -11,7 +11,8 @@ module.TYPE = {
 
 module.PARAM = {
     POSITION = 'D_POSITION',
-    LENGTH = 'D_LENGTH'
+    LENGTH = 'D_LENGTH',
+    MUTE = 'B_MUTE'
 }
 
 module.TAKE_PARAM = {
@@ -48,8 +49,25 @@ function module.activeTake(item)
     return reaper.GetActiveTake(item)
 end
 
+function module.toggleActiveTakeReverse(item)
+    local selItems = module.selected()
+    module.unselectAll()
+    module.setSelected(item, true)
+    -- Item properties: Toggle take reverse
+    Common.cmd(41051)
+
+    module.unselectAll()
+    for _, selItem in pairs(selItems) do
+        module.setSelected(selItem, true)
+    end
+end
+
+-- TODO rename to activeTakeName
 function module.name(item)
     local take = module.activeTake(item)
+    if take == nil then
+        return ""
+    end
     local _, name = reaper.GetSetMediaItemTakeInfo_String(take,'P_NAME', '', false)
 
     return name
@@ -206,6 +224,11 @@ function module.deleteSelected()
 end
 
 -- note: should call updateArrange afterwards
+function module.delete(item)
+    reaper.DeleteTrackMediaItem( reaper.GetMediaItem_Track(item), item )
+end
+
+-- note: should call updateArrange afterwards
 function module.deleteSelectedOutsideOfRange(tstart, tend)
     local tolerance = 0.000001
     local selected = module.selected()
@@ -218,7 +241,7 @@ function module.deleteSelectedOutsideOfRange(tstart, tend)
             shouldDelete = true
         end
         if shouldDelete then
-            reaper.DeleteTrackMediaItem( reaper.GetMediaItem_Track(item), item )
+            module.delete(item)
         end
     end
     Common.updateArrange()

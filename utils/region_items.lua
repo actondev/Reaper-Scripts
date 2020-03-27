@@ -1,9 +1,11 @@
 local Common = require('utils.common')
 local Log = require('utils.log')
 local Store = require('utils.store')
+local Json = require('lib.json')
 local Track = require('utils.track')
 local Item = require('utils.item')
 local TimeSelection = require('utils.time_selection')
+local ItemManipulation = require('utils.item_manipulation')
 
 local module = {}
 
@@ -136,12 +138,17 @@ local function propagate(regionItem)
             Track.selectOnly(firstTrack)
             Item.paste()
 
+
             local targetRegionOffset = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.START_OFFSET)
             Item.adjustInfoSelected(Item.PARAM.POSITION,sourceRegionOffset-targetRegionOffset)
 
             -- adjusting pitch
             local targetPitch = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.PITCH)
             Item.adjustActiveTakeInfoSelected(Item.TAKE_PARAM.PITCH, targetPitch)
+
+            -- manipulating target region
+            local manipulationOpts = Json.parse(Item.notes(targetRegion))
+            ItemManipulation.manipulateSelected(manipulationOpts)
 
             -- trimming pasted items to this region time range
             local tstart,tend = Item.startEnd(targetRegion)
