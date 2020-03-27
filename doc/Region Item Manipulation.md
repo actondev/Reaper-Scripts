@@ -1,4 +1,8 @@
 # Region Item Manipulation
+  > @aod.manipulate.v1
+  >
+  > draft, subject to change
+
   You can embed item manipulation rules inside an item notes by
   - prepending the `@aod.manipulate.v1` before your json rules
 
@@ -12,6 +16,7 @@
   ```
 
   The `track` and the `take` are regex patterns that are used to match a track's name and the active take name accordingly.
+  If they are not present, they default to `".*"`. The `action` key is **required**
 
   Valid actions in `@aod.manipulate.v1`
   - `delete`

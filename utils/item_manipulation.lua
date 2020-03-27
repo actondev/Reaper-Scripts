@@ -33,7 +33,7 @@ end
 
 -- TODO check validity of action
 local function isOptsValid(opts)
-    return opts ~= nil and opts['track']~=nil and opts['take']~=nil and opts['action']~=nil
+    return opts ~= nil and opts['action']~=nil
 end
 
 function module.manipulate(opts, items)
@@ -54,9 +54,10 @@ function module.manipulate(opts, items)
     for key,item in pairs(items) do
         local track = Track.fromItem(item)
         local trackName = Track.name(track)
-        if string.match(trackName, opts['track']) then
+        -- track and take can be missing: if so, default to ".*"
+        if string.match(trackName, opts['track'] or ".*") then
             local takeName = Item.name(item)
-            if string.match(takeName, opts['take']) then
+            if string.match(takeName, opts['take'] or ".*") then
                 manipulateItem(item, opts['action'])
                 if opts['action'] == module.ACTION.DELETE then
                     -- hack: removing the deleted item
