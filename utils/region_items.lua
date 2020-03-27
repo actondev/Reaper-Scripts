@@ -139,7 +139,6 @@ local function propagate(regionItem)
             Track.selectOnly(firstTrack)
             Item.paste()
 
-
             local targetRegionOffset = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.START_OFFSET)
             Item.adjustInfoSelected(Item.PARAM.POSITION,sourceRegionOffset-targetRegionOffset)
 

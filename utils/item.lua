@@ -112,6 +112,10 @@ function module.selectInTimeSelectionAcrossSelectedTracks()
     Common.cmd(40718)
 end
 
+function module.validate(item)
+    return reaper.ValidatePtr(item, 'MediaItem*')
+end
+
 function module.selectAllInSelectedTrack()
     -- Item: Select all items in track
     Common.cmd(40421)
