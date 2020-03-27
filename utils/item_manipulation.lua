@@ -18,6 +18,8 @@ module.ACTION = {
     REVERSE = 'reverse'
 }
 
+module.TAG_V1 = '@aod.manipulate.v1'
+
 local function manipulateItem(item, action)
     -- Log.debug("item " .. tostring(item) .. " action " .. action)
     if action == module.ACTION.DELETE then

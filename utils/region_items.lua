@@ -6,6 +6,7 @@ local Track = require('utils.track')
 local Item = require('utils.item')
 local TimeSelection = require('utils.time_selection')
 local ItemManipulation = require('utils.item_manipulation')
+local Parse = require('utils.parse')
 
 local module = {}
 
@@ -147,7 +148,8 @@ local function propagate(regionItem)
             Item.adjustActiveTakeInfoSelected(Item.TAKE_PARAM.PITCH, targetPitch)
 
             -- manipulating target region
-            local manipulationOpts = Json.parse(Item.notes(targetRegion))
+            local targetRegionNotes = Item.notes(targetRegion)
+            local manipulationOpts = Parse.parsedTaggedJson(targetRegionNotes, ItemManipulation.TAG_V1)
             ItemManipulation.manipulateSelected(manipulationOpts)
 
             -- trimming pasted items to this region time range

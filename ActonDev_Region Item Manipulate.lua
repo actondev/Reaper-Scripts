@@ -6,6 +6,7 @@ local Item = require('utils.item')
 local Json = require('lib.json')
 local Common = require('utils.common')
 local Store = require('utils.store')
+local Parse = require('utils.parse')
 local ItemManipulation = require('utils.item_manipulation')
 local regionItem = reaper.GetSelectedMediaItem(0, 0)
 
@@ -14,15 +15,13 @@ Common.preventUIRefresh(1)
 Store.storeCursorPosition()
 RegionItems.select(regionItem)
 local notes = Item.notes(regionItem)
-Log.isdebug = true
+-- Log.isdebug = true
 -- Log.debug("notes")
 -- Log.debug(notes)
 
-local parsed = Json.parse(notes)
--- Log.debug("parsed")
--- Log.debug(Log.dump(parsed))
+local manipulationOpts = Parse.parsedTaggedJson(notes, ItemManipulation.TAG_V1)
 
-ItemManipulation.manipulateSelected(parsed)
+ItemManipulation.manipulateSelected(manipulationOpts)
 
 Item.unselectAll()
 Item.setSelected(regionItem, true)

@@ -4,7 +4,7 @@
 
   Modified the parse such as that it checks for empty input string:
   ``` lua
-  if str == "" then
+  if str == nil or str == "" then
     return nil
   end
   ```
@@ -163,7 +163,7 @@ end
 json.null = {}  -- This is a one-off table to represent the null value.
 
 function json.parse(str, pos, end_delim)
-  if str == "" then
+  if str == nil or str == "" then
     return nil
   end
   pos = pos or 1
