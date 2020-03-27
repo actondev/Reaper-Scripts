@@ -21,4 +21,8 @@ function module.preventUIRefresh(prevent_count)
     reaper.PreventUIRefresh( prevent_count)
 end
 
+function module.updateArrange()
+    reaper.UpdateArrange()
+end
+
 return module

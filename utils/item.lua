@@ -1,5 +1,6 @@
 local Common = require('utils.common')
 local Log = require('utils.log')
+local EditCursor = require('utils.edit_cursor')
 local module = {}
 
 module.TYPE = {
@@ -97,16 +98,28 @@ function module.setSelected(item, selected)
     reaper.SetMediaItemSelected( item, selected )
 end
 
+function module.firstSelected()
+    return reaper.GetSelectedMediaItem(0, 0)
+end
+
 function module.selected()
     local selCount = reaper.CountSelectedMediaItems(0)
     local items = {}
-    
+
     for i=0,selCount-1 do
         local item = reaper.GetSelectedMediaItem(0, i)
         table.insert(items,item)
     end
 
     return items
+end
+
+function module.startEnd(item)
+    local tstart =  reaper.GetMediaItemInfo_Value( item, 'D_POSITION')
+    local length = reaper.GetMediaItemInfo_Value( item, 'D_LENGTH')
+    local tend = tstart + length
+
+    return tstart, tend
 end
 
 function module.notes(item)
@@ -121,6 +134,31 @@ end
 function module.deleteSelected()
     -- Item: Remove items
     Common.cmd(40006)
+end
+
+-- note: should call updateArrange afterwards
+function module.deleteSelectedOutsideOfRange(tstart, tend)
+    local tolerance = 0.000001
+    local selected = module.selected()
+    for _,item in pairs(selected) do
+        local itemStart, itemEnd = module.startEnd(item)
+        local shouldDelete = false
+        if itemEnd-tolerance < tstart then
+            shouldDelete = true
+        elseif itemStart+tolerance > tend then
+            shouldDelete = true
+        end
+        if shouldDelete then
+            reaper.DeleteTrackMediaItem( reaper.GetMediaItem_Track(item), item )
+        end
+    end
+    Common.updateArrange()
+end
+
+function module.splitSelected(t)
+    EditCursor.setPosition(t)
+    -- Item: Split items at edit cursor (no change selection)
+    Common.cmd(40757)
 end
 
 function module.paste()

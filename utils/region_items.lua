@@ -43,10 +43,10 @@ local function selectChildren()
     Track.unselectWithRegex("-(.+)")
 end
 
-function module.select(regionItem)
-    Common.undoBeginBlock()
-    Common.preventUIRefresh(1)
-    
+local function select(regionItem)
+    if regionItem == nil then
+        return
+    end
     Item.unselectAll()
     Item.setSelected(regionItem, true)
     
@@ -65,6 +65,13 @@ function module.select(regionItem)
     TimeSelection.remove()
     
     Track.selectOnly(track)
+end
+
+function module.select(regionItem)
+    Common.undoBeginBlock()
+    Common.preventUIRefresh(1)
+    
+    select(regionItem)
     
     Common.preventUIRefresh(-1)
     Common.undoEndBlock("ActonDev/Region items: select")
@@ -91,34 +98,64 @@ local function shouldPropagate(source, target)
     return sourceName == targetName
 end
 
+
+local function propagate(regionItem)
+    if regionItem == nil then
+        return
+    end
+    local track = Track.fromItem(regionItem)
+    Track.selectOnly(track)
+    Item.selectAllInSelectedTrack()
+    
+    local otherRegionItems = Item.selected()
+    module.select(regionItem)
+    
+    -- unselecting region item: we don't copy it
+    -- and selecting first track that has an item
+    Item.setSelected(regionItem, false)
+    local firstItem = Item.firstSelected()
+    -- validating: we have something to copy
+    if firstItem == nil then
+        return
+    end
+    local firstTrack = Track.fromItem(firstItem)
+    
+    -- copying region contents
+    Item.copySelected()
+    for _, otherRegionItem in pairs(otherRegionItems) do
+        if shouldPropagate(regionItem, otherRegionItem) then
+            clear(otherRegionItem)
+            Track.selectOnly(firstTrack)
+            Item.paste()
+
+            -- trimming pasted items to this region time range
+            local tstart,tend = Item.startEnd(otherRegionItem)
+            Item.splitSelected(tstart)
+            Item.splitSelected(tend)
+            Item.deleteSelectedOutsideOfRange(tstart, tend)
+        end
+    end
+    Track.selectOnly(track)
+    Item.unselectAll()
+    Item.setSelected(regionItem, true)
+end
 -- propagates/copies this region (item) to other matching ones in the same track
+--[[
+TODOs
+- maybe instead of copying all.. iterate all the selected tracks and copy/paste?
+this could solve the
+- not having to copy the region item itself
+- working with "* SONG" tracks that are after a normal track
+- get first selected item -> and its track. so then select that track when pasting
+]]
 function module.propagate(regionItem)
     Common.undoBeginBlock()
     Store.storeArrangeView()
     Store.storeCursorPosition()
     Common.preventUIRefresh(1)
     
-    local track = Track.fromItem(regionItem)
-    Track.selectOnly(track)
-    Item.selectAllInSelectedTrack()
-    
-    local items = Item.selected()
-    
-    module.select(regionItem)
-    Item.copySelected()
-    Item.unselectAll()
-    
-    for _, item in pairs(items) do
-        if shouldPropagate(regionItem, item) then
-            -- Log.debug("propagating from " .. Item.notes(regionItem) .. " to " .. Item.notes(item))
-            module.select(item)
-            Item.deleteSelected()
-            Item.paste()
-        end
-    end
-    
-    Item.unselectAll()
-    Item.setSelected(regionItem, true)
+    propagate(regionItem)
+    Common.updateArrange()
     
     Store.restoreArrangeView()
     Store.restoreCursorPosition()
@@ -126,13 +163,20 @@ function module.propagate(regionItem)
     Common.undoEndBlock("ActonDev/Region items: propagate")
 end
 
+function clear(regionItem)
+    if regionItem == nil then
+        return
+    end
+    select(regionItem)
+    Item.setSelected(regionItem, false)
+    Item.deleteSelected()
+end
+
 function module.clear(regionItem)
     Common.undoBeginBlock()
     Common.preventUIRefresh(1)
     
-    module.select(regionItem)
-    Item.setSelected(regionItem, false)
-    Item.deleteSelected()
+    clear(regionItem)
     
     Common.preventUIRefresh(-1)
     Common.undoEndBlock("ActonDev/Region items: clear")
