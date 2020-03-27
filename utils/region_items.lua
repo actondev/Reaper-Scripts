@@ -119,19 +119,32 @@ local function propagate(regionItem)
         return
     end
     local firstTrack = Track.fromItem(firstItem)
-    
-    -- copying region contents
-    Item.copySelected()
-    for _, otherRegionItem in pairs(otherRegionItems) do
-        if shouldPropagate(regionItem, otherRegionItem) then
-            clear(otherRegionItem)
+
+    -- source region offset: should that be permitted?
+    -- you should only propagate from.. "complete" region items
+    -- the target regions could have offsets and be incomplete, but the source.. doesn't make sense
+    local sourceRegionOffset = Item.getActiveTakeInfo(regionItem, Item.TAKE_PARAM.START_OFFSET)
+
+    -- copying only the area of the source region
+    local sourceStart,sourceEnd = Item.startEnd(regionItem)
+    TimeSelection.set(sourceStart, sourceEnd)
+    Item.copySelectedArea()
+
+    for _, targetRegion in pairs(otherRegionItems) do
+        if shouldPropagate(regionItem, targetRegion) then
+            clear(targetRegion)
             Track.selectOnly(firstTrack)
             Item.paste()
 
-            local otherRegionOffset = Item.getActiveTakeInfo(otherRegionItem, Item.TAKE_PARAM.START_OFFSET)
-            Item.adjustStartSelected(-otherRegionOffset)
+            local targetRegionOffset = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.START_OFFSET)
+            Item.adjustInfoSelected(Item.PARAM.POSITION,sourceRegionOffset-targetRegionOffset)
+
+            -- adjusting pitch
+            local targetPitch = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.PITCH)
+            Item.adjustActiveTakeInfoSelected(Item.TAKE_PARAM.PITCH, targetPitch)
+
             -- trimming pasted items to this region time range
-            local tstart,tend = Item.startEnd(otherRegionItem)
+            local tstart,tend = Item.startEnd(targetRegion)
             Item.splitSelected(tstart)
             Item.splitSelected(tend)
             Item.deleteSelectedOutsideOfRange(tstart, tend)
@@ -142,14 +155,6 @@ local function propagate(regionItem)
     Item.setSelected(regionItem, true)
 end
 -- propagates/copies this region (item) to other matching ones in the same track
---[[
-TODOs
-- maybe instead of copying all.. iterate all the selected tracks and copy/paste?
-this could solve the
-- not having to copy the region item itself
-- working with "* SONG" tracks that are after a normal track
-- get first selected item -> and its track. so then select that track when pasting
-]]
 function module.propagate(regionItem)
     Common.undoBeginBlock()
     Store.storeArrangeView()

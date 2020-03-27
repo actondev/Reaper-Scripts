@@ -22,10 +22,8 @@ end
 function module.set(tstart, tend)
     -- start, end = reaper.GetSet_LoopTimeRange( isSet, isLoop, start, end, allowautoseek )
     reaper.GetSet_LoopTimeRange( true, false, tstart, tend, false )
-    Log.debug("set time range?")
     local gotStart,gotEnd = module.get()
-    Log.debug("got start " .. tostring(gotStart))
-    Common.updateArrange()
+    -- Common.updateArrange()
 end
 
 return module

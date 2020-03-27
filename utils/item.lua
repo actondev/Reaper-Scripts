@@ -15,7 +15,8 @@ module.PARAM = {
 }
 
 module.TAKE_PARAM = {
-    START_OFFSET = 'D_STARTOFFS'
+    START_OFFSET = 'D_STARTOFFS',
+    PITCH ='D_PITCH'
 }
 
 
@@ -141,23 +142,46 @@ end
 
 function module.setActiveTakeInfo(item, param, value)
     local take = module.activeTake(item)
+    if take == nil then
+        return
+    end
     reaper.SetMediaItemTakeInfo_Value( take, param, value)
 end
 
 function module.getActiveTakeInfo(item, param)
     local take = module.activeTake(item)
+    if take == nil then
+        return
+    end
     return reaper.GetMediaItemTakeInfo_Value( take, param)
 end
 
-function module.adjustStart(item, adjust)
-    local start =  module.getInfo(item, module.PARAM.POSITION)
-    module.setInfo( item, module.PARAM.POSITION,start+adjust)
+function module.adjustActiveTakeInfo(item, param, adjust)
+    local take = module.activeTake(item)
+    -- could be that the item passed is an empty item
+    if take == nil then
+        return
+    end
+    local value = reaper.GetMediaItemTakeInfo_Value( take, param)
+    reaper.SetMediaItemTakeInfo_Value( take, param, value+adjust)
 end
 
-function module.adjustStartSelected(adjust)
+function module.adjustInfo(item, param, adjust)
+    local value =  module.getInfo(item, param)
+    module.setInfo( item, param,value+adjust)
+end
+
+function module.adjustInfoSelected(param, adjust)
     local items = module.selected()
     for _,item in pairs(items) do
-        module.adjustStart(item, adjust)
+        module.adjustInfo(item, param, adjust)
+    end
+end
+
+function module.adjustActiveTakeInfoSelected(param, adjust)
+    local items = module.selected()
+    for _,item in pairs(items) do
+        module.adjustActiveTakeInfo(item, param, adjust)
     end
 end
 
@@ -168,6 +192,12 @@ end
 function module.copySelected()
     -- Edit: Copy items
     Common.cmd(40698)
+end
+
+-- copies the selected items respecting the time selection
+function module.copySelectedArea()
+    -- Item: Copy selected area of items
+    Common.cmd(40060)
 end
 
 function module.deleteSelected()
