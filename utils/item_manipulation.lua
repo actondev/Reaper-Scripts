@@ -2,7 +2,7 @@
 Manipulates a collection of items
 
 Example arguments:
-- {track = '*', take = 'take to be removed', action = 'delete'}
+- {track = '*', take = 'take to be removed', op = 'delete'}
 ]]
 local module = {}
 
@@ -14,32 +14,43 @@ local Log = require('utils.log')
 
 -- TODO maybe rename to OPERATION?
 -- cause an op could be "action".. to denote a reaper action (passing an action id)
-module.ACTION = {
+module.OPERATATION = {
     DELETE = 'delete',
     MUTE = 'mute',
     REVERSE = 'reverse',
-    SET_PITCH = 'set_pitch'
+    SET_PITCH = 'set_pitch',
+    REAPER_ACTION = 'action'
 }
 
 module.TAG_V1 = '@aod.manipulate.v1'
 
 local function applyOperation(item, opts)
-    local action = opts['action']
-    -- Log.debug("item " .. tostring(item) .. " action " .. action)
-    if action == module.ACTION.DELETE then
+    local operation = opts['op']
+    -- Log.debug("item " .. tostring(item) .. " action " .. operation)
+    if operation == module.OPERATATION.DELETE then
         Item.delete(item)
-    elseif action == module.ACTION.MUTE then
+    elseif operation == module.OPERATATION.MUTE then
         Item.setInfo(item, Item.PARAM.MUTE, 1)
-    elseif action == module.ACTION.REVERSE then
-        Item.toggleActiveTakeReverse(item)
-    elseif action == module.ACTION.SET_PITCH then
+    elseif operation == module.OPERATATION.REVERSE then
+        -- Item.toggleActiveTakeReverse(item)
+        Item.toggleReverse()
+    elseif operation == module.OPERATATION.SET_PITCH then
         Item.setActiveTakeInfo(item, Item.TAKE_PARAM.PITCH, opts['value'])
+    elseif operation == module.OPERATATION.REAPER_ACTION then
+        local value = opts['value']
+        if type(value) == 'table' then
+            for _,action in pairs(value) do
+                Common.cmd(action)
+            end
+        else
+            Common.cmd(value)
+        end
     end
 end
 
--- TODO check validity of action
+-- TODO check validity of passed options
 local function isOptsValid(opts)
-    return opts ~= nil and opts['action'] ~= nil
+    return opts ~= nil and opts['op'] ~= nil
 end
 
 local function manipulateItem(item, opts)
@@ -54,6 +65,9 @@ local function manipulateItem(item, opts)
     if isItemValid and string.match(trackName, opts['track'] or ".*") then
         local takeName = Item.name(item)
         if string.match(takeName, opts['take'] or ".*") then
+            -- selecting only current item: enabling running arbitary reaper actions
+            Item.unselectAll()
+            Item.setSelected(item, true)
             applyOperation(item, opts)
         end
     end
