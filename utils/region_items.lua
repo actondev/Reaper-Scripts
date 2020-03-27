@@ -95,8 +95,8 @@ local function shouldPropagate(source, target)
     if sourceType == Item.TYPE.EMPTY then
         return Item.notes(source) == Item.notes(target)
     end
-    local sourceName = Item.name(source)
-    local targetName = Item.name(target)
+    local sourceName = Item.activeTakeName(source)
+    local targetName = Item.activeTakeName(target)
     
     return sourceName == targetName
 end

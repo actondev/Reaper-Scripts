@@ -17,7 +17,7 @@ module.PARAM = {
 
 module.TAKE_PARAM = {
     START_OFFSET = 'D_STARTOFFS',
-    PITCH ='D_PITCH'
+    PITCH = 'D_PITCH'
 }
 
 
@@ -31,14 +31,14 @@ end
 -- @return the item's type. eg empty,midi,audio
 function module.type(item)
     local chunk = module.chunk(item)
-	local  itemType = string.match(chunk, "<SOURCE%s(%P%P%P).*\n")
-	if itemType == nil then
-		return module.TYPE.EMPTY
-	elseif itemType == "MID" then
-		return module.TYPE.MIDI
-	else
-		return module.TYPE.AUDIO
-	end
+    local itemType = string.match(chunk, "<SOURCE%s(%P%P%P).*\n")
+    if itemType == nil then
+        return module.TYPE.EMPTY
+    elseif itemType == "MID" then
+        return module.TYPE.MIDI
+    else
+        return module.TYPE.AUDIO
+    end
 end
 
 function module.position(item)
@@ -49,27 +49,19 @@ function module.activeTake(item)
     return reaper.GetActiveTake(item)
 end
 
-function module.toggleActiveTakeReverse(item)
-    local selItems = module.selected()
-    module.unselectAll()
-    module.setSelected(item, true)
+function module.toggleReverse()
     -- Item properties: Toggle take reverse
     Common.cmd(41051)
-
-    module.unselectAll()
-    for _, selItem in pairs(selItems) do
-        module.setSelected(selItem, true)
-    end
 end
 
 -- TODO rename to activeTakeName
-function module.name(item)
+function module.activeTakeName(item)
     local take = module.activeTake(item)
     if take == nil then
         return ""
     end
-    local _, name = reaper.GetSetMediaItemTakeInfo_String(take,'P_NAME', '', false)
-
+    local _, name = reaper.GetSetMediaItemTakeInfo_String(take, 'P_NAME', '', false)
+    
     return name
 end
 
@@ -78,7 +70,7 @@ function module.setVolume(item, vol)
 end
 -- https://www.extremraym.com/cloud/reascript-doc/#GetSetMediaItemInfo_String
 function module.getVolume(item)
-    return reaper.GetMediaItemInfo_Value( item, "D_VOL")
+    return reaper.GetMediaItemInfo_Value(item, "D_VOL")
 end
 
 function module.countMidiNotes(item)
@@ -97,11 +89,11 @@ function module.iterateMidiNotes(item, cb)
         local tend = reaper.MIDI_GetProjTimeFromPPQPos(take, endppqpos)
         local noteMap =
             {muted = muted,
-            tstart = tstart,
-            tend = tend,
-            chan = chan,
-            pitch = pitch,
-            vel = vel
+                tstart = tstart,
+                tend = tend,
+                chan = chan,
+                pitch = pitch,
+                vel = vel
             }
         cb(noteMap)
     end
@@ -127,7 +119,7 @@ function module.unselectAll()
 end
 
 function module.setSelected(item, selected)
-    reaper.SetMediaItemSelected( item, selected )
+    reaper.SetMediaItemSelected(item, selected)
 end
 
 function module.firstSelected()
@@ -137,29 +129,29 @@ end
 function module.selected()
     local selCount = reaper.CountSelectedMediaItems(0)
     local items = {}
-
-    for i=0,selCount-1 do
+    
+    for i = 0, selCount - 1 do
         local item = reaper.GetSelectedMediaItem(0, i)
-        table.insert(items,item)
+        table.insert(items, item)
     end
-
+    
     return items
 end
 
 function module.startEnd(item)
-    local tstart =  reaper.GetMediaItemInfo_Value( item, 'D_POSITION')
-    local length = reaper.GetMediaItemInfo_Value( item, 'D_LENGTH')
+    local tstart = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
+    local length = reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
     local tend = tstart + length
-
+    
     return tstart, tend
 end
 
 function module.getInfo(item, param)
-    return reaper.GetMediaItemInfo_Value( item, param)
+    return reaper.GetMediaItemInfo_Value(item, param)
 end
 
 function module.setInfo(item, param, value)
-    reaper.SetMediaItemInfo_Value( item, param, value)
+    reaper.SetMediaItemInfo_Value(item, param, value)
 end
 
 function module.setActiveTakeInfo(item, param, value)
@@ -167,7 +159,7 @@ function module.setActiveTakeInfo(item, param, value)
     if take == nil then
         return
     end
-    reaper.SetMediaItemTakeInfo_Value( take, param, value)
+    reaper.SetMediaItemTakeInfo_Value(take, param, value)
 end
 
 function module.getActiveTakeInfo(item, param)
@@ -175,7 +167,7 @@ function module.getActiveTakeInfo(item, param)
     if take == nil then
         return
     end
-    return reaper.GetMediaItemTakeInfo_Value( take, param)
+    return reaper.GetMediaItemTakeInfo_Value(take, param)
 end
 
 function module.adjustActiveTakeInfo(item, param, adjust)
@@ -184,25 +176,25 @@ function module.adjustActiveTakeInfo(item, param, adjust)
     if take == nil then
         return
     end
-    local value = reaper.GetMediaItemTakeInfo_Value( take, param)
-    reaper.SetMediaItemTakeInfo_Value( take, param, value+adjust)
+    local value = reaper.GetMediaItemTakeInfo_Value(take, param)
+    reaper.SetMediaItemTakeInfo_Value(take, param, value + adjust)
 end
 
 function module.adjustInfo(item, param, adjust)
-    local value =  module.getInfo(item, param)
-    module.setInfo( item, param,value+adjust)
+    local value = module.getInfo(item, param)
+    module.setInfo(item, param, value + adjust)
 end
 
 function module.adjustInfoSelected(param, adjust)
     local items = module.selected()
-    for _,item in pairs(items) do
+    for _, item in pairs(items) do
         module.adjustInfo(item, param, adjust)
     end
 end
 
 function module.adjustActiveTakeInfoSelected(param, adjust)
     local items = module.selected()
-    for _,item in pairs(items) do
+    for _, item in pairs(items) do
         module.adjustActiveTakeInfo(item, param, adjust)
     end
 end
@@ -229,19 +221,19 @@ end
 
 -- note: should call updateArrange afterwards
 function module.delete(item)
-    reaper.DeleteTrackMediaItem( reaper.GetMediaItem_Track(item), item )
+    reaper.DeleteTrackMediaItem(reaper.GetMediaItem_Track(item), item)
 end
 
 -- note: should call updateArrange afterwards
 function module.deleteSelectedOutsideOfRange(tstart, tend)
     local tolerance = 0.000001
     local selected = module.selected()
-    for _,item in pairs(selected) do
+    for _, item in pairs(selected) do
         local itemStart, itemEnd = module.startEnd(item)
         local shouldDelete = false
-        if itemEnd-tolerance < tstart then
+        if itemEnd - tolerance < tstart then
             shouldDelete = true
-        elseif itemStart+tolerance > tend then
+        elseif itemStart + tolerance > tend then
             shouldDelete = true
         end
         if shouldDelete then

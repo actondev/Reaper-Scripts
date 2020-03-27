@@ -32,7 +32,6 @@ local function applyOperation(item, opts)
     elseif operation == module.OPERATATION.MUTE then
         Item.setInfo(item, Item.PARAM.MUTE, 1)
     elseif operation == module.OPERATATION.REVERSE then
-        -- Item.toggleActiveTakeReverse(item)
         Item.toggleReverse()
     elseif operation == module.OPERATATION.SET_PITCH then
         Item.setActiveTakeInfo(item, Item.TAKE_PARAM.PITCH, opts['value'])
@@ -63,7 +62,7 @@ local function manipulateItem(item, opts)
     local trackName = Track.name(track)
     -- track and take can be missing: if so, default to ".*"
     if isItemValid and string.match(trackName, opts['track'] or ".*") then
-        local takeName = Item.name(item)
+        local takeName = Item.activeTakeName(item)
         if string.match(takeName, opts['take'] or ".*") then
             -- selecting only current item: enabling running arbitary reaper actions
             Item.unselectAll()
