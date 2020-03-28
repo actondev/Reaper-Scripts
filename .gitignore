@@ -1,12 +1,9 @@
 *.zip
 # temp files (personal testing)
 temp*
+*temp.lua
 # also temp files
 _*
-# user options (ignore mine :P)
-options*.lua
-
-# i previously ignored options*
-!deps/options-defaults.lua
-# i previously ignored temp*
-!deps/template.lua
+# user options
+options-user.lua
+/.vscode/
