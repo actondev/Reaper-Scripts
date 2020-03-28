@@ -75,4 +75,18 @@ function module.getUserInput(title, opts)
     return valuesTable
 end
 
+module.EDIT_CONTEXT = {
+    ITEM = 'item',
+    TRAK = 'track'
+}
+
+-- returns if we should edit/act upon media items or media tracks
+function module.getEditContext()
+    if reaper.GetCursorContext2(true) == 1 and reaper.CountSelectedMediaItems(0)>0 then
+        return module.EDIT_CONTEXT.ITEM
+    else
+        return module.EDIT_CONTEXT.TRAK
+    end
+end
+
 return module

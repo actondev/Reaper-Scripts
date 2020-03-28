@@ -2,6 +2,10 @@
 ## require: relative path
   see https://forum.cockos.com/showthread.php?t=190342
   `package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path`
+
+  my previous solution
+  `package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path`
+
 ## Interactive Reascript (repl) one liners
  - `_, chunk = reaper.GetItemStateChunk(reaper.GetSelectedMediaItem(0, 0), '')`
 
@@ -13,6 +17,26 @@
     reaper.BR_SetMediaSourceProperties( take, section, start, length, fade, not reverse )
     local itemLength = module.getInfo(item, module.PARAM.LENGTH)
     reaper.SetMediaItemTakeInfo_Value(take, module.TAKE_PARAM.START_OFFSET, itemLength)
+  ```
+
+## Colorizing
+  Old piece of code that was to get deleted
+  ``` lua
+    -- if colorizing a track, rtconfig "tcp.trackidx.color ?trackcolor_valid" does not work,
+    -- 		gotta redraw/update the TCP (Track Control Panel)
+    function TcpRedraw()
+      -- credits: found in a X-Raym script, crediting HeDa in turn.. thanks both! :D
+      reaper.PreventUIRefresh(1)
+      local track=reaper.GetTrack(0,0)
+      local trackparam=reaper.GetMediaTrackInfo_Value(track, "I_FOLDERCOMPACT")	
+      if trackparam==0 then
+        reaper.SetMediaTrackInfo_Value(track, "I_FOLDERCOMPACT", 1)
+      else
+        reaper.SetMediaTrackInfo_Value(track, "I_FOLDERCOMPACT", 0)
+      end
+      reaper.SetMediaTrackInfo_Value(track, "I_FOLDERCOMPACT", trackparam)
+      reaper.PreventUIRefresh(-1)
+    end
   ```
 
 ## TODOs

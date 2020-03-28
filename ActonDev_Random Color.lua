@@ -1,38 +1,29 @@
-package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
-require 'Scripts.ActonDev.deps.template'
-require 'Scripts.ActonDev.deps.colors'
-debug_mode = 0
-
-label = "ActonDev: Random Color"
-
--- function colorize in actondev.template
-
-function mainActions()
-	if reaper.GetCursorContext2(true) == 1 then
-		-- item
-		-- item: set to one random color
-		reaperCMD(40706)
-		-- sometimes required if it's wave/midi item (required with takes etc)
-		-- set active takes to one random color
-		reaperCMD(41332)
-
-	else
-		-- track
-		reaperCMD(40360)
-	end
-end
+package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
+local Common = require('utils.common')
+local Colors = require('utils.colors')
+local Item = require('utils.item')
+local Track = require('utils.track')
 
 function main()
-	r = math.floor(math.random()*255)
-	g = math.floor(math.random()*255)
-	b = math.floor(math.random()*255)
+	local r = math.floor(math.random()*255)
+	local g = math.floor(math.random()*255)
+	local b = math.floor(math.random()*255)
 
-	colorize(true, r, g, b)
-	TcpRedraw()
+	if Common.getEditContext() == Common.EDIT_CONTEXT.ITEM then
+		local items = Item.selected()
+		for _,item in pairs(items) do
+			Colors.paintItem(item, r, g, b)
+		end
+	elseif Common.getEditContext() == Common.EDIT_CONTEXT.TRAK then
+		local tracks = Track.selected()
+		for _,track in pairs(tracks) do
+			Colors.paintTrack(track, r, g, b)
+		end
+	end
+	-- need to update arrange after coloring
+	Common.updateArrange()
 end
 
-reaper.Undo_BeginBlock()
+Common.undoBeginBlock()
 main()
-reaper.Undo_EndBlock(label, -1)
-
-reaper.UpdateArrange()
+Common.undoEndBlock("ActonDev: Random Color", -1)

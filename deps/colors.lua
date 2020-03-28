@@ -40,7 +40,7 @@ function colorize(flag, r, g, b)
 	reaper.UpdateArrange()
 end
 
-function hue2RGB(p, q, t)
+local function hue2RGB(p, q, t)
 	if t < 0 then
 		t = t + 1
 	elseif t > 1  then
@@ -244,4 +244,4 @@ function TcpRedraw()
 	end
 	reaper.SetMediaTrackInfo_Value(track, "I_FOLDERCOMPACT", trackparam)
 	reaper.PreventUIRefresh(-1)
-end
+end
