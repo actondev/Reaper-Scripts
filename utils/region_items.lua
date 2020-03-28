@@ -142,6 +142,13 @@ local function propagate(regionItem)
             local targetRegionOffset = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.START_OFFSET)
             Item.adjustInfoSelected(Item.PARAM.POSITION,sourceRegionOffset-targetRegionOffset)
 
+            
+            -- trimming pasted items to this region time range
+            local tstart,tend = Item.startEnd(targetRegion)
+            Item.splitSelected(tstart)
+            Item.splitSelected(tend)
+            Item.deleteSelectedOutsideOfRange(tstart, tend)
+
             -- adjusting pitch
             local targetPitch = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.PITCH)
             Item.adjustActiveTakeInfoSelected(Item.TAKE_PARAM.PITCH, targetPitch)
@@ -151,11 +158,6 @@ local function propagate(regionItem)
             local manipulationOpts = Parse.parsedTaggedJson(targetRegionNotes, ItemManipulation.TAG_V1)
             ItemManipulation.manipulateSelected(manipulationOpts)
 
-            -- trimming pasted items to this region time range
-            local tstart,tend = Item.startEnd(targetRegion)
-            Item.splitSelected(tstart)
-            Item.splitSelected(tend)
-            Item.deleteSelectedOutsideOfRange(tstart, tend)
         end
     end
     Track.selectOnly(track)

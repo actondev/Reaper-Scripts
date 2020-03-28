@@ -13,4 +13,17 @@
     reaper.BR_SetMediaSourceProperties( take, section, start, length, fade, not reverse )
     local itemLength = module.getInfo(item, module.PARAM.LENGTH)
     reaper.SetMediaItemTakeInfo_Value(take, module.TAKE_PARAM.START_OFFSET, itemLength)
-    ```
+  ```
+
+## TODOs
+ - [ ] moving everything to src/ ?
+ - [x] create an action to insert region item
+   creates a midi item with a pan envelope going from hard left to hard right
+   it helps visualizing "subregion" items
+ - [ ] region item: add midi text events: count 16th notes (or x.. user input)]
+ - [ ] recheck the midi item arrangement
+   - item copy bug? if so, post at reaper forum
+ - [ ] item arrangement 2 midi
+ - [ ] merge to dev
+ - [ ] fix color swatch..?
+ - [ ] add reapack functionality

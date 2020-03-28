@@ -17,7 +17,8 @@ module.PARAM = {
 
 module.TAKE_PARAM = {
     START_OFFSET = 'D_STARTOFFS',
-    PITCH = 'D_PITCH'
+    PITCH = 'D_PITCH',
+    STR_NAME = 'P_NAME'
 }
 
 
@@ -63,6 +64,11 @@ function module.activeTakeName(item)
     local _, name = reaper.GetSetMediaItemTakeInfo_String(take, 'P_NAME', '', false)
     
     return name
+end
+
+function module.insertMidiItem()
+    -- Insert new MIDI item...
+    Common.cmd(40214)
 end
 
 function module.setVolume(item, vol)
@@ -152,6 +158,16 @@ end
 
 function module.setInfo(item, param, value)
     reaper.SetMediaItemInfo_Value(item, param, value)
+end
+
+
+function module.setActiveTakeInfoString(item, param, value)
+    local take = module.activeTake(item)
+    if take == nil then
+        return
+    end
+    --  retval, stringNeedBig = reaper.GetSetMediaItemTakeInfo_String( tk, parmname, stringNeedBig, setNewValue )
+    _retval, _stringNeedBig = reaper.GetSetMediaItemTakeInfo_String( take, param, value, true)
 end
 
 function module.setActiveTakeInfo(item, param, value)
