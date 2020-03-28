@@ -1,7 +1,7 @@
 package.path = './test/?.lua;' .. package.path
 
 lu = require('luaunit')
-midi = require('deps.midi_helper')
+midi = require('legacy.deps.midi_helper')
 
 midiStructure01 = {
     item = {tstart = 2.0, tend = 5.0},

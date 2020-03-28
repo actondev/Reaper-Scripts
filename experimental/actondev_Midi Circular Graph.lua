@@ -1,8 +1,8 @@
-package.path = reaper.GetResourcePath() .. package.config:sub(1, 1) .. '?.lua;' .. package.path
-require 'Scripts.ActonDev.deps.template'
-require 'Scripts.ActonDev.deps.colors'
-require 'Scripts.ActonDev.deps.drawing'
-local midiHelper = require('Scripts.ActonDev.deps.midi_helper')
+package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."../?.lua;".. package.path
+require 'legacy.deps.template'
+require 'legacy.deps.colors'
+require 'legacy.deps.drawing'
+local midiHelper = require('legacy.deps.midi_helper')
 debug_mode = 1
 
 label = "ActonDev: Midi Circular Graph"

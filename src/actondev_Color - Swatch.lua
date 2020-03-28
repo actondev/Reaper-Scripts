@@ -7,7 +7,7 @@ local Track = require('utils.track')
 local Common = require('utils.common')
 
 local label = "actondev/Color Swatch"
-local imageSrc = debug.getinfo(1,'S').source:match("@(.+)[/\\].+$").. "/resources/Default_5.0_unpacked.ReaperTheme"
+local imageSrc = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .. "resources/swatch.png"
 
 local gui = {}
 

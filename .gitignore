@@ -1,9 +1,9 @@
 *.zip
 # temp files (personal testing)
 temp*
+*temp.lua
 # also temp files
 _*
 # user options
 options-user.lua
-
 /.vscode/
