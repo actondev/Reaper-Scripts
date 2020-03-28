@@ -1,12 +1,12 @@
-package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
-require 'Scripts.ActonDev.deps.template'
-require 'Scripts.ActonDev.deps.region'
+package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
+require 'deps.template'
+require 'deps.region'
 
 -- default options: copy this file on Scripts/ActonDev/ and rename it to options where you can freely change the values
 -- the file will still exist even after scripts updates, you won't loose your settings
-require 'Scripts.ActonDev.deps.options-defaults'
+require 'deps.options-defaults'
 -- this will load YOUR settings and will overwrite defaults
-pcall(require, 'Scripts.ActonDev.deps.options')
+pcall(require, 'deps.options')
 
 debug_mode = 0
 

@@ -1,9 +1,10 @@
-package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
-require 'Scripts.ActonDev.deps.template'
-require 'Scripts.ActonDev.deps.colors'
-require 'Scripts.ActonDev.deps.class'
-require 'Scripts.ActonDev.deps.GuiBuffer'
-require 'Scripts.ActonDev.deps.drawing'
+package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
+
+require 'deps.template'
+require 'deps.colors'
+require 'deps.class'
+require 'deps.GuiBuffer'
+require 'deps.drawing'
 
 debug_mode = 0
 

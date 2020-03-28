@@ -1,5 +1,5 @@
-package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
-require 'Scripts.ActonDev.deps.template'
+package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
+require 'deps.template'
 
 debug_mode = 0
 
