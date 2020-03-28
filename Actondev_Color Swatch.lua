@@ -1,4 +1,3 @@
-package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
 package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
 
 local Theme = require('utils.theme')
@@ -45,7 +44,6 @@ function init()
 	
 	updateColors()
 
-	-- fdebug(gui.textColor[1])
 	---------------------------
 	-- Initialize gfx window --
 	---------------------------
@@ -192,12 +190,10 @@ function mainloop()
 		-- left click
 		hasClicked = true
 		clickDraw()
-		-- fdebug(red)
 	end
 	gfx.update()
 	local c=gfx.getchar()
 	-- it's -1 when closed, and 27 at ESC
-	-- fdebug(c)
 	if c>=0 and c~=27 and not exit then
 		reaper.defer(mainloop)
 	end
@@ -205,8 +201,6 @@ end
 
 reaper.atexit(
 	function()
-		-- fdebug("at exit")
-		-- TcpRedraw()
 		reaper.Undo_EndBlock(label, -1)
 	end
 	)

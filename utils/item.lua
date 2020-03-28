@@ -16,6 +16,10 @@ module.PARAM = {
     MUTE = 'B_MUTE'
 }
 
+module.TAKE_ENV = {
+    PAN = 'Pan'
+}
+
 module.TAKE_PARAM = {
     START_OFFSET = 'D_STARTOFFS',
     PITCH = 'D_PITCH',
@@ -293,6 +297,10 @@ end
 
 function module.unpaint(item)
     paintValue(item, 0)
+end
+
+function module.hasActiveTakeEnvelope(item, envType)
+    return  reaper.GetTakeEnvelopeByName( module.activeTake(item), envType ) ~= nil
 end
 
 return module;

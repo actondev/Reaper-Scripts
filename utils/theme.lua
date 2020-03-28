@@ -94,6 +94,7 @@ function module.colorSingle(themeContent, key)
 	return color(themeContent, key, false)
 end
 
+-- return r,g,b
 function module.colorRGB(themeContent, key)
 	return color(themeContent, key, true)
 end

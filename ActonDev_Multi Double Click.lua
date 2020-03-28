@@ -1,70 +1,42 @@
-package.path = reaper.GetResourcePath().. package.config:sub(1,1) .. '?.lua;' .. package.path
-require 'Scripts.ActonDev.deps.template'
-require 'Scripts.ActonDev.deps.region'
+package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
 
--- default options: copy this file on Scripts/ActonDev/ and rename it to options where you can freely change the values
--- the file will still exist even after scripts updates, you won't loose your settings
-require 'Scripts.ActonDev.deps.options-defaults'
--- this will load YOUR settings and will overwrite defaults
-pcall(require, 'Scripts.ActonDev.deps.options')
+local Common = require('utils.common')
+local Item = require('utils.item')
+local Log = require('utils.log')
+local RegionItem = require('utils.region_items')
+local ItemManipulation = require('utils.item_manipulation')
+local Parse = require('utils.parse')
+Log.isdebug = true
 
-debug_mode = 0
-
-
-quantizeThreshold = RegionSelect.quantizeThreshold
-keepStartingIn = RegionSelect.keepStartingIn
-keepEndingIn = RegionSelect.keepEndingIn
-
+local undoText = 'actondev/Multi double click'
 
 function main()
-	reaper.Undo_BeginBlock()
-	local selItem = reaper.GetSelectedMediaItem(0, 0)
-	local selTrack = reaper.GetMediaItemTrack(selItem);
-	local _,selChunk =  reaper.GetItemStateChunk(selItem, "", 0)
-	
-	-- fdebug("Chunk " .. selChunk)
-	-- Source type possible values: MIDI, WAVE, MP3.. so i keep the first 3
-	-- if no <Source tag in the chunk, then it's an empty item (region item in my case, also known as notes items)
-	itemType = string.match(selChunk, "<SOURCE%s(%P%P%P).*\n")
-	-- fdebug(itemType)
-	if itemType == nil then
-		-- "folder/region" empty item
-		reaper.PreventUIRefresh(1)
+	Common.undoBeginBlock()
+	local item = Item.firstSelected()
 
-		reaperCMD("_SWS_SAVETIME1")
-		reaperCMD("_BR_SAVE_CURSOR_POS_SLOT_1")
+	local itemType = Item.type(item)
 
-		
-		local countSelected = regionItemSelect(selItem)
-		local exceedStart, exceedEnd, countQuantized = false, false, 0
-		-- if keepStartingIn or keepEndingIn or threshold > 0
-
-		exceedStart, exceedEnd, countQuantized = itemsExceedRegionEdges(selItem, quantizeThreshold, true)
-		-- fdebug("exceedStart")
-		-- fdebug(exceedStart)
-		handleExceededRegionEdges(selItem, exceedStart, exceedEnd, keepStartingIn, keepEndingIn)
-
-
-		-- select only our initially selected track
-		reaper.SetOnlyTrackSelected(selTrack);
-		-- reaperCMD("_SWS_RESTTIME1")
-		-- reaperCMD("_BR_RESTORE_CURSOR_POS_SLOT_1")
-		-- refresh ui, create undo point
-		
-		label = "ActonDev Region select: " .. countSelected
-		reaper.PreventUIRefresh(-1)
-		reaper.UpdateArrange()
-
-	elseif itemType == "MID" then
+	-- when I create region items I add a pan envelope.. thus I can distinguish them by this
+	if itemType == Item.TYPE.MIDI and Item.hasActiveTakeEnvelope(item, Item.TAKE_ENV.PAN) then
+		RegionItem.select(item)
+		undoText = 'actondev/Region Item: select'
+	elseif itemType == Item.TYPE.EMPTY then
+		-- apply region manipulation
+		RegionItem.select(item)
+		local opts = Parse.parsedTaggedJson(Item.notes(item), ItemManipulation.TAG_V1)
+		ItemManipulation.manipulateSelected(opts)
+		undoText =  'actondev/Region Item: manipulate'
+	elseif itemType == Item.TYPE.MIDI then
 		-- built-in midi editor
-		label = "ActonDev: Open Midi item"
-		reaperCMD("40153")
-	else
-		label = "ActonDev: Open Audio item"
-		reaperCMD("40009")
+		-- 	label = "ActonDev: Open Midi item"
+		undoText = "Open Midi Editor"
+		Common.cmd(40153)
+	elseif itemType == Item.TYPE.AUDIO then
+		-- Item properties: Show media item/take properties
+		undoText = "Open Audio Item Properties"
+		Common.cmd(40009)
 	end
-	-- fdebug(getExtState("MediaItemGarbageGUID"))
-	reaper.Undo_EndBlock(label, -1) 
+	Common.undoEndBlock(undoText)
 end
 
 if(reaper.CountSelectedMediaItems(0) > 0) then
