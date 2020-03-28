@@ -132,6 +132,10 @@ function module.firstSelected()
     return reaper.GetSelectedMediaItem(0, 0)
 end
 
+function module.selectedCount()
+    return reaper.CountSelectedMediaItems(0)
+end
+
 function module.selected()
     local selCount = reaper.CountSelectedMediaItems(0)
     local items = {}

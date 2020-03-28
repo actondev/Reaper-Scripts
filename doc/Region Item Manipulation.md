@@ -28,6 +28,7 @@
     **TOGGLES** reverse state
   - `set_pitch`
     requires the extra `value` field with the desired pitch
+  - `adjust_pitch`
   - `action`
     performs a reaper action by a given id (under the `value` field). id can be either a number (native action) or a string (an `SWS` action for example). Also `value` can either contain one single action, or can be an `array` of action ids
 
@@ -36,6 +37,7 @@
     require the extra field `value`
   - `set_pitch`
     require the extra field `value`
+
   - `adjust_volume`
   - `repeat`
     ?? and `value` times??

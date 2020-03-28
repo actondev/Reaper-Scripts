@@ -31,6 +31,13 @@ function module.selectSiblings(track)
     reaper.SetTrackSelected(track, false)
 end
 
+function module.selectChildrenSelected()
+    Common.cmd('_SWS_SELCHILDREN2')
+end
+
+function module.selectedCount()
+    return reaper.CountSelectedTracks(0)
+end
 function module.selected()
     local selCount = reaper.CountSelectedTracks(0)
     local tracks = {}
@@ -69,14 +76,6 @@ function module.unselectWithRegex(regex)
             module.setSelected(track, false)
         end
     end
-end
-
-function module.selectOnlyChildren()
-    Common.cmd('_SWS_SELCHILDREN')
-end
-
-function module.selectChildren()
-    Common.cmd('_SWS_SELCHILDREN2')
 end
 
 -- has side effects: track selections

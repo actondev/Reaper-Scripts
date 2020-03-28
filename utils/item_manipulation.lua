@@ -19,6 +19,7 @@ module.OPERATATION = {
     MUTE = 'mute',
     REVERSE = 'reverse',
     SET_PITCH = 'set_pitch',
+    ADJUST_PITCH = 'adjust_pitch',
     REAPER_ACTION = 'action'
 }
 
@@ -35,6 +36,8 @@ local function applyOperation(item, opts)
         Item.toggleReverse()
     elseif operation == module.OPERATATION.SET_PITCH then
         Item.setActiveTakeInfo(item, Item.TAKE_PARAM.PITCH, opts['value'])
+    elseif operation == module.OPERATATION.ADJUST_PITCH then
+        Item.adjustActiveTakeInfo(item, Item.TAKE_PARAM.PITCH, opts['value'])
     elseif operation == module.OPERATATION.REAPER_ACTION then
         local value = opts['value']
         if type(value) == 'table' then

@@ -33,7 +33,7 @@ end
 local function selectAll()
     Track.selectAllTopLevel()
     Track.unselectWithRegex("-(.+)")
-    Track.selectChildren()
+    Track.selectChildrenSelected()
 end
 
 local function selectSiblings(track)
@@ -41,8 +41,9 @@ local function selectSiblings(track)
     Track.unselectWithRegex("-(.+)")
 end
 
-local function selectChildren()
-    Track.selectChildren()
+local function selectChildren(track)
+    Track.selectOnly(track)
+    Track.selectChildrenSelected()
     Track.unselectWithRegex("-(.+)")
 end
 
@@ -61,7 +62,7 @@ local function select(regionItem)
     elseif selMode == SELECT_MODE.ALL then
         selectAll()
     elseif selMode == SELECT_MODE.CHILDREN then
-        selectChildren()
+        selectChildren(track)
     end
     Item.selectInTimeSelectionAcrossSelectedTracks()
     
@@ -111,7 +112,7 @@ local function propagate(regionItem)
     Item.selectAllInSelectedTrack()
     
     local otherRegionItems = Item.selected()
-    module.select(regionItem)
+    select(regionItem)
     
     -- unselecting region item: we don't copy it
     -- and selecting first track that has an item
