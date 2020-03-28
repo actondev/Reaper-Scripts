@@ -25,4 +25,4 @@ end
 
 Common.undoBeginBlock()
 main()
-Common.undoEndBlock("ActonDev: Random Color", -1)
+Common.undoEndBlock("actondev/Random Color", -1)

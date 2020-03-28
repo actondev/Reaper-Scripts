@@ -18,7 +18,7 @@ function showAll()
 	reaperCMD("40297")
 	restoreHiddenTracks()
 	setExtState("FolderFocus", "false")
-	zoomFit()
+	-- zoomFit()
 end
 
 -- TODO remove, not needed

@@ -6,8 +6,8 @@ local Item = require('utils.item')
 local Track = require('utils.track')
 local Common = require('utils.common')
 
-local label = "ActonDev: Color Swatch"
-local imageSrc = reaper.GetResourcePath()..'/Scripts/ActonDev/deps/swatch.png';
+local label = "actondev/Color Swatch"
+local imageSrc = debug.getinfo(1,'S').source:match("@(.+)[/\\].+$").. "/resources/Default_5.0_unpacked.ReaperTheme"
 
 local gui = {}
 
