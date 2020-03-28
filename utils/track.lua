@@ -1,5 +1,6 @@
 local Navigation = require('utils.navigation')
 local Common = require('utils.common')
+local Colors = require('utils.colors')
 -- local Log = require('utils.log')
 local module = {}
 
@@ -99,6 +100,15 @@ function module.insertCopyOfItem(track, item, position)
 	reaper.UpdateItemInProject(new_item)
 	
 	return new_item
+end
+
+function module.paint(track, r, g, b)
+    local value = Colors.reaperValue(r, g, b)
+    reaper.SetMediaTrackInfo_Value(track, "I_CUSTOMCOLOR", value)
+end
+
+function module.unpaint(track)
+    reaper.SetMediaTrackInfo_Value(track, "I_CUSTOMCOLOR", 0)
 end
 
 return module

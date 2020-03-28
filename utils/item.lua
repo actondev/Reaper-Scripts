@@ -1,5 +1,6 @@
 local Common = require('utils.common')
 local Log = require('utils.log')
+local Colors = require('utils.colors')
 local EditCursor = require('utils.edit_cursor')
 local module = {}
 
@@ -273,6 +274,25 @@ end
 function module.paste()
     -- Item: Paste items/tracks
     Common.cmd(40058)
+end
+
+local function paintValue(item, value)
+    local nTakes = reaper.GetMediaItemNumTakes(item)
+    if nTakes>0 then
+        local take = reaper.GetActiveTake(item)
+        reaper.SetMediaItemTakeInfo_Value(take, "I_CUSTOMCOLOR", value)
+    else
+        reaper.SetMediaItemInfo_Value(item, "I_CUSTOMCOLOR", value)
+    end
+end
+
+function module.paint(item, r, g, b)
+    local value = Colors.reaperValue(r, g, b)
+    paintValue(item, value)
+end
+
+function module.unpaint(item)
+    paintValue(item, 0)
 end
 
 return module;

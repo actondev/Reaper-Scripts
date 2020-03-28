@@ -1,6 +1,5 @@
 package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
 local Common = require('utils.common')
-local Colors = require('utils.colors')
 local Item = require('utils.item')
 local Track = require('utils.track')
 
@@ -12,12 +11,12 @@ function main()
 	if Common.getEditContext() == Common.EDIT_CONTEXT.ITEM then
 		local items = Item.selected()
 		for _,item in pairs(items) do
-			Colors.paintItem(item, r, g, b)
+			Item.paint(item, r, g, b)
 		end
 	elseif Common.getEditContext() == Common.EDIT_CONTEXT.TRAK then
 		local tracks = Track.selected()
 		for _,track in pairs(tracks) do
-			Colors.paintTrack(track, r, g, b)
+			Track.paint(track, r, g, b)
 		end
 	end
 	-- need to update arrange after coloring

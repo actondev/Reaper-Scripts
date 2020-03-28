@@ -6,7 +6,6 @@ local Gui = require('utils.gui')
 local Item = require('utils.item')
 local Track = require('utils.track')
 local Common = require('utils.common')
-local Colors = require('utils.colors')
 
 local label = "ActonDev: Color Swatch"
 local imageSrc = reaper.GetResourcePath()..'/Scripts/ActonDev/deps/swatch.png';
@@ -156,18 +155,18 @@ function clickDraw()
 		local items = Item.selected()
 		for _,item in pairs(items) do
 			if shouldResetColor then
-				Colors.unpaintItem(item)
+				Item.unpaint(item)
 			else
-				Colors.paintItem(item, r, g, b)
+				Item.paint(item, r, g, b)
 			end
 		end
 	elseif ctx== Common.EDIT_CONTEXT.TRAK then
 		local tracks = Track.selected()
 		for _,track in pairs(tracks) do
 			if shouldResetColor then
-				Colors.unpaintTrack(track)
+				Track.unpaint(track)
 			else
-				Colors.paintTrack(track, r, g, b)
+				Track.paint(track, r, g, b)
 			end
 		end
 	end

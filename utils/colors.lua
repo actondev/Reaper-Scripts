@@ -1,32 +1,11 @@
 local module = {}
 
 -- returns the reaper color value: to be set as track/take info value
-local function colorValue(r, g, b)
+function module.reaperValue(r, g, b)
     local colorNative = reaper.ColorToNative(r,g,b)
     local value = colorNative|0x1000000
 
     return value
-end
-
-function module.paintTrack(track, r, g, b)
-    local value = colorValue(r, g, b)
-    reaper.SetMediaTrackInfo_Value(track, "I_CUSTOMCOLOR", value)
-end
-
--- resets to default color
-function module.unpaintTrack(track)
-    reaper.SetMediaTrackInfo_Value(track, "I_CUSTOMCOLOR", 0)
-end
-
-function module.paintItem(item, r, g, b)
-    local value = colorValue(r, g, b)
-    local take = reaper.GetActiveTake(item)
-	reaper.SetMediaItemTakeInfo_Value(take, "I_CUSTOMCOLOR", value)
-end
-
-function module.unpaintItem(item)
-    local take = reaper.GetActiveTake(item)
-	reaper.SetMediaItemTakeInfo_Value(take, "I_CUSTOMCOLOR", 0)
 end
 
 local function shortIf(condition, if_true, if_false)
