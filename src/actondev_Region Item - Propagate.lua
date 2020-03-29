@@ -6,7 +6,7 @@ local RegionItems = require('utils.region_items')
 local Log = require('utils.log')
 local regionItem = reaper.GetSelectedMediaItem(0, 0)
 
-Log.isdebug = true
+-- Log.isdebug = true
 
 Common.undoBeginBlock()
 Store.storeArrangeView()
