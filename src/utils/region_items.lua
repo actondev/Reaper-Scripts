@@ -62,7 +62,6 @@ function module.select(regionItem, startOffset, length)
     
     local track = Track.fromItem(regionItem)
     local tstart, tend = Item.startEnd(regionItem)
-    -- Log.debug("tstart tend " .. tostring(tstart) .. " .. " .. tostring(tend))
     -- or 0: could be an empty item
     local regionItemOffset = Item.getActiveTakeInfo(regionItem, Item.TAKE_PARAM.START_OFFSET) or 0
     
@@ -73,16 +72,14 @@ function module.select(regionItem, startOffset, length)
         startOffset = regionItemOffset
     end
     
-    -- Log.debug("length startOffset " .. tostring(length) .. " .. " .. tostring(startOffset))
-    local t2start = tstart + startOffset - regionItemOffset
-    local t2end = t2start + length
+    local subregionStart = tstart + startOffset - regionItemOffset
+    local subregionEnd = subregionStart + length
     
-    -- Log.debug("t2start end " .. tostring(t2start) .. " .. " .. tostring(t2end))
-    -- my time selection needs to be the common ground between tstart, tend and t2start and t2end
-    local tcstart = math.max(tstart, t2start)
-    local tcend = math.min(tend, t2end)
-    if tcstart < tcend then
-        TimeSelection.set(tcstart, tcend)
+    -- have to see which part I should update: intersection of this region against the subregion
+    local intersectionStart = math.max(tstart, subregionStart)
+    local intersectionEnd = math.min(tend, subregionEnd)
+    if intersectionStart < intersectionEnd then
+        TimeSelection.set(intersectionStart, intersectionEnd)
         
         local selMode = getSelectMode(track)
         if selMode == SELECT_MODE.SIBLINGS then
@@ -94,11 +91,9 @@ function module.select(regionItem, startOffset, length)
         end
         Item.selectInTimeSelectionAcrossSelectedTracks()
     else
-        Log.debug("no time between")
-    -- TimeSelection.remove()
-    end
+        -- no common time between this region and the passed subregion
+        end
     Track.selectOnly(track)
-    -- Common.updateArrange()
 end
 
 local function shouldPropagate(source, target)
@@ -122,7 +117,6 @@ local function shouldPropagate(source, target)
     return sourceName == targetName
 end
 
-
 function module.propagate(regionItem)
     if regionItem == nil then
         return
@@ -138,16 +132,6 @@ function module.propagate(regionItem)
     -- and selecting first track that has an item
     Item.setSelected(regionItem, false)
     local firstItem = Item.firstSelected()
-    -- validating: we have something to copy
-    if firstItem == nil then
-        Log.debug("nothing to copy?")
-        return
-    end
-    local firstTrack = Track.fromItem(firstItem)
-    
-    -- source region offset: should that be permitted?
-    -- you should only propagate from.. "complete" region items
-    -- the target regions could have offsets and be incomplete, but the source.. doesn't make sense
     local sourceRegionOffset = Item.getActiveTakeInfo(regionItem, Item.TAKE_PARAM.START_OFFSET)
     
     -- copying only the area of the source region
@@ -155,26 +139,25 @@ function module.propagate(regionItem)
     TimeSelection.set(sourceStart, sourceEnd)
     Item.copySelectedArea()
     
-    -- Log.debug("other region items")
-    -- Log.debug(Log.dump(otherRegionItems))
-    --[[
-    Note: sourceRegion could be a subregion and targetRegion the full region.
-    In that case we want to update only the corresponding subregion inside the full region
-    ]]
+    -- Note: sourceRegion could be a subregion and targetRegion the full region.
+    -- In that case we want to update only the corresponding subregion inside the full region
     for _, targetRegion in pairs(otherRegionItems) do
         if shouldPropagate(regionItem, targetRegion) then
-            -- should clear a subregion
-            Log.debug("target " .. Item.notes(targetRegion))
+            -- Log.debug("target " .. Item.notes(targetRegion))
             module.clear(targetRegion, sourceRegionOffset, sourceEnd - sourceStart)
-            
-            Track.selectOnly(firstTrack)
             local tstart, tend = Item.startEnd(targetRegion)
-            EditCursor.setPosition(tstart)
-            Item.paste()
+
+            if firstItem then
+                -- need to "touch" the first track that I copy the items from
+                -- if not they get pasted in wrong places
+                local firstTrack = Track.fromItem(firstItem)
+                Track.selectOnly(firstTrack)
+                EditCursor.setPosition(tstart)
+                Item.paste()
+            end
             
             local targetRegionOffset = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.START_OFFSET)
             Item.adjustInfoSelected(Item.PARAM.POSITION, sourceRegionOffset - targetRegionOffset)
-            
             
             -- trimming pasted items to this region time range
             Item.splitSelected(tstart)
