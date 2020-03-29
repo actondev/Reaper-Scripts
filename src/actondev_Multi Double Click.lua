@@ -6,12 +6,12 @@ local Log = require('utils.log')
 local RegionItem = require('utils.region_items')
 local ItemManipulation = require('utils.item_manipulation')
 local Parse = require('utils.parse')
+local Store = require('utils.store')
 Log.isdebug = true
 
 local undoText = 'actondev/Multi double click'
 
 function main()
-	Common.undoBeginBlock()
 	local item = Item.firstSelected()
 
 	local itemType = Item.type(item)
@@ -36,9 +36,14 @@ function main()
 		undoText = "Open Audio Item Properties"
 		Common.cmd(40009)
 	end
-	Common.undoEndBlock(undoText)
 end
 
 if(reaper.CountSelectedMediaItems(0) > 0) then
+	Common.undoBeginBlock()
+	Common.preventUIRefresh(1)
+	Store.storeTimeSelection()
 	main()
+	Store.restoreTimeSelection()
+	Common.preventUIRefresh(-1)
+	Common.undoEndBlock(undoText)
 end

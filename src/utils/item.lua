@@ -2,6 +2,7 @@ local Common = require('utils.common')
 local Log = require('utils.log')
 local Colors = require('utils.colors')
 local EditCursor = require('utils.edit_cursor')
+local TimeSelection = require('utils.time_selection')
 local module = {}
 
 module.TYPE = {
@@ -245,6 +246,13 @@ function module.deleteSelected()
 end
 
 function module.splitSelectedTimeSelection()
+    -- I noticed buggy splits when no items were selected
+    if module.selectedCount() == 0 then return end
+
+    -- gotta check if there is any time selection. cause if not, reaper throws an alert box
+    -- if it's not, both start and end are 0.. not nil
+    local tstart, tend = TimeSelection.get()
+    if tstart == tend then return end
     -- Item: Split items at time selection
     Common.cmd(40061)
 end
@@ -275,6 +283,8 @@ end
 
 
 function module.splitSelected(t)
+    -- I noticed buggy splits when no items were selected
+    if module.selectedCount() == 0 then return end
     EditCursor.setPosition(t)
     -- Item: Split items at edit cursor (no change selection)
     Common.cmd(40757)

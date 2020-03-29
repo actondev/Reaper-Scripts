@@ -48,6 +48,8 @@ end
 
 -- The optinal startOffset and length are used to select a subregion of the item region
 -- Also keeps the time selection.. needed for further actions
+-- TODO make the variables more sane....
+--
 -- @param regionItem The region item
 -- @param[opt] startOffset
 -- @param[opt] length
@@ -58,24 +60,39 @@ function module.select(regionItem, startOffset, length)
     Item.unselectAll()
     Item.setSelected(regionItem, true)
     
-    local tstart,tend = Item.startEnd(regionItem)
-    length = length or (tend-tstart)
-    startOffset = startOffset or 0
-
-    local timeSelStart = tstart+startOffset
-    local timeSelEnd = timeSelStart+length
-    TimeSelection.set(math.max(tstart,timeSelStart), math.min(tend,timeSelEnd))
-
     local track = Track.fromItem(regionItem)
-    local selMode = getSelectMode(track)
-    if selMode == SELECT_MODE.SIBLINGS then
-        selectSiblings(track)
-    elseif selMode == SELECT_MODE.ALL then
-        selectAll()
-    elseif selMode == SELECT_MODE.CHILDREN then
-        selectChildren(track)
+    local tstart, tend = Item.startEnd(regionItem)
+    -- or 0: could be an empty item
+    local regionItemOffset = Item.getActiveTakeInfo(regionItem, Item.TAKE_PARAM.START_OFFSET) or 0
+    
+    if length == nil then
+        length = tend - tstart
     end
-    Item.selectInTimeSelectionAcrossSelectedTracks()
+    if startOffset == nil then
+        startOffset = regionItemOffset
+    end
+    
+    local subregionStart = tstart + startOffset - regionItemOffset
+    local subregionEnd = subregionStart + length
+    
+    -- have to see which part I should update: intersection of this region against the subregion
+    local intersectionStart = math.max(tstart, subregionStart)
+    local intersectionEnd = math.min(tend, subregionEnd)
+    if intersectionStart < intersectionEnd then
+        TimeSelection.set(intersectionStart, intersectionEnd)
+        
+        local selMode = getSelectMode(track)
+        if selMode == SELECT_MODE.SIBLINGS then
+            selectSiblings(track)
+        elseif selMode == SELECT_MODE.ALL then
+            selectAll()
+        elseif selMode == SELECT_MODE.CHILDREN then
+            selectChildren(track)
+        end
+        Item.selectInTimeSelectionAcrossSelectedTracks()
+    else
+        -- no common time between this region and the passed subregion
+        end
     Track.selectOnly(track)
 end
 
@@ -100,7 +117,6 @@ local function shouldPropagate(source, target)
     return sourceName == targetName
 end
 
-
 function module.propagate(regionItem)
     if regionItem == nil then
         return
@@ -116,55 +132,46 @@ function module.propagate(regionItem)
     -- and selecting first track that has an item
     Item.setSelected(regionItem, false)
     local firstItem = Item.firstSelected()
-    -- validating: we have something to copy
-    if firstItem == nil then
-        return
-    end
-    local firstTrack = Track.fromItem(firstItem)
-
-    -- source region offset: should that be permitted?
-    -- you should only propagate from.. "complete" region items
-    -- the target regions could have offsets and be incomplete, but the source.. doesn't make sense
     local sourceRegionOffset = Item.getActiveTakeInfo(regionItem, Item.TAKE_PARAM.START_OFFSET)
-
+    
     -- copying only the area of the source region
-    local sourceStart,sourceEnd = Item.startEnd(regionItem)
+    local sourceStart, sourceEnd = Item.startEnd(regionItem)
     TimeSelection.set(sourceStart, sourceEnd)
     Item.copySelectedArea()
-
-    --[[
-        Note: sourceRegion could be a subregion and targetRegion the full region.
-        In that case we want to update only the corresponding subregion inside the full region
-    ]]
+    
+    -- Note: sourceRegion could be a subregion and targetRegion the full region.
+    -- In that case we want to update only the corresponding subregion inside the full region
     for _, targetRegion in pairs(otherRegionItems) do
         if shouldPropagate(regionItem, targetRegion) then
-            -- should clear a subregion
-            module.clear(targetRegion, sourceRegionOffset, sourceEnd-sourceStart)
+            -- Log.debug("target " .. Item.notes(targetRegion))
+            module.clear(targetRegion, sourceRegionOffset, sourceEnd - sourceStart)
+            local tstart, tend = Item.startEnd(targetRegion)
 
-            Track.selectOnly(firstTrack)
-            local tstart, _ = Item.startEnd(targetRegion)
-            EditCursor.setPosition(tstart)
-            Item.paste()
-
+            if firstItem then
+                -- need to "touch" the first track that I copy the items from
+                -- if not they get pasted in wrong places
+                local firstTrack = Track.fromItem(firstItem)
+                Track.selectOnly(firstTrack)
+                EditCursor.setPosition(tstart)
+                Item.paste()
+            end
+            
             local targetRegionOffset = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.START_OFFSET)
-            Item.adjustInfoSelected(Item.PARAM.POSITION,sourceRegionOffset-targetRegionOffset)
-
+            Item.adjustInfoSelected(Item.PARAM.POSITION, sourceRegionOffset - targetRegionOffset)
             
             -- trimming pasted items to this region time range
-            local tstart,tend = Item.startEnd(targetRegion)
             Item.splitSelected(tstart)
             Item.splitSelected(tend)
             Item.deleteSelectedOutsideOfRange(tstart, tend)
-
+            
             -- adjusting pitch
             local targetPitch = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.PITCH)
             Item.adjustActiveTakeInfoSelected(Item.TAKE_PARAM.PITCH, targetPitch)
-
+            
             -- manipulating target region
             local targetRegionNotes = Item.notes(targetRegion)
             local manipulationOpts = Parse.parsedTaggedJson(targetRegionNotes, ItemManipulation.TAG_V1)
             ItemManipulation.manipulateSelected(manipulationOpts)
-
         end
     end
     Track.selectOnly(track)
@@ -177,13 +184,12 @@ end
 -- @param[opt] length
 function module.clear(regionItem, startOffset, length)
     if regionItem == nil then
+        Log.debug("clearing a.. null region item?")
         return
     end
     module.select(regionItem, startOffset, length)
     -- not deleting the regionItem itself, duh
     Item.setSelected(regionItem, false)
-    -- the select function leaves us the time selection.
-    -- this is for when startOffset and length optional arguments are given
     Item.splitSelectedTimeSelection()
     Item.deleteSelected()
 end
