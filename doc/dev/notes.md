@@ -18,6 +18,9 @@
     local itemLength = module.getInfo(item, module.PARAM.LENGTH)
     reaper.SetMediaItemTakeInfo_Value(take, module.TAKE_PARAM.START_OFFSET, itemLength)
   ```
+## Reascript bugs?
+  Apparently there are bugs concering splitting:
+  I should always check if my selected item count is 0 or greater. If 0 DO NOT SPLIT
 
 ## Colorizing
   Old piece of code that was to get deleted

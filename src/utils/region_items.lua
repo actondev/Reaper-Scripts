@@ -65,20 +65,19 @@ function module.select(regionItem, startOffset, length)
     -- Log.debug("tstart tend " .. tostring(tstart) .. " .. " .. tostring(tend))
     -- or 0: could be an empty item
     local regionItemOffset = Item.getActiveTakeInfo(regionItem, Item.TAKE_PARAM.START_OFFSET) or 0
-
+    
     if length == nil then
         length = tend - tstart
     end
     if startOffset == nil then
         startOffset = regionItemOffset
     end
-
+    
     -- Log.debug("length startOffset " .. tostring(length) .. " .. " .. tostring(startOffset))
     local t2start = tstart + startOffset - regionItemOffset
     local t2end = t2start + length
-
-    -- Log.debug("t2start end " .. tostring(t2start) .. " .. " .. tostring(t2end))
     
+    -- Log.debug("t2start end " .. tostring(t2start) .. " .. " .. tostring(t2end))
     -- my time selection needs to be the common ground between tstart, tend and t2start and t2end
     local tcstart = math.max(tstart, t2start)
     local tcend = math.min(tend, t2end)
@@ -96,7 +95,7 @@ function module.select(regionItem, startOffset, length)
         Item.selectInTimeSelectionAcrossSelectedTracks()
     else
         Log.debug("no time between")
-        -- TimeSelection.remove()
+    -- TimeSelection.remove()
     end
     Track.selectOnly(track)
     -- Common.updateArrange()
@@ -155,10 +154,9 @@ function module.propagate(regionItem)
     local sourceStart, sourceEnd = Item.startEnd(regionItem)
     TimeSelection.set(sourceStart, sourceEnd)
     Item.copySelectedArea()
-
+    
     -- Log.debug("other region items")
     -- Log.debug(Log.dump(otherRegionItems))
-    
     --[[
     Note: sourceRegion could be a subregion and targetRegion the full region.
     In that case we want to update only the corresponding subregion inside the full region
@@ -209,14 +207,8 @@ function module.clear(regionItem, startOffset, length)
     module.select(regionItem, startOffset, length)
     -- not deleting the regionItem itself, duh
     Item.setSelected(regionItem, false)
-    
-    -- IMPORTANT!
-    -- there is evidently a bug with split at time selection
-    -- if no items are selected, it WILL SPLIT my previously UNSELECTED regionItem... shit
-    if Item.selectedCount()> 0 then
-        Item.splitSelectedTimeSelection()
-        Item.deleteSelected()
-    end
+    Item.splitSelectedTimeSelection()
+    Item.deleteSelected()
 end
 
 return module
