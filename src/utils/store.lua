@@ -1,4 +1,5 @@
 local module = {}
+local TimeSelection = require('utils.time_selection')
 
 local start_time, end_time = 0, 0;
 function module.storeArrangeView()
@@ -17,6 +18,15 @@ end
 
 function module.restoreCursorPosition()
     reaper.SetEditCurPos( cursorPosition, false, false )
+end
+
+local time_sel_start, time_sel_end = 0,0
+function module.storeTimeSelection()
+    time_sel_start,time_sel_end = TimeSelection.get()
+end
+
+function module.restoreTimeSelection()
+    TimeSelection.set(time_sel_start,time_sel_end)
 end
 
 return module

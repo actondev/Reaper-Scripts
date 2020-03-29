@@ -176,7 +176,7 @@ function module.setActiveTakeInfoString(item, param, value)
         return
     end
     --  retval, stringNeedBig = reaper.GetSetMediaItemTakeInfo_String( tk, parmname, stringNeedBig, setNewValue )
-    _retval, _stringNeedBig = reaper.GetSetMediaItemTakeInfo_String( take, param, value, true)
+    _retval, _stringNeedBig = reaper.GetSetMediaItemTakeInfo_String(take, param, value, true)
 end
 
 function module.setActiveTakeInfo(item, param, value)
@@ -244,6 +244,11 @@ function module.deleteSelected()
     Common.cmd(40006)
 end
 
+function module.splitSelectedTimeSelection()
+    -- Item: Split items at time selection
+    Common.cmd(40061)
+end
+
 -- note: should call updateArrange afterwards
 function module.delete(item)
     reaper.DeleteTrackMediaItem(reaper.GetMediaItem_Track(item), item)
@@ -282,7 +287,7 @@ end
 
 local function paintValue(item, value)
     local nTakes = reaper.GetMediaItemNumTakes(item)
-    if nTakes>0 then
+    if nTakes > 0 then
         local take = reaper.GetActiveTake(item)
         reaper.SetMediaItemTakeInfo_Value(take, "I_CUSTOMCOLOR", value)
     else
@@ -300,7 +305,7 @@ function module.unpaint(item)
 end
 
 function module.hasActiveTakeEnvelope(item, envType)
-    return  reaper.GetTakeEnvelopeByName( module.activeTake(item), envType ) ~= nil
+    return reaper.GetTakeEnvelopeByName(module.activeTake(item), envType) ~= nil
 end
 
 return module;

@@ -1,9 +1,8 @@
 local Common = require('utils.common')
 local Log = require('utils.log')
-local Store = require('utils.store')
-local Json = require('lib.json')
 local Track = require('utils.track')
 local Item = require('utils.item')
+local EditCursor = require('utils.edit_cursor')
 local TimeSelection = require('utils.time_selection')
 local ItemManipulation = require('utils.item_manipulation')
 local Parse = require('utils.parse')
@@ -47,14 +46,26 @@ local function selectChildren(track)
     Track.unselectWithRegex("-(.+)")
 end
 
-local function select(regionItem)
+-- The optinal startOffset and length are used to select a subregion of the item region
+-- Also keeps the time selection.. needed for further actions
+-- @param regionItem The region item
+-- @param[opt] startOffset
+-- @param[opt] length
+function module.select(regionItem, startOffset, length)
     if regionItem == nil then
         return
     end
     Item.unselectAll()
     Item.setSelected(regionItem, true)
     
-    TimeSelection.setToSelectedItems()
+    local tstart,tend = Item.startEnd(regionItem)
+    length = length or (tend-tstart)
+    startOffset = startOffset or 0
+
+    local timeSelStart = tstart+startOffset
+    local timeSelEnd = timeSelStart+length
+    TimeSelection.set(math.max(tstart,timeSelStart), math.min(tend,timeSelEnd))
+
     local track = Track.fromItem(regionItem)
     local selMode = getSelectMode(track)
     if selMode == SELECT_MODE.SIBLINGS then
@@ -65,20 +76,7 @@ local function select(regionItem)
         selectChildren(track)
     end
     Item.selectInTimeSelectionAcrossSelectedTracks()
-    
-    TimeSelection.remove()
-    
     Track.selectOnly(track)
-end
-
-function module.select(regionItem)
-    Common.undoBeginBlock()
-    Common.preventUIRefresh(1)
-    
-    select(regionItem)
-    
-    Common.preventUIRefresh(-1)
-    Common.undoEndBlock("ActonDev/Region items: select")
 end
 
 local function shouldPropagate(source, target)
@@ -103,7 +101,7 @@ local function shouldPropagate(source, target)
 end
 
 
-local function propagate(regionItem)
+function module.propagate(regionItem)
     if regionItem == nil then
         return
     end
@@ -112,7 +110,7 @@ local function propagate(regionItem)
     Item.selectAllInSelectedTrack()
     
     local otherRegionItems = Item.selected()
-    select(regionItem)
+    module.select(regionItem)
     
     -- unselecting region item: we don't copy it
     -- and selecting first track that has an item
@@ -134,10 +132,18 @@ local function propagate(regionItem)
     TimeSelection.set(sourceStart, sourceEnd)
     Item.copySelectedArea()
 
+    --[[
+        Note: sourceRegion could be a subregion and targetRegion the full region.
+        In that case we want to update only the corresponding subregion inside the full region
+    ]]
     for _, targetRegion in pairs(otherRegionItems) do
         if shouldPropagate(regionItem, targetRegion) then
-            clear(targetRegion)
+            -- should clear a subregion
+            module.clear(targetRegion, sourceRegionOffset, sourceEnd-sourceStart)
+
             Track.selectOnly(firstTrack)
+            local tstart, _ = Item.startEnd(targetRegion)
+            EditCursor.setPosition(tstart)
             Item.paste()
 
             local targetRegionOffset = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.START_OFFSET)
@@ -165,39 +171,21 @@ local function propagate(regionItem)
     Item.unselectAll()
     Item.setSelected(regionItem, true)
 end
--- propagates/copies this region (item) to other matching ones in the same track
-function module.propagate(regionItem)
-    Common.undoBeginBlock()
-    Store.storeArrangeView()
-    Store.storeCursorPosition()
-    Common.preventUIRefresh(1)
-    
-    propagate(regionItem)
-    Common.updateArrange()
-    
-    Store.restoreArrangeView()
-    Store.restoreCursorPosition()
-    Common.preventUIRefresh(-1)
-    Common.undoEndBlock("ActonDev/Region items: propagate")
-end
 
-function clear(regionItem)
+-- @param regionItem The region item
+-- @param[opt] startOffset
+-- @param[opt] length
+function module.clear(regionItem, startOffset, length)
     if regionItem == nil then
         return
     end
-    select(regionItem)
+    module.select(regionItem, startOffset, length)
+    -- not deleting the regionItem itself, duh
     Item.setSelected(regionItem, false)
+    -- the select function leaves us the time selection.
+    -- this is for when startOffset and length optional arguments are given
+    Item.splitSelectedTimeSelection()
     Item.deleteSelected()
-end
-
-function module.clear(regionItem)
-    Common.undoBeginBlock()
-    Common.preventUIRefresh(1)
-    
-    clear(regionItem)
-    
-    Common.preventUIRefresh(-1)
-    Common.undoEndBlock("ActonDev/Region items: clear")
 end
 
 return module
