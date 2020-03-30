@@ -52,9 +52,9 @@ function module.search(section, query, limit)
     local results = {}
     local sectionName = getSectionName(section)
     if commandCache[sectionName] == nil then
-        Log.debug("caching " .. sectionName)
+        -- Log.debug("caching " .. sectionName)
         commandCache[sectionName] = module.getActions(section, false)
-        Log.debug("cached " .. #commandCache[sectionName])
+        -- Log.debug("cached " .. #commandCache[sectionName])
     end
     
     for _, action in ipairs(commandCache[sectionName]) do
@@ -76,7 +76,7 @@ function module.search(section, query, limit)
         end
     end
 
-    Log.debug("result count " .. tostring(#results))
+    -- Log.debug("result count " .. tostring(#results))
     return results
 end
 
