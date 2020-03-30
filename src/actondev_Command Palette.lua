@@ -1,19 +1,21 @@
-package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
+package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
 
-local Log = require('utils.log')
-local Actions = require('utils.actions')
-local Gui = require('utils.gui')
-local Common = require('utils.common')
-local Button = require('lib.gui').Button
+local Log = require("utils.log")
+local Actions = require("utils.actions")
+local GuiUtils = require("utils.gui")
+local Common = require("utils.common")
+local Gui = require("lib.gui")
+
+local Button = Gui.Button
 
 Log.isdebug = true
 
 -- Actions.getActions(Actions.SECTION.MAIN, 10)
-local res = Actions.search(Actions.SECTION.MAIN, 'split item', false)
+local res = Actions.search(Actions.SECTION.MAIN, "split item", false)
 
 if #res > 1 then
-    -- Log.debug("first match: " .. res[1].name)
-    -- Common.cmd(res[1].id)
+-- Log.debug("first match: " .. res[1].name)
+-- Common.cmd(res[1].id)
 end
 
 -- Log.debug(Log.dump(res))
@@ -21,35 +23,68 @@ end
 function init()
     gfx.init("actondev/Command Palette", 400, 100)
     Common.moveWindowToMouse()
+    local R, G, B = 60, 60, 60 -- 0..255 form
+    local Wnd_bgd = R + G * 256 + B * 65536 -- red+green*256+blue*65536
+    gfx.clear = Wnd_bgd
 end
 
-local btn = Button:new(20,20,50,30, 0.5,0.3,0.4,1, "Btn1","Arial",15, 0 )
+local g = Gui.OPTS
+local btn =
+    Button:new(
+    {
+        x = 20,
+        y = 20,
+        w = 50,
+        h = 30,
+        fg = {r = 0, g= 0, b=0},
+        [g.label] = "hi there",
+        bg = {r = 0.5, g=0.5, b=0.5}
+    }
+)
+-- btn[g.mod_hover] = function(opts)
+--     opts.g = 1
+--     opts.b = 1
+-- end
+
+btn.onMouseMove = function(el)
+    -- Log.debug("hover")
+    el.current.bg.a = 0.2
+    -- el.current.b = 1
+end
+
+btn.onMouseDown = function(el)
+    Log.debug("mouse down")
+    el.current.bg.r = 0
+    el.current.bg.g = 1
+    el.current.bg.b = 0
+end
+
+btn.onMouseOver = function(el)
+    Log.debug("mouse over")
+    el.current.bg.a = 0.2
+end
+
+btn.onClick = function(el)
+    Log.debug("CLICK")
+    el.current.r = 0
+    el.current.g = 0
+    el.current.b = 1
+end
 
 function mainloop()
-	-- if gfx.mouse_cap == 0 then
-	-- 	if not hasClicked then
-	-- 		-- initDraw()
-	-- 	else
-	-- 		-- release()
-	-- 	end
-	-- elseif gfx.mouse_cap == 1 then
-	-- 	-- left click
-	-- 	hasClicked = true
-	-- 	clickDraw()
-    -- end
-
+    Gui.prew_draw()
+    ---
     btn:draw()
+    ---
+    Gui.post_draw()
 
-    gfx.x =0
-    gfx.y=0
-    Gui.drawString("hi there")
-	gfx.update()
-	local c=gfx.getchar()
-	if c~=Gui.CHAR.ESCAPE and c~=Gui.CHAR.EXIT then
-		reaper.defer(mainloop)
-	end
+    local c = gfx.getchar()
+    if c ~= GuiUtils.CHAR.ESCAPE and c ~= GuiUtils.CHAR.EXIT then
+        reaper.defer(mainloop)
+    end
+
+    gfx.update()
 end
-
 
 init()
 mainloop()
