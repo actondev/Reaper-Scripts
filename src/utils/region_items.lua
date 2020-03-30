@@ -191,6 +191,43 @@ function module.propagate(regionItem)
     Item.setSelected(regionItem, true)
 end
 
+local function isSubregionOf(regionItem, otherRegion)
+    local tstart, tend = Item.startEnd(regionItem)
+    local length = tend - tstart
+    local regionStart = Item.getActiveTakeInfo(regionItem, Item.TAKE_PARAM.START_OFFSET)
+    local regionEnd = regionStart + length
+
+    local tstartOther, tendOther = Item.startEnd(otherRegion)
+    local lengthOther = tendOther - tstartOther
+    local regionStartOther = Item.getActiveTakeInfo(otherRegion, Item.TAKE_PARAM.START_OFFSET)
+    local regionEndOther = regionStartOther + lengthOther
+
+    return regionStartOther <= regionStart and regionEndOther >= regionEnd
+end
+
+-- we scan across the track items to find a (master) region that contains the given (slave) region time
+-- and then we update its (slave's) contents
+function module.pull(regionItem)
+    local track = Track.fromItem(regionItem)
+    Track.selectOnly(track)
+    Item.selectAllInSelectedTrack()
+    
+    Item.setSelected(regionItem, false)
+    local otherRegionItems = Item.selected()
+
+    for _i, otherRegion in ipairs(otherRegionItems) do
+        if isSubregionOf(regionItem, otherRegion) then
+            -- Log.debug("pulling from " .. Item.notes(otherRegion))
+            module.propagateFromTo(otherRegion, regionItem)
+            break
+        end
+    end
+    
+    Track.selectOnly(track)
+    Item.unselectAll()
+    Item.setSelected(regionItem, true)
+end
+
 -- @param regionItem The region item
 -- @param[opt] startOffset
 -- @param[opt] length
