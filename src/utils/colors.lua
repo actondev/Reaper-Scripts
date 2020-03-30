@@ -49,6 +49,24 @@ function RGB2HSL(R,G,B)
 	return H,S,L
 end
 
+local function hue2RGB(p, q, t)
+	if t < 0 then
+		t = t + 1
+	elseif t > 1  then
+		t = t - 1
+	end
+	if t < 1/6 then
+		return p + (q - p) * 6 * t
+	end
+	if t < 1/2 then
+		return q
+	end
+	if t < 2/3  then
+		return p + (q - p) * (2/3 - t) * 6
+	end
+	return p
+end
+
 function module.HSL2RGB(H,S,L)
 	-- R,G,B outputs: 0-1 range
 	local R, G, B

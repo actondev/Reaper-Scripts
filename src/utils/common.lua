@@ -66,7 +66,7 @@ function module.getUserInput(title, opts)
     titlesCsv = titlesCsv:sub(1, #titlesCsv - 1)
     valuesCsv = valuesCsv:sub(1, #valuesCsv - 1)
     
-    local retval, valuesCsv = reaper.GetUserInputs(title, 2, titlesCsv, valuesCsv)
+    local retval, valuesCsv = reaper.GetUserInputs(title, #opts, titlesCsv, valuesCsv)
     if not retval then
         return nil
     end
