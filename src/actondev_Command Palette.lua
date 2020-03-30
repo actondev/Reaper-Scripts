@@ -4,7 +4,8 @@ local Log = require("utils.log")
 local Actions = require("utils.actions")
 local GuiUtils = require("utils.gui")
 local Common = require("utils.common")
-local Gui = require("lib.gui")
+local Gui = require("gui.core")
+local Chars = require("gui.chars")
 
 local Button = Gui.Button
 
@@ -37,7 +38,7 @@ local btn =
         w = 50,
         h = 30,
         fg = {r = 0, g= 0, b=0},
-        [g.label] = "hi there",
+        [g.text] = "hi there",
         bg = {r = 0.5, g=0.5, b=0.5}
     }
 )
@@ -71,15 +72,29 @@ btn.onClick = function(el)
     el.current.b = 1
 end
 
+local input = Gui.Input:new(
+    {
+        x = 20,
+        y = 60,
+        w = 100,
+        h = 30,
+        fg = {r = 0, g= 0, b=0},
+        [g.text] = "hi there",
+        bg = {r = 0.5, g=0.5, b=0.5},
+        [Gui.Input.opts.focus] = true
+    }
+)
+
 function mainloop()
     Gui.prew_draw()
     ---
     btn:draw()
+    input:draw()
     ---
     Gui.post_draw()
 
-    local c = gfx.getchar()
-    if c ~= GuiUtils.CHAR.ESCAPE and c ~= GuiUtils.CHAR.EXIT then
+    local c = Gui.char
+    if c ~= Chars.CHAR.ESCAPE and c ~= Chars.CHAR.EXIT then
         reaper.defer(mainloop)
     end
 

@@ -42,6 +42,8 @@
     end
   ```
 
+
+
 ## TODOs
  - [x] moving everything to src/ ?
  - [x] create an action to insert region item
@@ -49,6 +51,7 @@
    it helps visualizing "subregion" items
  - [x] region item: add midi text events: count 16th notes (or x.. user input)]
  - [x] region item: can copy a subregion and update a whole region
+ - [ ] insert region item: should disable the 'loop source' option
  - [ ] recheck the midi item arrangement
    - item copy bug? if so, post at reaper forum
  - [ ] item arrangement 2 midi
