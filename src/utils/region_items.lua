@@ -117,63 +117,75 @@ local function shouldPropagate(source, target)
     return sourceName == targetName
 end
 
+function module.propagateFromTo(sourceRegionItem, targetRegionItem)
+    local sourceStart, sourceEnd = Item.startEnd(sourceRegionItem)
+
+    -- TODO.. better copy always? there are problems concerning the first item
+    -- if shouldCopy then
+        module.select(sourceRegionItem)
+        -- unselecting region item: we don't copy it
+        Item.setSelected(sourceRegionItem, false)
+        -- copying only the area of the source region
+        TimeSelection.set(sourceStart, sourceEnd)
+        Item.copySelectedArea()
+    -- end
+    
+    -- we need the first selected item to later select this item's track when pasting:
+    -- in order for the items to be pasted in the correct track
+    local firstSelItem = Item.firstSelected()
+    local sourceRegionOffset = Item.getActiveTakeInfo(sourceRegionItem, Item.TAKE_PARAM.START_OFFSET)
+    
+    -- Note: sourceRegion could be a subregion and targetRegion the full region.
+    -- In that case we want to update only the corresponding subregion inside the full region
+    if shouldPropagate(sourceRegionItem, targetRegionItem) then
+        -- Log.debug("target " .. Item.notes(targetRegion))
+        module.clear(targetRegionItem, sourceRegionOffset, sourceEnd - sourceStart)
+        local tstart, tend = Item.startEnd(targetRegionItem)
+        
+        if firstSelItem then
+            -- need to "touch" the first track that I copy the items from
+            -- if not they get pasted in wrong places
+            local firstTrack = Track.fromItem(firstSelItem)
+            Track.selectOnly(firstTrack)
+            EditCursor.setPosition(tstart)
+            Item.paste()
+        end
+        
+        local targetRegionOffset = Item.getActiveTakeInfo(targetRegionItem, Item.TAKE_PARAM.START_OFFSET)
+        Item.adjustInfoSelected(Item.PARAM.POSITION, sourceRegionOffset - targetRegionOffset)
+        
+        -- trimming pasted items to this region time range
+        Item.splitSelected(tstart)
+        Item.splitSelected(tend)
+        Item.deleteSelectedOutsideOfRange(tstart, tend)
+        
+        -- adjusting pitch
+        local targetPitch = Item.getActiveTakeInfo(targetRegionItem, Item.TAKE_PARAM.PITCH)
+        Item.adjustActiveTakeInfoSelected(Item.TAKE_PARAM.PITCH, targetPitch)
+        
+        -- manipulating target region
+        local targetRegionNotes = Item.notes(targetRegionItem)
+        local manipulationOpts = Parse.parsedTaggedJson(targetRegionNotes, ItemManipulation.TAG_V1)
+        ItemManipulation.manipulateSelected(manipulationOpts)
+    end
+end
+
 function module.propagate(regionItem)
     if regionItem == nil then
         return
     end
+    
     local track = Track.fromItem(regionItem)
     Track.selectOnly(track)
     Item.selectAllInSelectedTrack()
     
-    local otherRegionItems = Item.selected()
-    module.select(regionItem)
-    
-    -- unselecting region item: we don't copy it
-    -- and selecting first track that has an item
     Item.setSelected(regionItem, false)
-    local firstItem = Item.firstSelected()
-    local sourceRegionOffset = Item.getActiveTakeInfo(regionItem, Item.TAKE_PARAM.START_OFFSET)
+    local otherRegionItems = Item.selected()
     
-    -- copying only the area of the source region
-    local sourceStart, sourceEnd = Item.startEnd(regionItem)
-    TimeSelection.set(sourceStart, sourceEnd)
-    Item.copySelectedArea()
-    
-    -- Note: sourceRegion could be a subregion and targetRegion the full region.
-    -- In that case we want to update only the corresponding subregion inside the full region
-    for _, targetRegion in pairs(otherRegionItems) do
-        if shouldPropagate(regionItem, targetRegion) then
-            -- Log.debug("target " .. Item.notes(targetRegion))
-            module.clear(targetRegion, sourceRegionOffset, sourceEnd - sourceStart)
-            local tstart, tend = Item.startEnd(targetRegion)
-
-            if firstItem then
-                -- need to "touch" the first track that I copy the items from
-                -- if not they get pasted in wrong places
-                local firstTrack = Track.fromItem(firstItem)
-                Track.selectOnly(firstTrack)
-                EditCursor.setPosition(tstart)
-                Item.paste()
-            end
-            
-            local targetRegionOffset = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.START_OFFSET)
-            Item.adjustInfoSelected(Item.PARAM.POSITION, sourceRegionOffset - targetRegionOffset)
-            
-            -- trimming pasted items to this region time range
-            Item.splitSelected(tstart)
-            Item.splitSelected(tend)
-            Item.deleteSelectedOutsideOfRange(tstart, tend)
-            
-            -- adjusting pitch
-            local targetPitch = Item.getActiveTakeInfo(targetRegion, Item.TAKE_PARAM.PITCH)
-            Item.adjustActiveTakeInfoSelected(Item.TAKE_PARAM.PITCH, targetPitch)
-            
-            -- manipulating target region
-            local targetRegionNotes = Item.notes(targetRegion)
-            local manipulationOpts = Parse.parsedTaggedJson(targetRegionNotes, ItemManipulation.TAG_V1)
-            ItemManipulation.manipulateSelected(manipulationOpts)
-        end
+    for _i, targetRegion in ipairs(otherRegionItems) do
+        module.propagateFromTo(regionItem, targetRegion)
     end
+    
     Track.selectOnly(track)
     Item.unselectAll()
     Item.setSelected(regionItem, true)
