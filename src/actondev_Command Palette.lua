@@ -35,8 +35,6 @@ local btn =
     {
         x = 20,
         y = 20,
-        w = 50,
-        h = 30,
         fg = {r = 0, g= 0, b=0},
         [g.text] = "hi there",
         bg = {r = 0.5, g=0.5, b=0.5}
@@ -76,8 +74,7 @@ local input = Gui.Input:new(
     {
         x = 20,
         y = 60,
-        w = 100,
-        h = 30,
+        w = 200,
         fg = {r = 0, g= 0, b=0},
         [g.text] = "hi there",
         bg = {r = 0.5, g=0.5, b=0.5},

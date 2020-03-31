@@ -12,6 +12,7 @@ local mouse_ox, mouse_oy = -1, -1
 local Gui = {}
 local Class = require("utils.class")
 local Chars = require("gui.chars")
+local Table = require('utils.table')
 
 Gui.char = 0
 
@@ -53,32 +54,6 @@ Gui.OPTS = {
 
 Gui.Element = {}
 
-local function merge(t1, t2)
-    for k, v in pairs(t2) do
-        t1[k] = v
-    end
-    return t1
-end
-
-local function shallowcopy(orig)
-    return merge({}, orig)
-end
-
-function deepcopy(orig)
-    local orig_type = type(orig)
-    local copy
-    if orig_type == "table" then
-        copy = {}
-        for orig_key, orig_value in next, orig, nil do
-            copy[deepcopy(orig_key)] = deepcopy(orig_value)
-        end
-        setmetatable(copy, deepcopy(getmetatable(orig)))
-    else -- number, string, boolean, etc
-        copy = orig
-    end
-    return copy
-end
-
 --------------------------------------------------------------------------------
 ---   Simple Element Class   ---------------------------------------------------
 --------------------------------------------------------------------------------
@@ -86,9 +61,9 @@ Gui.Element = Class.new()
 function Gui.Element:new(opts)
     opts = opts or {}
     local elm = opts
-    elm._opts = deepcopy(opts)
+    elm._opts = Table.deepcopy(opts)
     -- current holds the current (for this frame) opts for the element
-    elm.current = deepcopy(opts)
+    elm.current = Table.deepcopy(opts)
     setmetatable(elm, self)
     self.__index = self
     return elm
@@ -96,7 +71,7 @@ end
 
 function Gui.Element:draw()
     if self.impl_draw then
-        self.current = deepcopy(self._opts)
+        self.current = Table.deepcopy(self._opts)
         self:impl_draw()
     end
 end
@@ -167,14 +142,22 @@ Gui.Button = Class.extend(Gui.Element)
 
 
 function Gui.Button:new(opts)
+    
     local btnOpts = {
         fg = {r = 0, g = 0, b = 0, a = 1},
+        padding = 5, -- across all sides
         border = {r = 0.2, g = 0.2, b = 0.2, a = 1},
         bg = {r = 0.5, g = 0.5, b = 0.5, a = 1},
         [Gui.OPTS.font] = "Arial",
         [Gui.OPTS.fontSize] = 16
     }
-    opts = merge(btnOpts, opts)
+
+    opts = Table.merge(btnOpts, opts)
+    gfx.setfont(1, opts.fnt, opts.fnt_sz) -- set label fnt
+    local text_w, text_h = gfx.measurestr(opts.text)
+    opts.h = text_h + 2*btnOpts.padding
+    opts.w = opts.w or text_w + 2*btnOpts.padding
+    
     return Gui.Element.new(self, opts)
 end
 
@@ -191,7 +174,7 @@ end
 --------
 function Gui.Button:draw_label()
     local opts = self.current
-    local x, y, w, h = opts.x, opts.y, opts.w, opts.h
+    local x, y = opts.x + opts.padding, opts.y + opts.padding
     gfx.r = opts.fg.r
     gfx.g = opts.fg.g
     gfx.b = opts.fg.b
@@ -239,7 +222,7 @@ Gui.Input.opts = {
 function Gui.Input:new(opts)
     local inputOpts = {focus = false}
 
-    return Gui.Button.new(self, merge(inputOpts, opts))
+    return Gui.Button.new(self, Table.merge(inputOpts, opts))
 end
 
 function Gui.Input:impl_draw()
@@ -260,6 +243,10 @@ Gui.Layout.opts =
     elements = 'elements',
     spacing = 'spacing',
 }
+
+function Gui.Layout:new(opts)
+
+end
 
 -- TODO
 Gui.VLayout = Class.extend(Gui.Layout)
