@@ -12,26 +12,22 @@ function module.copy(orig)
     return module.merge({}, orig)
 end
 
-function module.deepcopy(orig, copies)
-    copies = copies or {}
+-- pass an ignoreKeys to avoid recursive arrays
+function module.deepcopy(orig, ignoreKeys)
+    ignoreKeys = ignoreKeys or {}
     local orig_type = type(orig)
     local copy
     if orig_type == 'table' then
-        if copies[orig] then
-            copy = copies[orig]
-        else
-            copy = {}
-            copies[orig] = copy
-            for orig_key, orig_value in next, orig, nil do
-                copy[module.deepcopy(orig_key, copies)] = module.deepcopy(orig_value, copies)
+        copy = {}
+        for orig_key, orig_value in pairs(orig) do
+            if ignoreKeys[orig_key] == nil then
+                copy[module.deepcopy(orig_key, ignoreKeys)] = module.deepcopy(orig_value, ignoreKeys)
             end
-            setmetatable(copy, module.deepcopy(getmetatable(orig), copies))
         end
     else -- number, string, boolean, etc
         copy = orig
     end
     return copy
-
 end
 
 function module.deepmerge(t1, t2)

@@ -15,6 +15,7 @@ local Chars = require("gui.chars")
 local Table = require("utils.table")
 
 Gui.char = 0
+Gui.frame = 0
 
 local elements = {}
 
@@ -40,6 +41,7 @@ function Gui.post_draw()
     last_mouse_cap = gfx.mouse_cap
     last_x, last_y = gfx.mouse_x, gfx.mouse_y
     gfx.mouse_wheel = 0 -- reset gfx.mouse_wheel
+    Gui.frame = Gui.frame + 1
 end
 
 -- TODO refactor this..
@@ -63,16 +65,24 @@ Gui.OPTS = {
 
 Gui.Element = {}
 
+local deepCopyIgnoreKeys = {persistent = true, volatile = true, prev = true}
+
 --------------------------------------------------------------------------------
 ---   Simple Element Class   ---------------------------------------------------
 --------------------------------------------------------------------------------
 Gui.Element = Class.new()
 function Gui.Element:new(opts)
+    local defaultOpts = {x = 0, y = 0, w = 0, h = 0}
     opts = opts or {}
-    local elm = {}
+    opts = Table.merge(defaultOpts, opts)
+    local elm = opts
     -- current holds the current (for this frame) opts for the element
+    -- local copy = Table.deepcopy(opts)
     elm.persistent = opts
-    elm.volatile = Table.deepcopy(opts)
+    -- elm.volatile = Ta
+    elm.volatile = Table.deepcopy(opts, deepCopyIgnoreKeys)
+    elm.prev = elm.volatile
+    -- self.volatile = Table.deepcopy(self,)
     setmetatable(elm, self)
     self.__index = self
 
@@ -81,7 +91,8 @@ function Gui.Element:new(opts)
 end
 
 function Gui.Element:pre_draw()
-    self.volatile = Table.deepcopy(self.persistent)
+    self.prev = self.volatile
+    self.volatile = Table.deepcopy(self, deepCopyIgnoreKeys)
 end
 
 --------------------------------------------------------------
@@ -161,10 +172,6 @@ function Gui.Button:new(opts)
     }
 
     opts = Table.merge(btnOpts, opts)
-    gfx.setfont(1, opts.fnt, opts.fnt_sz) -- set label fnt
-    local text_w, text_h = gfx.measurestr(opts.text)
-    opts.h = text_h + 2 * btnOpts.padding
-    opts.w = opts.w or text_w + 2 * btnOpts.padding
 
     return Gui.Element.new(self, opts)
 end
@@ -191,13 +198,13 @@ function Gui.Button:draw_label()
     gfx.setfont(1, v.fnt, v.fnt_sz) -- set label fnt
 
     local p = self.persistent
-    local text_w, text_h = gfx.measurestr(p.text)
+    local text_w, text_h = gfx.measurestr(v.text)
     -- that's for center
     -- gfx.x = x + (w - text_w) / 2
     -- gfx.y = y + (h - text_h) / 2
     gfx.x = x
     gfx.y = y
-    gfx.drawstr(p.text)
+    gfx.drawstr(v.text)
 end
 ------------------------
 
@@ -205,11 +212,12 @@ function Gui.Button:draw()
     local v = self.volatile
     local p = self.persistent
 
-    local r, g, b, a = v.r, v.g, v.b, v.a
-    local fnt, fnt_sz = v.fnt, v.fnt_sz
-    -- Get mouse state ---------
-    -- in element --------
-    -- self:pre_draw()
+    gfx.setfont(1, v.fnt, v.fnt_sz) -- set label fnt
+    local text_w, _ = gfx.measurestr(v.text)
+    local _, text_h = gfx.measurestr(" ")
+    v.h = text_h + 2 * v.padding
+    v.w = v.w or text_w + 2 * v.padding
+
     if self.onMouseMove and self:mouseIN() then
         self.onMouseMove(v, p)
     end
@@ -219,6 +227,12 @@ function Gui.Button:draw()
     if self.onClick and self:mouseClick() then
         self.onClick(v, p)
     end
+    if self.prev.text ~= self.volatile.text and self.onChange then
+        self.onChange(v, p)
+    end
+
+
+
     self:draw_border()
     self:draw_background()
     self:draw_label()
@@ -237,12 +251,20 @@ function Gui.Input:new(opts)
     return Gui.Button.new(self, Table.merge(inputOpts, opts))
 end
 
+-- function Gui.Input:pre_draw()
+--     -- Log.debug("gui pre")
+-- end
+
 function Gui.Input:draw()
     -- get gfx char
-    if self[Gui.Input.opts.focus] then
+    if self.volatile[Gui.Input.opts.focus] then
         local c = Gui.char
         if Chars.isPrintable(c) then
-            self.persistent.text = string.char(c)
+            self._input_last_update = self._input_last_update or 0
+            if self._input_last_update ~= Gui.frame then
+                self.persistent.text = self.persistent.text .. string.char(c)
+                self._input_last_update = Gui.frame
+            end
         end
     end
     Gui.Button.draw(self)
@@ -256,18 +278,9 @@ Gui.ILayout.opts = {
     spacing = "spacing"
 }
 
-function Gui.ILayout:new(opts)
-    local layoutOpts = {
-        elements = {},
-        spacing = 5
-    }
-    opts = Table.merge(layoutOpts, opts)
-    return Gui.Element.new(self, opts)
-end
-
 function Gui.ILayout:draw()
     local run_x, run_y = 0, 0
-    for i, el in ipairs(self.volatile.elements) do
+    for i, el in ipairs(self.persistent.elements) do
         el.volatile.x = self.volatile.x + run_x
         el.volatile.y = self.volatile.y + run_y
         el:draw()
@@ -280,7 +293,7 @@ end
 -- TODO
 Gui.VLayout = Class.extend(Gui.ILayout)
 function Gui.VLayout:advance_xy(el)
-    return 0, el.volatile.h + self.volatile.spacing
+    return 0, (el.volatile.h or 0) + self.volatile.spacing
 end
 
 return Gui

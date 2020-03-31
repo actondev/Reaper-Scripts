@@ -21,81 +21,107 @@ end
 
 -- Log.debug(Log.dump(res))
 
+local width = 500
+local padding = 10
+
+local g = Gui.OPTS
+
+local input =
+    Gui.Input:new(
+    {
+        -- x y don't matter if we put into a layout
+        x = 0,
+        y = 0,
+        w = width - 2 * padding,
+        fg = {r = 0, g = 0, b = 0},
+        [g.text] = "",
+        bg = {r = 0.5, g = 0.5, b = 0.5},
+        [Gui.Input.opts.focus] = true
+    }
+)
+
+local testBtn =
+    Gui.Button:new(
+    {
+        x = 0,
+        y = 0,
+        w = width - 2 * padding,
+        fg = {r = 0, g = 0, b = 0},
+        [g.text] = "test action",
+        _action_id = 1,
+        bg = {r = 0.5, g = 0.5, b = 0.5},
+        onMouseMove = function(el)
+            -- Log.debug("mouse over")
+            el.bg.a = 0.2
+        end,
+        onClick = function(v)
+            Log.debug("should execute " .. v.text)
+            Log.debug("action id " .. v._action_id)
+        end
+    }
+)
+local actionBtns = {
+    elements = {testBtn}
+}
+
+input.onChange = function(v)
+    local results = Actions.search(Actions.SECTION.MAIN, v.text, 5)
+    for i, action in ipairs(results) do
+        local btn =
+            Gui.Button:new(
+            {
+                x = 0,
+                y = 0,
+                w = width - 2 * padding,
+                fg = {r = 0, g = 0, b = 0},
+                [g.text] = action.name,
+                _action_id = action.id,
+                bg = {r = 0.5, g = 0.5, b = 0.5},
+                onMouseMove = function(el)
+                    -- Log.debug("mouse over")
+                    el.bg.a = 0.2
+                end,
+                onClick = function(v)
+                    Log.debug("should execute " .. v.text)
+                    Log.debug("action id " .. v._action_id)
+                end
+            }
+        )
+        actionBtns.elements[i] = btn
+    end
+end
+
+local vlayoutActions =
+    Gui.VLayout:new(
+    {
+        x = padding,
+        y = padding,
+        spacing = 0,
+        elements = actionBtns.elements
+    }
+)
+
+local vlayout =
+    Gui.VLayout:new(
+    {
+        x = padding,
+        y = padding,
+        spacing = 10,
+        elements = {input, vlayoutActions}
+    }
+)
+
 function init()
-    gfx.init("actondev/Command Palette", 400, 100)
+    gfx.init("actondev/Command Palette", width, 200)
     Common.moveWindowToMouse()
     local R, G, B = 60, 60, 60 -- 0..255 form
     local Wnd_bgd = R + G * 256 + B * 65536 -- red+green*256+blue*65536
     gfx.clear = Wnd_bgd
 end
 
-local g = Gui.OPTS
-local btn =
-    Button:new(
-    {
-        x = 20,
-        y = 20,
-        fg = {r = 0, g= 0, b=0},
-        [g.text] = "hi there",
-        bg = {r = 0.5, g=0.5, b=0.5}
-    }
-)
--- btn[g.mod_hover] = function(opts)
---     opts.g = 1
---     opts.b = 1
--- end
-
-btn.onMouseMove = function(el)
-    -- Log.debug("hover")
-    el.bg.a = 0.2
-    -- el.b = 1
-end
-
-btn.onMouseDown = function(el)
-    Log.debug("mouse down")
-    el.bg.r = 0
-    el.bg.g = 1
-    el.bg.b = 0
-end
-
-btn.onMouseOver = function(el)
-    Log.debug("mouse over")
-    el.bg.a = 0.2
-end
-
-btn.onClick = function(el)
-    Log.debug("CLICK")
-    el.r = 0
-    el.g = 0
-    el.b = 1
-end
-
-local input = Gui.Input:new(
-    {
-        x = 20,
-        y = 60,
-        w = 200,
-        fg = {r = 0, g= 0, b=0},
-        [g.text] = "hi there",
-        bg = {r = 0.5, g=0.5, b=0.5},
-        [Gui.Input.opts.focus] = true
-    }
-)
-
-local vlayout = Gui.VLayout:new(
-    {
-        x = 20,
-        y = 20,
-        spacing = 10,
-        elements = {btn, input, btn}
-    }
-)
-
 function mainloop()
     Gui.pre_draw()
     ---
-    -- btn:draw()
-    -- input:draw()
     vlayout:draw()
     ---
     Gui.post_draw()
