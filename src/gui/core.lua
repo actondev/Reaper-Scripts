@@ -12,18 +12,27 @@ local mouse_ox, mouse_oy = -1, -1
 local Gui = {}
 local Class = require("utils.class")
 local Chars = require("gui.chars")
-local Table = require('utils.table')
+local Table = require("utils.table")
 
 Gui.char = 0
 
-function Gui.prew_draw()
+local elements = {}
+
+function Gui.pre_draw()
     Gui.char = gfx.getchar()
     if
         gfx.mouse_cap & 1 == 1 and last_mouse_cap & 1 == 0 or -- L mouse
             gfx.mouse_cap & 2 == 2 and last_mouse_cap & 2 == 0 or -- R mouse
-            gfx.mouse_cap & 64 == 64 and last_mouse_cap & 64 == 0 -- M mouse
-     then
+            gfx.mouse_cap & 64 == 64 and last_mouse_cap & 64 == 0
+     then -- M mouse
         mouse_ox, mouse_oy = gfx.mouse_x, gfx.mouse_y
+    end
+
+    -- running elements pre_draw
+    for _, elm in ipairs(elements) do
+        if elm.pre_draw then
+            elm:pre_draw()
+        end
     end
 end
 
@@ -60,21 +69,21 @@ Gui.Element = {}
 Gui.Element = Class.new()
 function Gui.Element:new(opts)
     opts = opts or {}
-    local elm = opts
-    elm._opts = Table.deepcopy(opts)
+    local elm = {}
     -- current holds the current (for this frame) opts for the element
-    elm.current = Table.deepcopy(opts)
+    elm.persistent = opts
+    elm.volatile = Table.deepcopy(opts)
     setmetatable(elm, self)
     self.__index = self
+
+    elements[#elements + 1] = elm
     return elm
 end
 
-function Gui.Element:draw()
-    if self.impl_draw then
-        self.current = Table.deepcopy(self._opts)
-        self:impl_draw()
-    end
+function Gui.Element:pre_draw()
+    self.volatile = Table.deepcopy(self.persistent)
 end
+
 --------------------------------------------------------------
 --- Function for Child Classes(args = Child,Parent Class) ----
 --------------------------------------------------------------
@@ -87,7 +96,8 @@ end
 
 ------------------------
 function Gui.Element:pointIN(p_x, p_y)
-    return p_x >= self.x and p_x <= self.x + self.w and p_y >= self.y and p_y <= self.y + self.h
+    local v = self.volatile
+    return p_x >= v.x and p_x <= v.x + v.w and p_y >= v.y and p_y <= v.y + v.h
 end
 
 function Gui.Element:isMouseOver()
@@ -121,13 +131,13 @@ function Gui.Element:mouseM_Down()
 end
 ------------------------
 function Gui.Element:draw_border()
-    local opts = self.current
-    gfx.r = opts.border.r
-    gfx.g = opts.border.g
-    gfx.b = opts.border.b
-    gfx.a = opts.border.a or 1
+    local v = self.volatile
+    gfx.r = v.border.r
+    gfx.g = v.border.g
+    gfx.b = v.border.b
+    gfx.a = v.border.a or 1
 
-    local x, y, w, h = opts.x, opts.y, opts.w, opts.h
+    local x, y, w, h = v.x, v.y, v.w, v.h
     gfx.rect(x, y, w, h, false) -- frame1
     gfx.roundrect(x, y, w - 1, h - 1, 3, true) -- frame2
 end
@@ -140,9 +150,7 @@ end
 
 Gui.Button = Class.extend(Gui.Element)
 
-
 function Gui.Button:new(opts)
-    
     local btnOpts = {
         fg = {r = 0, g = 0, b = 0, a = 1},
         padding = 5, -- across all sides
@@ -155,57 +163,61 @@ function Gui.Button:new(opts)
     opts = Table.merge(btnOpts, opts)
     gfx.setfont(1, opts.fnt, opts.fnt_sz) -- set label fnt
     local text_w, text_h = gfx.measurestr(opts.text)
-    opts.h = text_h + 2*btnOpts.padding
-    opts.w = opts.w or text_w + 2*btnOpts.padding
-    
+    opts.h = text_h + 2 * btnOpts.padding
+    opts.w = opts.w or text_w + 2 * btnOpts.padding
+
     return Gui.Element.new(self, opts)
 end
 
 function Gui.Button:draw_background()
-    local opts = self.current
-    gfx.r = opts.bg.r
-    gfx.g = opts.bg.g
-    gfx.b = opts.bg.b
-    gfx.a = opts.bg.a or 1
+    local v = self.volatile
+    gfx.r = v.bg.r
+    gfx.g = v.bg.g
+    gfx.b = v.bg.b
+    gfx.a = v.bg.a or 1
 
-    local x, y, w, h = opts.x, opts.y, opts.w, opts.h
+    local x, y, w, h = v.x, v.y, v.w, v.h
     gfx.rect(x, y, w, h, true)
 end
 --------
 function Gui.Button:draw_label()
-    local opts = self.current
-    local x, y = opts.x + opts.padding, opts.y + opts.padding
-    gfx.r = opts.fg.r
-    gfx.g = opts.fg.g
-    gfx.b = opts.fg.b
-    gfx.a = opts.fg.a or 1
+    local v = self.volatile
+    local x, y = v.x + v.padding, v.y + v.padding
+    gfx.r = v.fg.r
+    gfx.g = v.fg.g
+    gfx.b = v.fg.b
+    gfx.a = v.fg.a or 1
 
-    gfx.setfont(1, opts.fnt, opts.fnt_sz) -- set label fnt
+    gfx.setfont(1, v.fnt, v.fnt_sz) -- set label fnt
 
-    local text_w, text_h = gfx.measurestr(self.text)
+    local p = self.persistent
+    local text_w, text_h = gfx.measurestr(p.text)
     -- that's for center
     -- gfx.x = x + (w - text_w) / 2
     -- gfx.y = y + (h - text_h) / 2
     gfx.x = x
     gfx.y = y
-    gfx.drawstr(self.text)
+    gfx.drawstr(p.text)
 end
 ------------------------
 
-function Gui.Button:impl_draw()
-    local r, g, b, a = self.r, self.g, self.b, self.a
-    local fnt, fnt_sz = self.fnt, self.fnt_sz
+function Gui.Button:draw()
+    local v = self.volatile
+    local p = self.persistent
+
+    local r, g, b, a = v.r, v.g, v.b, v.a
+    local fnt, fnt_sz = v.fnt, v.fnt_sz
     -- Get mouse state ---------
     -- in element --------
     -- self:pre_draw()
     if self.onMouseMove and self:mouseIN() then
-        self.onMouseMove(self)
+        self.onMouseMove(v, p)
     end
     if self.onMouseDown and self:mouseDown() then
-        self.onMouseDown(self)
+        self.onMouseDown(v, p)
     end
     if self.onClick and self:mouseClick() then
-        self.onClick(self)
+        self.onClick(v, p)
     end
     self:draw_border()
     self:draw_background()
@@ -225,34 +237,50 @@ function Gui.Input:new(opts)
     return Gui.Button.new(self, Table.merge(inputOpts, opts))
 end
 
-function Gui.Input:impl_draw()
+function Gui.Input:draw()
     -- get gfx char
     if self[Gui.Input.opts.focus] then
         local c = Gui.char
         if Chars.isPrintable(c) then
-            self.text = self.text .. string.char(c)
+            self.persistent.text = string.char(c)
         end
     end
-    Gui.Button.impl_draw(self)
+    Gui.Button.draw(self)
 end
 
-Gui.Layout = Class.extend(Gui.Element)
+-- interface to be implemented
+Gui.ILayout = Class.extend(Gui.Element)
 -- TODO do a generic layout and call the impl_pos(el) ?
-Gui.Layout.opts =
-{
-    elements = 'elements',
-    spacing = 'spacing',
+Gui.ILayout.opts = {
+    elements = "elements",
+    spacing = "spacing"
 }
 
-function Gui.Layout:new(opts)
+function Gui.ILayout:new(opts)
+    local layoutOpts = {
+        elements = {},
+        spacing = 5
+    }
+    opts = Table.merge(layoutOpts, opts)
+    return Gui.Element.new(self, opts)
+end
 
+function Gui.ILayout:draw()
+    local run_x, run_y = 0, 0
+    for i, el in ipairs(self.volatile.elements) do
+        el.volatile.x = self.volatile.x + run_x
+        el.volatile.y = self.volatile.y + run_y
+        el:draw()
+        local x, y = self:advance_xy(el) -- children layouts must implement this
+        run_x = run_x + x
+        run_y = run_y + y
+    end
 end
 
 -- TODO
-Gui.VLayout = Class.extend(Gui.Layout)
-function Gui.VLayout:impl_peek(el)
-    -- keeping track of each element,
-    -- adjusting internal y
+Gui.VLayout = Class.extend(Gui.ILayout)
+function Gui.VLayout:advance_xy(el)
+    return 0, el.volatile.h + self.volatile.spacing
 end
 
 return Gui

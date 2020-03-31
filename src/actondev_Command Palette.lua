@@ -47,27 +47,27 @@ local btn =
 
 btn.onMouseMove = function(el)
     -- Log.debug("hover")
-    el.current.bg.a = 0.2
-    -- el.current.b = 1
+    el.bg.a = 0.2
+    -- el.b = 1
 end
 
 btn.onMouseDown = function(el)
     Log.debug("mouse down")
-    el.current.bg.r = 0
-    el.current.bg.g = 1
-    el.current.bg.b = 0
+    el.bg.r = 0
+    el.bg.g = 1
+    el.bg.b = 0
 end
 
 btn.onMouseOver = function(el)
     Log.debug("mouse over")
-    el.current.bg.a = 0.2
+    el.bg.a = 0.2
 end
 
 btn.onClick = function(el)
     Log.debug("CLICK")
-    el.current.r = 0
-    el.current.g = 0
-    el.current.b = 1
+    el.r = 0
+    el.g = 0
+    el.b = 1
 end
 
 local input = Gui.Input:new(
@@ -82,11 +82,21 @@ local input = Gui.Input:new(
     }
 )
 
+local vlayout = Gui.VLayout:new(
+    {
+        x = 20,
+        y = 20,
+        spacing = 10,
+        elements = {btn, input, btn}
+    }
+)
+
 function mainloop()
-    Gui.prew_draw()
+    Gui.pre_draw()
     ---
-    btn:draw()
-    input:draw()
+    -- btn:draw()
+    -- input:draw()
+    vlayout:draw()
     ---
     Gui.post_draw()
 
