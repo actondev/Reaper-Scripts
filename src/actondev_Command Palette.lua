@@ -7,15 +7,13 @@ local Common = require("utils.common")
 local Gui = require("gui.core")
 local Chars = require("gui.chars")
 
-local Button = Gui.Button
-
 Log.isdebug = true
 
 -- Actions.getActions(Actions.SECTION.MAIN, 10)
-local res = Actions.search(Actions.SECTION.MAIN, "split item", false)
+local res = Actions.search(Actions.SECTION.MAIN, "split asd", false)
 
 if #res > 1 then
--- Log.debug("first match: " .. res[1].name)
+    Log.debug("first match: " .. res[1].name)
 -- Common.cmd(res[1].id)
 end
 
@@ -51,7 +49,6 @@ local testBtn =
         _action_id = 1,
         bg = {r = 0.5, g = 0.5, b = 0.5},
         onMouseMove = function(el)
-            -- Log.debug("mouse over")
             el.bg.a = 0.2
         end,
         onClick = function(v)
@@ -60,11 +57,17 @@ local testBtn =
         end
     }
 )
-local actionBtns = {
-    elements = {testBtn}
-}
+local actionButtons = {testBtn}
 
 input.onChange = function(v)
+    for k in pairs(actionButtons) do
+        actionButtons[k] = nil
+    end
+
+    if v.text == "" then
+        return
+    end
+
     local results = Actions.search(Actions.SECTION.MAIN, v.text, 5)
     for i, action in ipairs(results) do
         local btn =
@@ -87,27 +90,31 @@ input.onChange = function(v)
                 end
             }
         )
-        actionBtns.elements[i] = btn
+        actionButtons[i] = btn
     end
 end
 
-local vlayoutActions =
-    Gui.VLayout:new(
+local actionsList =
+    Gui.List:new(
     {
         x = padding,
         y = padding,
         spacing = 0,
-        elements = actionBtns.elements
+        elements = actionButtons,
+        selectedIndex = 1,
+        whenSelected = function(v)
+            v.bg.r = 1
+        end
     }
 )
 
-local vlayout =
+local layout =
     Gui.VLayout:new(
     {
         x = padding,
         y = padding,
         spacing = 10,
-        elements = {input, vlayoutActions}
+        elements = {input, actionsList}
     }
 )
 
@@ -122,15 +129,21 @@ end
 function mainloop()
     Gui.pre_draw()
     ---
-    vlayout:draw()
+    layout:draw()
     ---
     Gui.post_draw()
 
-    local c = Gui.char
-    if c ~= Chars.CHAR.ESCAPE and c ~= Chars.CHAR.EXIT then
-        reaper.defer(mainloop)
+    if Gui.char == Chars.CHAR.EXIT then
+        return
     end
-
+    if Gui.char == Chars.CHAR.ESCAPE then
+        if input.text == "" then
+            return
+        else
+            input.text = ""
+        end
+    end
+    reaper.defer(mainloop)
     gfx.update()
 end
 

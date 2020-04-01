@@ -231,8 +231,6 @@ function Gui.Button:draw()
         self.onChange(v, p)
     end
 
-
-
     self:draw_border()
     self:draw_background()
     self:draw_label()
@@ -294,6 +292,32 @@ end
 Gui.VLayout = Class.extend(Gui.ILayout)
 function Gui.VLayout:advance_xy(el)
     return 0, (el.volatile.h or 0) + self.volatile.spacing
+end
+
+Gui.List = Class.extend(Gui.VLayout)
+
+function Gui.List:new(opts)
+    local listOpts = {
+        selectedIndex = 0, -- note: 1-based
+        whenSelected = nil -- function
+    }
+    opts = Table.merge(listOpts, opts)
+    return Gui.VLayout.new(self, opts)
+end
+
+function Gui.List:draw()
+    if self.selectedIndex > 0 and #self.elements > 0 then
+        if self.selectedIndex > #self.elements then
+            -- wrap selectedIndex
+            self.selectedIndex = 1
+        end
+        local el = self.elements[self.selectedIndex]
+        if self.whenSelected then
+            self.whenSelected(el.volatile, el.persistent)
+        end
+    end
+
+    Gui.VLayout.draw(self)
 end
 
 return Gui
