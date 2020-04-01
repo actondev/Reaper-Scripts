@@ -117,7 +117,7 @@ function Gui.Element:new(opts)
     -- local copy = Table.deepcopy(opts)
     elm.persistent = opts
     -- elm.volatile = Ta
-    elm.volatile = Table.deepcopy(opts, deepCopyIgnoreKeys)
+    elm.volatile = Table.deepCopyIgnoringKeys(opts, deepCopyIgnoreKeys)
     elm.prev = elm.volatile
     -- self.volatile = Table.deepcopy(self,)
     setmetatable(elm, self)
@@ -128,7 +128,7 @@ function Gui.Element:new(opts)
 end
 
 function Gui.Element:pre_draw()
-    self.volatile = Table.deepcopy(self, deepCopyIgnoreKeys)
+    self.volatile = Table.deepCopyIgnoringKeys(self, deepCopyIgnoreKeys)
     self.mouse.over = self:isMouseOver(Gui.mouse.x, Gui.mouse.y)
     self.mouse.enter = not self.prev.mouse.over and self.mouse.over
     self.mouse.leave = not self.mouse.leave and self.prev.mouse.over
@@ -217,7 +217,23 @@ function Gui.Button:new(opts)
 
     opts = Table.merge(btnOpts, opts)
 
-    return Gui.Element.new(self, opts)
+    local elm = Gui.Element.new(self, opts)
+    elm:pre_draw()
+    return elm
+end
+
+function Gui.Button:pre_draw()
+    Gui.Element.pre_draw(self)
+    if type(self.text) == 'function' then
+        self.volatile.text = self.text()
+    end
+    -- calculating height and width
+    local v = self.volatile
+    gfx.setfont(1, v.fnt, v.fnt_sz) -- set label fnt
+    local text_w, _ = gfx.measurestr(v.text)
+    local _, text_h = gfx.measurestr(" ")
+    self.h = text_h + 2 * v.padding
+    self.w = v.w or text_w + 2 * v.padding
 end
 
 function Gui.Button:draw_background()
@@ -227,13 +243,13 @@ function Gui.Button:draw_background()
     gfx.b = v.bg.b
     gfx.a = v.bg.a or 1
 
-    local x, y, w, h = v.x, v.y, v.w, v.h
+    local x, y, w, h = self.x, self.y, v.w, v.h
     gfx.rect(x, y, w, h, true)
 end
 --------
 function Gui.Button:draw_label()
     local v = self.volatile
-    local x, y = v.x + v.padding, v.y + v.padding
+    local x, y = self.x + v.padding, self.y + v.padding
     gfx.r = v.fg.r
     gfx.g = v.fg.g
     gfx.b = v.fg.b
@@ -248,34 +264,24 @@ end
 
 function Gui.Button:draw()
     local v = self.volatile
-    local p = self.persistent
-
-    gfx.setfont(1, v.fnt, v.fnt_sz) -- set label fnt
-    local text_w, _ = gfx.measurestr(v.text)
-    local _, text_h = gfx.measurestr(" ")
-    -- persistent & volatile m ess
-    p.h = text_h + 2 * v.padding
-    p.w = v.w or text_w + 2 * v.padding
-    v.h = p.h
-    v.w = p.w
 
     if self.onMouseMove and self.mouse.over then
-        self.onMouseMove(v, p)
+        self.onMouseMove(v, self)
     end
     if self.onMouseDown and self:mouseDown() then
-        self.onMouseDown(v, p)
+        self.onMouseDown(v, self)
     end
     if self.onClick and self:mouseClick() then
-        self.onClick(v, p)
+        self.onClick(v, self)
     end
     if self.onMouseEnter and self.mouse.enter then
-        self.onMouseEnter(v, p)
+        self.onMouseEnter(v, self)
     end
     if self.onMouseLeave and self.mouse.leave then
-        self.onMouseLeave(v, p)
+        self.onMouseLeave(v, self)
     end
     if self.prev.text ~= self.volatile.text and self.onChange then
-        self.onChange(v, p)
+        self.onChange(v, self)
     end
 
     self:draw_border()
@@ -322,28 +328,28 @@ Gui.ILayout.opts = {
 }
 
 function Gui.ILayout:draw()
-    local run_x, run_y = 0, 0
-    for i, el in ipairs(self.persistent.elements) do
-        -- persistent and volatile mess
-        el.persistent.x = self.volatile.x + run_x
-        el.persistent.y = self.volatile.y + run_y
-        el.volatile.x = el.persistent.x
-        el.volatile.y = el.persistent.y
-        -- el:pre_draw() -- to update the calculations x,y
+    self.h = 0
+    self.w = 0
+    local v = self.volatile
+    v.next_x, v.next_y = self.x, self.y
+    for i, el in ipairs(self.elements) do
+        el.x = v.next_x
+        el.y = v.next_y
         el:draw()
-        local x, y = self:advance_xy(el) -- children layouts must implement this
-        run_x = run_x + x
-        run_y = run_y + y
+        self:advance(el) -- children layouts must implement this
     end
-    self.w = run_x
-    self.h = run_y
-    -- Log.debug("height: " .. tostring(self.h))
 end
 
 -- TODO
 Gui.VLayout = Class.extend(Gui.ILayout)
-function Gui.VLayout:advance_xy(el)
-    return 0, (el.volatile.h or 0) + self.volatile.spacing
+function Gui.VLayout:advance(el)
+    local v = self.volatile
+    v.next_x = 0
+    -- next element y
+    v.next_y = v.next_y + el.h +v.spacing
+    self.h = v.next_y - self.y - v.spacing
+
+    self.w = math.max(self.w, el.w)
 end
 
 Gui.List = Class.extend(Gui.VLayout)
