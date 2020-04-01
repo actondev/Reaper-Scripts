@@ -34,7 +34,7 @@ local input =
         fg = {r = 0, g = 0, b = 0},
         [g.text] = "",
         bg = {r = 0.5, g = 0.5, b = 0.5},
-        [Gui.Input.opts.hasFocus] = true,
+        [Gui.Input.opts.hasFocus] = true
     }
 )
 
@@ -58,6 +58,13 @@ local testBtn =
     }
 )
 local actionButtons = {testBtn}
+local hwnd = 0
+
+local function runAndRefocus(actionId)
+    -- hwnd =  reaper.BR_Win32_GetForegroundWindow()
+    Common.cmd(actionId)
+    reaper.BR_Win32_SetFocus(hwnd)
+end
 
 local actionsList =
     Gui.List:new(
@@ -72,9 +79,8 @@ local actionsList =
             v.bg.r = 1
         end,
         onEnter = function(v)
-            Log.debug("should execute " .. v.text)
-            Log.debug("action id " .. v._action_id)
             v.text = ""
+            runAndRefocus(v._action_id)
         end
     }
 )
@@ -108,16 +114,13 @@ input.onChange = function(v)
                     actionsList:select(p)
                 end,
                 onClick = function(v)
-                    Log.debug("should execute " .. v.text)
-                    Log.debug("action id " .. v._action_id)
+                    runAndRefocus(v._action_id)
                 end
             }
         )
         actionButtons[i] = btn
     end
 end
-
-
 
 local layout =
     Gui.VLayout:new(
@@ -159,4 +162,5 @@ function mainloop()
 end
 
 init()
+hwnd = reaper.BR_Win32_GetForegroundWindow()
 mainloop()
