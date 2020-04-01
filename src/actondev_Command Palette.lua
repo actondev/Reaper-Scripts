@@ -6,6 +6,8 @@ local GuiUtils = require("utils.gui")
 local Common = require("utils.common")
 local Gui = require("gui.core")
 local Chars = require("gui.chars")
+local Table = require("utils.table")
+local Observe = require("aod.observe")
 
 Log.isdebug = true
 
@@ -46,14 +48,12 @@ local testBtn =
         w = width - 2 * padding,
         fg = {r = 0, g = 0, b = 0},
         [g.text] = "test action",
-        _action_id = 1,
         bg = {r = 0.5, g = 0.5, b = 0.5},
         onMouseMove = function(el)
             el.bg.a = 0.2
         end,
         onClick = function(v)
             Log.debug("should execute " .. v.text)
-            Log.debug("action id " .. v._action_id)
         end
     }
 )
@@ -66,18 +66,7 @@ local function runAndRefocus(actionId)
     reaper.BR_Win32_SetFocus(hwnd)
 end
 
-local markedAction =
-    Gui.Button:new(
-    {
-        x = 0,
-        y = 0,
-        w = width - 2 * padding,
-        fg = {r = 0, g = 0, b = 0},
-        [g.text] = "",
-        bg = {r = 0.5, g = 0.5, b = 0.5},
-    }
-)
-
+local markedAction = {["name"] = "Item: Split items at play cursor", ["id"] = 40196}
 local actionsList =
     Gui.List:new(
     {
@@ -92,10 +81,11 @@ local actionsList =
         end,
         onEnter = function(v)
             -- v.text = ""
+            Log.debug(v)
             if Gui.modifiers.none then
-                runAndRefocus(v._action_id)
+                runAndRefocus(v.action.id)
             elseif Gui.modifiers.control then
-                markedAction.text = v.text
+                markedAction = Table.merge(markedAction, v.action)
             end
         end
     }
@@ -122,17 +112,18 @@ input.onChange = function(v)
                 w = width - 2 * padding,
                 fg = {r = 0, g = 0, b = 0},
                 [g.text] = action.name,
-                _action_id = action.id,
+                action = action,
                 bg = {r = 0.5, g = 0.5, b = 0.5},
                 onMouseMove = function(v)
-                    -- v.bg.a = 0.2
+                    v.bg.a = 0.2
+                    -- v.fnt_sz = v.fnt_sz + 5
                 end,
                 onMouseEnter = function(v, p)
                     -- v.bg.a = 0.2
                     actionsList:select(p)
                 end,
                 onClick = function(v)
-                    runAndRefocus(v._action_id)
+                    runAndRefocus(v.action.id)
                 end
             }
         )
@@ -140,30 +131,112 @@ input.onChange = function(v)
     end
 end
 
-
-
-local layout =
+local layoutSearch =
     Gui.VLayout:new(
     {
-        x = padding,
-        y = padding,
         spacing = 10,
-        elements = {input, actionsList, markedAction}
+        elements = {input, actionsList}
     }
 )
 
+local markedActionButton =
+    Gui.Button:new(
+    {
+        w = width - 2 * padding,
+        fg = {r = 0, g = 0, b = 0},
+        [g.text] = function()
+            if markedAction ~= nil then
+                return markedAction.name
+            end
+            return ""
+        end,
+        bg = {r = 0.5, g = 0.5, b = 0.5}
+    }
+)
+
+local observers = {
+    {name = "at item selection change", handler = Observe.itemSelectionChange()},
+    {name = "at cursor position change", handler = Observe.cursorPosition()}
+}
+
+local activeObserver = Observe.dummy()
+
+local observersList =
+    Gui.List:new(
+    {
+        x = padding,
+        y = padding,
+        spacing = 0,
+        elements = {},
+        selectedIndex = 1,
+        hasFocus = true,
+        whenSelected = function(v)
+            v.bg.r = 1
+        end,
+        onEnter = function(v,p)
+            -- v.text = ""
+            Log.debug(v)
+            activeObserver = p.observer.handler.init()
+            -- if Gui.modifiers.none then
+                -- runAndRefocus(v.action.id)
+            -- elseif Gui.modifiers.control then
+                -- markedAction = Table.merge(markedAction, v.action)
+            -- end
+        end
+    }
+)
+
+local observersButtons = Table.map(observers,
+function(observer)
+    return Gui.Button:new(
+        {
+            x = 0,
+            y = 0,
+            w = width - 2 * padding,
+            fg = {r = 0, g = 0, b = 0},
+            [g.text] = observer.name,
+            observer = observer,
+            bg = {r = 0.5, g = 0.5, b = 0.5},
+            onMouseMove = function(v)
+                v.bg.a = 0.2
+                -- v.fnt_sz = v.fnt_sz + 5
+            end,
+            onMouseEnter = function(v, p)
+                actionsList:select(p)
+            end,
+            onClick = function(v)
+                runAndRefocus(v.action.id)
+            end
+        }
+    )
+end
+)
+
+-- Log.debug(observersButtons)
+
+observersList.elements = observersButtons
+
+local layoutMarkedAction =
+    Gui.VLayout:new(
+    {
+        x = 0,
+        y = 0,
+        spacing = 10,
+        elements = {markedActionButton, observersList}
+    }
+)
+
+
+
+local layout = layoutMarkedAction
+
 function init()
-    
-    -- layout:draw()
     input.text = ""
-    markedAction.text = "test"
-    -- Gui:pre_draw()
-    -- layout:draw()
     input.text = "split items"
-    -- Gui:post_draw()
-    -- Gui:pre_draw()
-    -- layout:draw()
-    gfx.init("actondev/Command Palette", width, 250)
+    Gui:pre_draw()
+    layout:draw()
+    gfx.init("actondev/Command Palette", layout.w, 202)
+    -- Log.debug("height " .. tostring(layout.h))
     Common.moveWindowToMouse()
     local R, G, B = 60, 60, 60 -- 0..255 form
     local Wnd_bgd = R + G * 256 + B * 65536 -- red+green*256+blue*65536
@@ -176,6 +249,17 @@ function mainloop()
     layout:draw()
     ---
     Gui.post_draw()
+
+    if activeObserver.changed() then
+        Log.debug("observer change")
+        Common.cmd(markedAction.id)
+    end
+
+    -- doesn't take into account the title bar
+    -- reaper.JS_Window_SetStyle( hwnd, "POPUP" )
+    -- reaper.JS_Window_Resize( hwnd, layout.w, layout.h)
+
+    -- Log.debug("height " .. tostring(layout.h))
 
     -- Log.debug(Gui.char)
 
