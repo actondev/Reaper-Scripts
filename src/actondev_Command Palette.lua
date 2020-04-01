@@ -57,7 +57,7 @@ local testBtn =
         end
     }
 )
-local actionButtons = {testBtn}
+local actionButtons = {}
 local hwnd = 0
 
 local function runAndRefocus(actionId)
@@ -65,6 +65,18 @@ local function runAndRefocus(actionId)
     Common.cmd(actionId)
     reaper.BR_Win32_SetFocus(hwnd)
 end
+
+local markedAction =
+    Gui.Button:new(
+    {
+        x = 0,
+        y = 0,
+        w = width - 2 * padding,
+        fg = {r = 0, g = 0, b = 0},
+        [g.text] = "",
+        bg = {r = 0.5, g = 0.5, b = 0.5},
+    }
+)
 
 local actionsList =
     Gui.List:new(
@@ -79,13 +91,18 @@ local actionsList =
             v.bg.r = 1
         end,
         onEnter = function(v)
-            v.text = ""
-            runAndRefocus(v._action_id)
+            -- v.text = ""
+            if Gui.modifiers.none then
+                runAndRefocus(v._action_id)
+            elseif Gui.modifiers.control then
+                markedAction.text = v.text
+            end
         end
     }
 )
 
 input.onChange = function(v)
+    -- Log.debug("on change")
     for k in pairs(actionButtons) do
         actionButtons[k] = nil
     end
@@ -95,6 +112,7 @@ input.onChange = function(v)
     end
 
     local results = Actions.search(Actions.SECTION.MAIN, v.text, 5)
+    -- Log.debug("results " ..tostring(#results))
     for i, action in ipairs(results) do
         local btn =
             Gui.Button:new(
@@ -107,7 +125,7 @@ input.onChange = function(v)
                 _action_id = action.id,
                 bg = {r = 0.5, g = 0.5, b = 0.5},
                 onMouseMove = function(v)
-                    v.bg.a = 0.2
+                    -- v.bg.a = 0.2
                 end,
                 onMouseEnter = function(v, p)
                     -- v.bg.a = 0.2
@@ -122,18 +140,30 @@ input.onChange = function(v)
     end
 end
 
+
+
 local layout =
     Gui.VLayout:new(
     {
         x = padding,
         y = padding,
         spacing = 10,
-        elements = {input, actionsList}
+        elements = {input, actionsList, markedAction}
     }
 )
 
 function init()
-    gfx.init("actondev/Command Palette", width, 200)
+    
+    -- layout:draw()
+    input.text = ""
+    markedAction.text = "test"
+    -- Gui:pre_draw()
+    -- layout:draw()
+    input.text = "split items"
+    -- Gui:post_draw()
+    -- Gui:pre_draw()
+    -- layout:draw()
+    gfx.init("actondev/Command Palette", width, 250)
     Common.moveWindowToMouse()
     local R, G, B = 60, 60, 60 -- 0..255 form
     local Wnd_bgd = R + G * 256 + B * 65536 -- red+green*256+blue*65536
@@ -147,6 +177,8 @@ function mainloop()
     ---
     Gui.post_draw()
 
+    -- Log.debug(Gui.char)
+
     if Gui.char == Chars.CHAR.EXIT then
         return
     end
@@ -158,9 +190,12 @@ function mainloop()
         end
     end
     reaper.defer(mainloop)
-    gfx.update()
+    -- gfx.update()
 end
 
 init()
 hwnd = reaper.BR_Win32_GetForegroundWindow()
 mainloop()
+layout:draw()
+gfx.update()
+-- input.text = "split items"

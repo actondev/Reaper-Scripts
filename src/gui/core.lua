@@ -9,6 +9,9 @@ local last_mouse_cap = 0
 local last_x, last_y = 0, 0
 local mouse_ox, mouse_oy = -1, -1
 
+-- handling control, alt etc
+-- https://github.com/JoepVanlier/Hackey-Trackey/blob/master/Tracker/tracker.lua#L7178
+
 local Gui = {}
 local Class = require("utils.class")
 local Chars = require("gui.chars")
@@ -21,6 +24,13 @@ Gui.mouse = {
     y = 0,
     px = 0,
     py = 0
+}
+
+Gui.modifiers = {
+    none = true,
+    control = false,
+    alt = false,
+    shit = false
 }
 
 local elements = {}
@@ -36,6 +46,11 @@ function Gui.pre_draw()
      then -- M mouse
         mouse_ox, mouse_oy = gfx.mouse_x, gfx.mouse_y
     end
+
+    Gui.modifiers.none = gfx.mouse_cap == 0
+    Gui.modifiers.control = gfx.mouse_cap & 4 > 0
+    Gui.modifiers.shift = gfx.mouse_cap & 8 > 0
+    Gui.modifiers.alt = gfx.mouse_cap & 16 > 0
 
     -- running elements pre_draw
     for _, elm in ipairs(elements) do
@@ -58,8 +73,6 @@ function Gui.post_draw()
     Gui.frame = Gui.frame + 1
     Gui.mouse.px = Gui.mouse.x
     Gui.mouse.py = Gui.mouse.y
-
-
 end
 
 -- TODO refactor this..
@@ -287,11 +300,11 @@ function Gui.Input:draw()
     if self.volatile[Gui.Input.opts.hasFocus] then
         local c = Gui.char
         if Chars.isPrintable(c) then
-            self._input_last_update = self._input_last_update or 0
-            if self._input_last_update ~= Gui.frame then
+            -- self._input_last_update = self._input_last_update or 0
+            -- if self._input_last_update ~= Gui.frame then
                 self.persistent.text = self.persistent.text .. string.char(c)
-                self._input_last_update = Gui.frame
-            end
+                -- self._input_last_update = Gui.frame
+            -- end
         elseif c == Chars.CHAR.RETURN then
             if self.onEnter then
                 self.onEnter(self.volatile, self.persistent)
@@ -322,6 +335,9 @@ function Gui.ILayout:draw()
         run_x = run_x + x
         run_y = run_y + y
     end
+    self.w = run_x
+    self.h = run_y
+    -- Log.debug("height: " .. tostring(self.h))
 end
 
 -- TODO
@@ -356,6 +372,13 @@ function Gui.List:select(target)
     end
 end
 
+function Gui.List:getSelected()
+    if self.selectedIndex > 0 and #self.elements > 0 then
+        return self.elements[self.selectedIndex]
+    end
+    return nil
+end
+
 function Gui.List:draw()
     -- resetting index
     if #self.elements == 0 then
@@ -363,12 +386,12 @@ function Gui.List:draw()
     end
     if self.selectedIndex > 0 and #self.elements > 0 then
         if self.hasFocus then
+            local sel = self.elements[self.selectedIndex]
             if Gui.char == Chars.CHAR.DOWN then
                 self.selectedIndex = self.selectedIndex + 1
             elseif Gui.char == Chars.CHAR.UP then
                 self.selectedIndex = self.selectedIndex - 1
             elseif Gui.char == Chars.CHAR.RETURN then
-                local sel = self.elements[self.selectedIndex]
                 if self.onEnter then
                     self.onEnter(sel.volatile, sel.persistent)
                 end
