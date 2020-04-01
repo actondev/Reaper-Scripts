@@ -16,11 +16,19 @@ local Table = require("utils.table")
 
 Gui.char = 0
 Gui.frame = 0
+Gui.mouse = {
+    x = 0,
+    y = 0,
+    px = 0,
+    py = 0
+}
 
 local elements = {}
 
 function Gui.pre_draw()
     Gui.char = gfx.getchar()
+    Gui.mouse.x = gfx.mouse_x
+    Gui.mouse.y = gfx.mouse_y
     if
         gfx.mouse_cap & 1 == 1 and last_mouse_cap & 1 == 0 or -- L mouse
             gfx.mouse_cap & 2 == 2 and last_mouse_cap & 2 == 0 or -- R mouse
@@ -38,10 +46,20 @@ function Gui.pre_draw()
 end
 
 function Gui.post_draw()
+    for _, elm in ipairs(elements) do
+        if elm.post_draw then
+            elm:post_draw()
+        end
+    end
+
     last_mouse_cap = gfx.mouse_cap
     last_x, last_y = gfx.mouse_x, gfx.mouse_y
     gfx.mouse_wheel = 0 -- reset gfx.mouse_wheel
     Gui.frame = Gui.frame + 1
+    Gui.mouse.px = Gui.mouse.x
+    Gui.mouse.py = Gui.mouse.y
+
+
 end
 
 -- TODO refactor this..
@@ -72,7 +90,13 @@ local deepCopyIgnoreKeys = {persistent = true, volatile = true, prev = true}
 --------------------------------------------------------------------------------
 Gui.Element = Class.new()
 function Gui.Element:new(opts)
-    local defaultOpts = {x = 0, y = 0, w = 0, h = 0}
+    local defaultOpts = {
+        x = 0,
+        y = 0,
+        w = 0,
+        h = 0,
+        mouse = {over = false, enter = false, out = false}
+    }
     opts = opts or {}
     opts = Table.merge(defaultOpts, opts)
     local elm = opts
@@ -91,8 +115,14 @@ function Gui.Element:new(opts)
 end
 
 function Gui.Element:pre_draw()
-    self.prev = self.volatile
     self.volatile = Table.deepcopy(self, deepCopyIgnoreKeys)
+    self.mouse.over = self:isMouseOver(Gui.mouse.x, Gui.mouse.y)
+    self.mouse.enter = not self.prev.mouse.over and self.mouse.over
+    self.mouse.leave = not self.mouse.leave and self.prev.mouse.over
+end
+
+function Gui.Element:post_draw()
+    self.prev = self.volatile
 end
 
 --------------------------------------------------------------
@@ -106,39 +136,40 @@ end
 --------------------------------------------------------------
 
 ------------------------
-function Gui.Element:pointIN(p_x, p_y)
-    local v = self.volatile
+function Gui.Element:isMouseOver(p_x, p_y)
+    local v = self.persistent
     return p_x >= v.x and p_x <= v.x + v.w and p_y >= v.y and p_y <= v.y + v.h
 end
 
-function Gui.Element:isMouseOver()
-    return self:pointIN(gfx.mouse_x, gfx.mouse_y)
+function Gui.Element:mouseEnter()
+    return not self.prev.mouseOver and self.mouseOver
 end
+
 --------
 function Gui.Element:mouseIN()
-    return gfx.mouse_cap & 1 == 0 and self:pointIN(gfx.mouse_x, gfx.mouse_y)
+    return gfx.mouse_cap & 1 == 0 and self.mouseOver
 end
 
 ------------------------
 function Gui.Element:mouseDown()
-    return gfx.mouse_cap & 1 == 1 and self:pointIN(mouse_ox, mouse_oy)
+    return gfx.mouse_cap & 1 == 1 and self:isMouseOver(mouse_ox, mouse_oy)
 end
 --------
 function Gui.Element:mouseUp() -- its actual for sliders and knobs only!
-    return gfx.mouse_cap & 1 == 0 and self:pointIN(mouse_ox, mouse_oy)
+    return gfx.mouse_cap & 1 == 0 and self:isMouseOver(mouse_ox, mouse_oy)
 end
 --------
 function Gui.Element:mouseClick()
-    return gfx.mouse_cap & 1 == 0 and last_mouse_cap & 1 == 1 and self:pointIN(gfx.mouse_x, gfx.mouse_y) and
-        self:pointIN(mouse_ox, mouse_oy)
+    return gfx.mouse_cap & 1 == 0 and last_mouse_cap & 1 == 1 and self:isMouseOver(gfx.mouse_x, gfx.mouse_y) and
+        self:isMouseOver(mouse_ox, mouse_oy)
 end
 ------------------------
 function Gui.Element:mouseR_Down()
-    return gfx.mouse_cap & 2 == 2 and self:pointIN(mouse_ox, mouse_oy)
+    return gfx.mouse_cap & 2 == 2 and self:isMouseOver(mouse_ox, mouse_oy)
 end
 --------
 function Gui.Element:mouseM_Down()
-    return gfx.mouse_cap & 64 == 64 and self:pointIN(mouse_ox, mouse_oy)
+    return gfx.mouse_cap & 64 == 64 and self:isMouseOver(mouse_ox, mouse_oy)
 end
 ------------------------
 function Gui.Element:draw_border()
@@ -196,12 +227,6 @@ function Gui.Button:draw_label()
     gfx.a = v.fg.a or 1
 
     gfx.setfont(1, v.fnt, v.fnt_sz) -- set label fnt
-
-    local p = self.persistent
-    local text_w, text_h = gfx.measurestr(v.text)
-    -- that's for center
-    -- gfx.x = x + (w - text_w) / 2
-    -- gfx.y = y + (h - text_h) / 2
     gfx.x = x
     gfx.y = y
     gfx.drawstr(v.text)
@@ -215,10 +240,13 @@ function Gui.Button:draw()
     gfx.setfont(1, v.fnt, v.fnt_sz) -- set label fnt
     local text_w, _ = gfx.measurestr(v.text)
     local _, text_h = gfx.measurestr(" ")
-    v.h = text_h + 2 * v.padding
-    v.w = v.w or text_w + 2 * v.padding
+    -- persistent & volatile m ess
+    p.h = text_h + 2 * v.padding
+    p.w = v.w or text_w + 2 * v.padding
+    v.h = p.h
+    v.w = p.w
 
-    if self.onMouseMove and self:mouseIN() then
+    if self.onMouseMove and self.mouse.over then
         self.onMouseMove(v, p)
     end
     if self.onMouseDown and self:mouseDown() then
@@ -226,6 +254,12 @@ function Gui.Button:draw()
     end
     if self.onClick and self:mouseClick() then
         self.onClick(v, p)
+    end
+    if self.onMouseEnter and self.mouse.enter then
+        self.onMouseEnter(v, p)
+    end
+    if self.onMouseLeave and self.mouse.leave then
+        self.onMouseLeave(v, p)
     end
     if self.prev.text ~= self.volatile.text and self.onChange then
         self.onChange(v, p)
@@ -238,30 +272,29 @@ end
 
 Gui.Input = Class.extend(Gui.Button)
 Gui.Input.opts = {
-    focus = "focus",
+    hasFocus = "focus",
     onEnter = "onEnter"
 }
 
--- function Gui.Input.
 function Gui.Input:new(opts)
     local inputOpts = {focus = false}
 
     return Gui.Button.new(self, Table.merge(inputOpts, opts))
 end
 
--- function Gui.Input:pre_draw()
---     -- Log.debug("gui pre")
--- end
-
 function Gui.Input:draw()
     -- get gfx char
-    if self.volatile[Gui.Input.opts.focus] then
+    if self.volatile[Gui.Input.opts.hasFocus] then
         local c = Gui.char
         if Chars.isPrintable(c) then
             self._input_last_update = self._input_last_update or 0
             if self._input_last_update ~= Gui.frame then
                 self.persistent.text = self.persistent.text .. string.char(c)
                 self._input_last_update = Gui.frame
+            end
+        elseif c == Chars.CHAR.RETURN then
+            if self.onEnter then
+                self.onEnter(self.volatile, self.persistent)
             end
         end
     end
@@ -270,7 +303,6 @@ end
 
 -- interface to be implemented
 Gui.ILayout = Class.extend(Gui.Element)
--- TODO do a generic layout and call the impl_pos(el) ?
 Gui.ILayout.opts = {
     elements = "elements",
     spacing = "spacing"
@@ -279,8 +311,12 @@ Gui.ILayout.opts = {
 function Gui.ILayout:draw()
     local run_x, run_y = 0, 0
     for i, el in ipairs(self.persistent.elements) do
-        el.volatile.x = self.volatile.x + run_x
-        el.volatile.y = self.volatile.y + run_y
+        -- persistent and volatile mess
+        el.persistent.x = self.volatile.x + run_x
+        el.persistent.y = self.volatile.y + run_y
+        el.volatile.x = el.persistent.x
+        el.volatile.y = el.persistent.y
+        -- el:pre_draw() -- to update the calculations x,y
         el:draw()
         local x, y = self:advance_xy(el) -- children layouts must implement this
         run_x = run_x + x
@@ -295,22 +331,57 @@ function Gui.VLayout:advance_xy(el)
 end
 
 Gui.List = Class.extend(Gui.VLayout)
+Gui.List.options = {
+    hasFocus = "hasFocus", -- listening for up/down key presses
+    selectedIndex = "selectedIndex",
+    whenSelected = "whenSelected" -- callback to modify the selected item
+}
 
 function Gui.List:new(opts)
     local listOpts = {
         selectedIndex = 0, -- note: 1-based
-        whenSelected = nil -- function
+        whenSelected = nil, -- function
+        hasFocus = false
     }
     opts = Table.merge(listOpts, opts)
     return Gui.VLayout.new(self, opts)
 end
 
+function Gui.List:select(target)
+    for i, el in ipairs(self.elements) do
+        if el == target then
+            self.selectedIndex = i
+            return
+        end
+    end
+end
+
 function Gui.List:draw()
+    -- resetting index
+    if #self.elements == 0 then
+        self.selectedIndex = 1
+    end
     if self.selectedIndex > 0 and #self.elements > 0 then
+        if self.hasFocus then
+            if Gui.char == Chars.CHAR.DOWN then
+                self.selectedIndex = self.selectedIndex + 1
+            elseif Gui.char == Chars.CHAR.UP then
+                self.selectedIndex = self.selectedIndex - 1
+            elseif Gui.char == Chars.CHAR.RETURN then
+                local sel = self.elements[self.selectedIndex]
+                if self.onEnter then
+                    self.onEnter(sel.volatile, sel.persistent)
+                end
+            end
+        end
+        -- wrapping index
         if self.selectedIndex > #self.elements then
-            -- wrap selectedIndex
             self.selectedIndex = 1
         end
+        if self.selectedIndex < 1 then
+            self.selectedIndex = #self.elements
+        end
+
         local el = self.elements[self.selectedIndex]
         if self.whenSelected then
             self.whenSelected(el.volatile, el.persistent)

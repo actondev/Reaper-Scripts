@@ -14,6 +14,7 @@ module.CHAR = {
     PGUP		= 1885828464,
     PGDN		= 1885824110,
     RETURN		= 13,
+    ENTER       = 13,
     UP			= 30064,
     DOWN		= 1685026670,
     LEFT		= 1818584692,

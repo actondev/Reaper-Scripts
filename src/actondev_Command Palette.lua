@@ -34,7 +34,7 @@ local input =
         fg = {r = 0, g = 0, b = 0},
         [g.text] = "",
         bg = {r = 0.5, g = 0.5, b = 0.5},
-        [Gui.Input.opts.focus] = true
+        [Gui.Input.opts.hasFocus] = true,
     }
 )
 
@@ -59,6 +59,26 @@ local testBtn =
 )
 local actionButtons = {testBtn}
 
+local actionsList =
+    Gui.List:new(
+    {
+        x = padding,
+        y = padding,
+        spacing = 0,
+        elements = actionButtons,
+        selectedIndex = 1,
+        hasFocus = true,
+        whenSelected = function(v)
+            v.bg.r = 1
+        end,
+        onEnter = function(v)
+            Log.debug("should execute " .. v.text)
+            Log.debug("action id " .. v._action_id)
+            v.text = ""
+        end
+    }
+)
+
 input.onChange = function(v)
     for k in pairs(actionButtons) do
         actionButtons[k] = nil
@@ -80,9 +100,12 @@ input.onChange = function(v)
                 [g.text] = action.name,
                 _action_id = action.id,
                 bg = {r = 0.5, g = 0.5, b = 0.5},
-                onMouseMove = function(el)
-                    -- Log.debug("mouse over")
-                    el.bg.a = 0.2
+                onMouseMove = function(v)
+                    v.bg.a = 0.2
+                end,
+                onMouseEnter = function(v, p)
+                    -- v.bg.a = 0.2
+                    actionsList:select(p)
                 end,
                 onClick = function(v)
                     Log.debug("should execute " .. v.text)
@@ -94,19 +117,7 @@ input.onChange = function(v)
     end
 end
 
-local actionsList =
-    Gui.List:new(
-    {
-        x = padding,
-        y = padding,
-        spacing = 0,
-        elements = actionButtons,
-        selectedIndex = 1,
-        whenSelected = function(v)
-            v.bg.r = 1
-        end
-    }
-)
+
 
 local layout =
     Gui.VLayout:new(
