@@ -21,6 +21,12 @@ function module.map(tbl, f)
     return t
 end
 
+function module.clear(tbl)
+    for k in pairs(tbl) do
+        tbl[k] = nil
+    end
+end
+
 function module.deepCopyIgnoringKeys(orig, ignoreKeys)
     ignoreKeys = ignoreKeys or {}
     local orig_type = type(orig)
