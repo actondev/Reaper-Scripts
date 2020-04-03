@@ -6,7 +6,7 @@
     - selection
 ]]
 local Table = require("aod.utils.table")
-local Chars = require("aod.gui.v1.chars")
+local Chars = require("aod.text.chars")
 local Class = require("aod.utils.class")
 local Log = require("aod.utils.log")
 
@@ -31,72 +31,72 @@ function module:__construct(data)
     end
 end
 
-function module:getPreviousCursor()
+function module:_getPreviousCursor()
     return math.max(0, self.data.cursor - 1)
 end
 
-function module:handleLeft()
-    self.data.cursor = self:getPreviousCursor()
+function module:_handleLeft()
+    self.data.cursor = self:_getPreviousCursor()
 end
 
-function module:handleHome()
+function module:_handleHome()
     self.data.cursor = 0
 end
 
-function module:getNextCursor()
+function module:_getNextCursor()
     return math.min(self.data.text:len(), self.data.cursor + 1)
 end
 
-function module:handleRight()
-    self.data.cursor = self:getNextCursor()
+function module:_handleRight()
+    self.data.cursor = self:_getNextCursor()
 end
 
-function module:handleEnd()
+function module:_handleEnd()
     self.data.cursor = self.data.text:len()
 end
 
-function module:handleBackspace()
+function module:_handleBackspace()
     local d = self.data
     -- Log.debug("curs,", d.cursor)
-    local left = d.text:sub(0, self:getPreviousCursor())
+    local left = d.text:sub(0, self:_getPreviousCursor())
     -- Log.debug("left ", left, 0, self:getPreviousCursor())
     local right = d.text:sub(self.data.cursor + 1, d.text:len())
     -- Log.debug("right ", right, self.data.cursor+1, d.text:len())
 
-    self:handleLeft()
+    self:_handleLeft()
     self.data.text = left .. right
 end
 
-function module:handeDelete()
+function module:_handeDelete()
     local d = self.data
     local left = d.text:sub(0, self.data.cursor)
-    local right = d.text:sub(self:getNextCursor() + 1, d.text:len())
+    local right = d.text:sub(self:_getNextCursor() + 1, d.text:len())
 
     self.data.text = left .. right
 end
 
-function module:left()
+function module:textLeftOfCursor()
     local d = self.data
     return d.text:sub(0, d.cursor)
 end
 
-function module:right()
+function module:textRightOfCursor()
     local d = self.data
     return d.text:sub(d.cursor + 1, d.text:len())
 end
 
 function module:insert(str)
-    self.data.text = self:left() .. str .. self:right()
+    self.data.text = self:textLeftOfCursor() .. str .. self:textRightOfCursor()
     self.data.cursor = self.data.cursor + str:len()
 end
 
 local actions = {
-    [Chars.CHAR.BACKSPACE] = module.handleBackspace,
-    [Chars.CHAR.LEFT] = module.handleLeft,
-    [Chars.CHAR.RIGHT] = module.handleRight,
-    [Chars.CHAR.DELETE] = module.handeDelete,
-    [Chars.CHAR.HOME] = module.handleHome,
-    [Chars.CHAR.END] = module.handleEnd
+    [Chars.CHAR.BACKSPACE] = module._handleBackspace,
+    [Chars.CHAR.LEFT] = module._handleLeft,
+    [Chars.CHAR.RIGHT] = module._handleRight,
+    [Chars.CHAR.DELETE] = module._handeDelete,
+    [Chars.CHAR.HOME] = module._handleHome,
+    [Chars.CHAR.END] = module._handleEnd
 }
 
 function module:handle(c, mods)
@@ -110,7 +110,7 @@ function module:handle(c, mods)
     elseif actions[c] then
         actions[c](self)
     else
-        Log.debug("unkown action", c)
+        -- Log.debug("unkown action", c)
     end
 end
 
@@ -123,7 +123,7 @@ function module:getCursor()
 end
 
 function module:getTextWithCursor()
-    return self:left() .. "|" .. self:right()
+    return self:textLeftOfCursor() .. "|" .. self:textRightOfCursor()
 end
 
 return module

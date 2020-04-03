@@ -1,8 +1,8 @@
 local module = {}
 local Class = require("aod.utils.class")
 local Table = require("utils.table")
-local Chars = require("aod.gui.v1.chars")
-local Text = require("aod.gui.v1.text")
+local Chars = require("aod.text.chars")
+local Text = require("aod.text.input")
 local Log = require("aod.utils.log")
 
 module = {
@@ -275,7 +275,7 @@ function module.Input:__construct(data)
 end
 
 function module.Input:draw_cursor()
-    local leftStr = self._text:left()
+    local leftStr = self._text:textLeftOfCursor()
     local strWidth, h = self:textWidthHeight(leftStr)
     w, h = self:textWidthHeight("|")
     local d = self.data
