@@ -62,13 +62,12 @@ local btn =
     }
 )
 
-
 -- example of applying a certain style when hovered
 btn:on(
     Gui.signals.mouseEnter,
     function(el)
         el._app_bg = Table.deepcopy(el.data.bg)
-        el.data.bg = {r=1,g=0,b=0}
+        el.data.bg = {r = 1, g = 0, b = 0}
     end
 )
 
@@ -78,6 +77,46 @@ btn:on(
         el.data.bg = el._app_bg
         el._app_bg = nil
     end
+)
+
+local layoutBtnOpts = {
+    border = {
+        r = 1,
+        g = 1,
+        b = 1,
+        width = 2
+    },
+    bg = {
+        r = 0.5,
+        g = 0.5,
+        b = 0.5
+    },
+    fg = {
+        r = 1,
+        g = 1,
+        b = 1
+    },
+    text = "button"
+}
+
+local layout =
+    Gui.VLayout(
+    {
+        id = "vlayout",
+        x = 10,
+        y = 100,
+        bg = {
+            r = 1,
+            g = 0,
+            b = 0
+        },
+        spacing = 5,
+        elements = {
+            Gui.Button(layoutBtnOpts),
+            Gui.Button(layoutBtnOpts),
+            Gui.Button(layoutBtnOpts)
+        }
+    }
 )
 
 function init()
@@ -93,6 +132,7 @@ function mainloop()
     btn:set("text", tostring(Gui.frame / 10))
     el:draw()
     btn:draw()
+    layout:draw()
     Gui.post_draw()
 
     if c == Chars.CHAR.EXIT then

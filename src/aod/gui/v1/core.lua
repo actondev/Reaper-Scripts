@@ -150,11 +150,11 @@ function module.Element:draw_background()
     if self.data.bg == nil then
         return
     end
-    local v = self.data.bg
-    gfx.r = v.r
-    gfx.g = v.g
-    gfx.b = v.b
-    gfx.a = v.a or 1
+    local bg = self.data.bg
+    gfx.r = bg.r
+    gfx.g = bg.g
+    gfx.b = bg.b
+    gfx.a = bg.a or 1
 
     local d = self.data
     gfx.rect(d.x, d.y, d.w, d.h, true) -- frame1
@@ -168,7 +168,7 @@ function module.Element:draw()
     self:draw_border()
 
     -- if self:isMouseOver() and not self:wasMouseOver() then
-        -- Log.debug("mouse enter", self.data.id)
+    -- Log.debug("mouse enter", self.data.id)
     -- end
     local isMouseOver = self:isMouseOver()
     local wasMouseOver = self:wasMouseOver()
@@ -184,7 +184,10 @@ end
 --[[
     Button
 
-    If no width (w) is given, it will be calculated automatically
+    If no width (w) and height (h) are given, they will be calculated automatically
+
+    TODO
+    - calculate only w or h automatically (if one of the 2 is given)
 ]]
 module.Button = Class.extend(module.Element)
 
@@ -206,9 +209,9 @@ function module.Button:_calculate_height_width()
     d.w = text_w + 2 * (d.padding + d.border.width)
 end
 function module.Button:__construct(data)
-    local extra = {
+    local defaults = {
         text = "",
-        padding = 10,
+        padding = 2,
         font = "Arial",
         fontSize = 14,
         fg = {
@@ -217,7 +220,7 @@ function module.Button:__construct(data)
             b = 1
         }
     }
-    data = Table.merge(extra, data)
+    data = Table.merge(defaults, data)
     module.Element.__construct(self, data)
 
     if data.w == nil or data.h == nil then
@@ -240,6 +243,49 @@ function module.Button:draw()
     gfx.x = x
     gfx.y = y
     gfx.drawstr(d.text)
+end
+
+--[[
+    Layout
+]]
+module.ILayout = Class.extend(module.Element)
+
+function module.ILayout:__construct(data)
+    local defaults = {
+        spacing = 5,
+        -- the layout's height and width are calculated on each :draw call
+        h = 0,
+        w = 0,
+        elements = {}
+    }
+    data = Table.merge(defaults, data)
+    module.Element.__construct(self, data)
+end
+
+function module.ILayout:draw()
+    module.Element.draw(self)
+    local d = self.data
+    self._layout = {
+        h = 0,
+        w = 0,
+        runx = d.x,
+        runy = d.y
+    } -- storing temp layout values
+    for i, el in ipairs(d.elements) do
+        el:set("x", self._layout.runx)
+        el:set("y", self._layout.runy)
+        el:draw()
+        self:_advance(el) -- layout implementations must implement this
+    end
+    self._layout = nil
+end
+
+module.VLayout = Class.extend(module.ILayout)
+function module.VLayout:_advance(el)
+    local d = self.data
+    self._layout.runy = self._layout.runy + el.data.h + d.spacing
+    self:set("h", self._layout.runy - d.spacing - self.data.y)
+    self:set("w", math.max(d.w, el.data.w))
 end
 
 return module
