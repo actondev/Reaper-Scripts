@@ -37,6 +37,10 @@ function Class.create()
       return theClass
 end
 
+function Class.new()
+    return Class.create()
+end
+
 function Class.extend(baseClass)
     local childClass = {}
     childClass.__index = childClass

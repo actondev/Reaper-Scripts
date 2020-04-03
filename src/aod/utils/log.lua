@@ -6,6 +6,13 @@ module.WARN = 2
 
 module.LEVEL = module.WARN
 
+if reaper then 
+    module.backend = reaper.ShowConsoleMsg
+else
+    module.backend = io.write
+
+end
+
 local function dump(o)
     if type(o) == "table" then
         local s = "{ "
@@ -24,11 +31,11 @@ local function dump(o)
 end
 
 local function print(prepend, ...)
-    reaper.ShowConsoleMsg(os.date() .. " " .. prepend .. " ")
+    module.backend(os.date() .. " " .. prepend .. " ")
     for _, v in ipairs {...} do
-        reaper.ShowConsoleMsg(dump(v) .. ", ")
+        module.backend(dump(v) .. ", ")
     end
-    reaper.ShowConsoleMsg("\n")
+    module.backend("\n")
 end
 
 function module.debug(...)
