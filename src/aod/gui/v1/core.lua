@@ -114,6 +114,12 @@ function module.Element:set(property, newValue)
     end
 end
 
+function module.Element:width()
+    return self.data.w
+end
+function module.Element:height()
+    return self.data.h
+end
 -- draw a rect with a border width (bw)
 -- the border is inset : the final rect will not be drawn outside of x,y and x+w, y+h
 local function draw_border(x, y, w, h, width)
@@ -287,7 +293,7 @@ function module.Input:draw_cursor()
     gfx.b = d.fg.b
     gfx.a = d.fg.a or 1
 
-    gfx.rect(x, y, w/2, h)
+    gfx.rect(x, y, w / 2, h)
 end
 
 function module.Input:draw()
@@ -327,6 +333,10 @@ function module.ILayout:__construct(data)
 end
 
 function module.ILayout:draw()
+    -- TODO: no need to calculate width & height every time
+    -- instead, watch children width for changes
+    self:set("w", self:width())
+    self:set("h", self:height())
     module.Element.draw(self)
     local d = self.data
     self._layout = {
@@ -348,8 +358,46 @@ module.VLayout = Class.extend(module.ILayout)
 function module.VLayout:_advance(el)
     local d = self.data
     self._layout.runy = self._layout.runy + el.data.h + d.spacing
-    self:set("h", self._layout.runy - d.spacing - self.data.y)
-    self:set("w", math.max(d.w, el.data.w))
+end
+
+function module.VLayout:width()
+    local width = 0
+    for i, el in ipairs(self.data.elements) do
+        width = math.max(width, el:width())
+    end
+    return width
+end
+
+function module.VLayout:height()
+    local height = 0
+    local d = self.data
+    for i, el in ipairs(d.elements) do
+        height = height + el:height() + d.spacing
+    end
+    return height - d.spacing
+end
+
+module.HLayout = Class.extend(module.ILayout)
+function module.HLayout:_advance(el)
+    local d = self.data
+    self._layout.runx = self._layout.runx + el.data.w + d.spacing
+end
+
+function module.HLayout:width()
+    local width = 0
+    local d = self.data
+    for i, el in ipairs(d.elements) do
+        width = width + el:width() + d.spacing
+    end
+    return width - d.spacing
+end
+
+function module.HLayout:height()
+    local height = 0
+    for i, el in ipairs(self.data.elements) do
+        height = math.max(height, el:height())
+    end
+    return height
 end
 
 return module

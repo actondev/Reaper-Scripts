@@ -110,6 +110,19 @@ local input =
     }
 )
 
+local hlayout = 
+Gui.HLayout(
+    {
+        id = "hlayout",
+
+        spacing = 5,
+        elements = {
+            Gui.Button(layoutBtnOpts),
+            Gui.Button(layoutBtnOpts),
+            Gui.Button(layoutBtnOpts),
+        }
+    })
+
 local layout =
     Gui.VLayout(
     {
@@ -126,7 +139,8 @@ local layout =
             Gui.Button(layoutBtnOpts),
             Gui.Button(layoutBtnOpts),
             Gui.Button(layoutBtnOpts),
-            input
+            input,
+            hlayout
         }
     }
 )
