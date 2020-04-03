@@ -1,6 +1,7 @@
 local module = {}
 local Class = require("aod.utils.class")
 local Table = require("utils.table")
+local Chars = require("aod.gui.v1.chars")
 local Log = require("aod.utils.log")
 
 module = {
@@ -19,7 +20,8 @@ module = {
     },
     signals = {
         mouseEnter = "mouseEnter",
-        mouseLeave = "mouseLeave"
+        mouseLeave = "mouseLeave",
+        enter = "enter" -- would call it return but.. nope
     }
 }
 
@@ -132,9 +134,6 @@ local function draw_border(x, y, w, h, width)
 end
 
 function module.Element:draw_border()
-    if self.data.border == nil then
-        return
-    end
     local v = self.data.border
     gfx.r = v.r
     gfx.g = v.g
@@ -147,9 +146,6 @@ function module.Element:draw_border()
 end
 
 function module.Element:draw_background()
-    if self.data.bg == nil then
-        return
-    end
     local bg = self.data.bg
     gfx.r = bg.r
     gfx.g = bg.g
@@ -162,10 +158,15 @@ end
 
 function module.Element:draw()
     -- Log.debug("draw id ", self.data.id)
+    local d = self.data
     gfx.x = self.data.x
     gfx.y = self.data.y
-    self:draw_background()
-    self:draw_border()
+    if d.bg then
+        self:draw_background()
+    end
+    if d.border then
+        self:draw_border()
+    end
 
     -- if self:isMouseOver() and not self:wasMouseOver() then
     -- Log.debug("mouse enter", self.data.id)
@@ -214,6 +215,12 @@ function module.Button:__construct(data)
         padding = 2,
         font = "Arial",
         fontSize = 14,
+        border = {
+            r = 1,
+            g = 1,
+            b = 1,
+            width = 1
+        },
         fg = {
             r = 1,
             g = 1,
@@ -246,7 +253,37 @@ function module.Button:draw()
 end
 
 --[[
+    Input
+]]
+module.Input = Class.extend(module.Button)
+function module.Input:__construct(data)
+    local defaults = {
+        hasFocus = false
+    }
+    data = Table.merge(defaults, data)
+
+    module.Button.__construct(self, data)
+end
+
+function module.Input:draw()
+    if self.data.hasFocus then
+        local c = module.char
+        if Chars.isPrintable(c) then
+            self:set("text", self.data.text .. string.char(c))
+        elseif c == Chars.CHAR.RETURN then
+            self:emit(module.signals.enter)
+        end
+    end
+
+    module.Button.draw(self)
+end
+
+--[[
     Layout
+
+    Layouts must implement the _advance function
+    this sets in the temp self._layout the
+    runx and runy variable, which is to be used as x and y for the next element
 ]]
 module.ILayout = Class.extend(module.Element)
 

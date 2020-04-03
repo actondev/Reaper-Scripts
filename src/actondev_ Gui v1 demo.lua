@@ -80,6 +80,7 @@ btn:on(
 )
 
 local layoutBtnOpts = {
+    id = "repeated btn",
     border = {
         r = 1,
         g = 1,
@@ -99,6 +100,15 @@ local layoutBtnOpts = {
     text = "button"
 }
 
+local input =
+    Gui.Input(
+    {
+        id = "input",
+        text = "..",
+        hasFocus = true
+    }
+)
+
 local layout =
     Gui.VLayout(
     {
@@ -114,7 +124,8 @@ local layout =
         elements = {
             Gui.Button(layoutBtnOpts),
             Gui.Button(layoutBtnOpts),
-            Gui.Button(layoutBtnOpts)
+            Gui.Button(layoutBtnOpts),
+            input
         }
     }
 )
@@ -127,7 +138,6 @@ function init()
 end
 
 function mainloop()
-    local c = gfx.getchar()
     Gui.pre_draw()
     btn:set("text", tostring(Gui.frame / 10))
     el:draw()
@@ -135,10 +145,10 @@ function mainloop()
     layout:draw()
     Gui.post_draw()
 
-    if c == Chars.CHAR.EXIT then
+    if Gui.char == Chars.CHAR.EXIT then
         return
     end
-    if c == Chars.CHAR.ESCAPE then
+    if Gui.char == Chars.CHAR.ESCAPE then
         return
     end
     reaper.defer(mainloop)

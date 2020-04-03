@@ -26,8 +26,9 @@ end
 local function print(prepend, ...)
     reaper.ShowConsoleMsg(os.date() .. " " .. prepend .. " ")
     for _, v in ipairs {...} do
-        reaper.ShowConsoleMsg(dump(v) .. "\n")
+        reaper.ShowConsoleMsg(dump(v) .. ", ")
     end
+    reaper.ShowConsoleMsg("\n")
 end
 
 function module.debug(...)
