@@ -106,7 +106,8 @@ local input =
         id = "input",
         text = "..",
         padding= 5,
-        hasFocus = true
+        hasFocus = true,
+        fontSize = 20
     }
 )
 
@@ -114,8 +115,12 @@ local hlayout =
 Gui.HLayout(
     {
         id = "hlayout",
-
-        spacing = 5,
+        bg = {
+            r = 0,
+            g = 0.5,
+            b = 0.5
+        },
+        spacing = 10,
         elements = {
             Gui.Button(layoutBtnOpts),
             Gui.Button(layoutBtnOpts),
@@ -129,11 +134,12 @@ local layout =
         id = "vlayout",
         x = 10,
         y = 100,
-        bg = {
+        border = {
             r = 1,
             g = 0,
             b = 0
         },
+        padding = 10,
         spacing = 5,
         elements = {
             Gui.Button(layoutBtnOpts),

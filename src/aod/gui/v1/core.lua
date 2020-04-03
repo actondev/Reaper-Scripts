@@ -52,6 +52,14 @@ end
 
 module.Element = Class.create()
 function module.Element:__construct(data)
+    local defaults = {
+        x = 0,
+        y = 0,
+        w = 0,
+        h = 0,
+        padding = 0
+    }
+    data = Table.merge(defaults, data)
     self.data = Table.deepcopy(data)
     self._watches = {}
     self._listeners = {}
@@ -117,8 +125,14 @@ end
 function module.Element:width()
     return self.data.w
 end
+function module.Element:outterWidth()
+    return self:width() + 2 * self.data.padding
+end
 function module.Element:height()
     return self.data.h
+end
+function module.Element:outterHeight()
+    return self:height() + 2 * self.data.padding
 end
 -- draw a rect with a border width (bw)
 -- the border is inset : the final rect will not be drawn outside of x,y and x+w, y+h
@@ -149,7 +163,7 @@ function module.Element:draw_border()
     local width = v.width or 1
 
     local d = self.data
-    draw_border(d.x, d.y, d.w, d.h, width)
+    draw_border(d.x, d.y, self:outterWidth(), self:outterHeight(), width)
 end
 
 function module.Element:draw_background()
@@ -160,7 +174,7 @@ function module.Element:draw_background()
     gfx.a = bg.a or 1
 
     local d = self.data
-    gfx.rect(d.x, d.y, d.w, d.h, true) -- frame1
+    gfx.rect(d.x, d.y, self:outterWidth(), self:outterHeight(), true) -- frame1
 end
 
 function module.Element:draw()
@@ -220,8 +234,8 @@ function module.Button:_calculate_height_width()
     gfx.setfont(1, d.font, d.fontSize) -- set label fnt
     local text_w, _ = gfx.measurestr(d.text)
     local _, text_h = gfx.measurestr(" ")
-    d.h = text_h + 2 * (d.padding + d.border.width)
-    d.w = text_w + 2 * (d.padding + d.border.width)
+    d.h = text_h + 2 * ( d.border.width)
+    d.w = text_w + 2 * ( d.border.width)
 end
 function module.Button:__construct(data)
     local defaults = {
@@ -293,7 +307,7 @@ function module.Input:draw_cursor()
     gfx.b = d.fg.b
     gfx.a = d.fg.a or 1
 
-    gfx.rect(x, y, w / 2, h)
+    gfx.rect(x, y, w * 0.3, h)
 end
 
 function module.Input:draw()
@@ -342,8 +356,8 @@ function module.ILayout:draw()
     self._layout = {
         h = 0,
         w = 0,
-        runx = d.x,
-        runy = d.y
+        runx = d.x + d.padding,
+        runy = d.y + d.padding
     } -- storing temp layout values
     for i, el in ipairs(d.elements) do
         el:set("x", self._layout.runx)
@@ -357,13 +371,13 @@ end
 module.VLayout = Class.extend(module.ILayout)
 function module.VLayout:_advance(el)
     local d = self.data
-    self._layout.runy = self._layout.runy + el.data.h + d.spacing
+    self._layout.runy = self._layout.runy + el:outterHeight() + d.spacing
 end
 
 function module.VLayout:width()
     local width = 0
     for i, el in ipairs(self.data.elements) do
-        width = math.max(width, el:width())
+        width = math.max(width, el:outterWidth())
     end
     return width
 end
@@ -372,7 +386,7 @@ function module.VLayout:height()
     local height = 0
     local d = self.data
     for i, el in ipairs(d.elements) do
-        height = height + el:height() + d.spacing
+        height = height + el:outterHeight() + d.spacing
     end
     return height - d.spacing
 end
@@ -380,14 +394,14 @@ end
 module.HLayout = Class.extend(module.ILayout)
 function module.HLayout:_advance(el)
     local d = self.data
-    self._layout.runx = self._layout.runx + el.data.w + d.spacing
+    self._layout.runx = self._layout.runx + el:outterWidth() + d.spacing
 end
 
 function module.HLayout:width()
     local width = 0
     local d = self.data
     for i, el in ipairs(d.elements) do
-        width = width + el:width() + d.spacing
+        width = width + el:outterWidth() + d.spacing
     end
     return width - d.spacing
 end
@@ -395,7 +409,7 @@ end
 function module.HLayout:height()
     local height = 0
     for i, el in ipairs(self.data.elements) do
-        height = math.max(height, el:height())
+        height = math.max(height, el:outterHeight())
     end
     return height
 end
