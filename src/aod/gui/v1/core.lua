@@ -1,7 +1,7 @@
 local module = {}
-local Class = require('aod.utils.class')
+local Class = require("aod.utils.class")
 local Table = require("utils.table")
-local Log = require('utils.log')
+local Log = require("utils.log")
 
 module = {
     frame = 0,
@@ -112,6 +112,14 @@ end
     If no width (w) is given, it will be calculated automatically
 ]]
 module.Button = Class.extend(module.Element)
+function module.Button:_calculate_height_width()
+    local d = self.data
+    gfx.setfont(1, d.font, d.fontSize) -- set label fnt
+    local text_w, _ = gfx.measurestr(d.text)
+    local _, text_h = gfx.measurestr(" ")
+    d.h = text_h + 2 * d.padding
+    d.w = text_w + 2 * d.padding
+end
 function module.Button:__construct(data)
     local extra = {
         text = "",
@@ -121,14 +129,15 @@ function module.Button:__construct(data)
         fg = {
             r = 1,
             g = 1,
-            b = 1,
+            b = 1
         }
     }
     data = Table.merge(extra, data)
-    if data.w == nil then
-        -- autocalculating width
-    end
     module.Element:__construct(data)
+
+    if data.w == nil or data.h == nil then
+        self:_calculate_height_width()
+    end
 end
 
 function module.Button:draw()
