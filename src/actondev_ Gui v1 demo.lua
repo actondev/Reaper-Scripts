@@ -5,8 +5,8 @@ local h = 500
 
 local Gui = require("aod.gui.v1.core")
 local Chars = require("gui.chars")
-local Log = require('utils.log')
-Log.isdebug = true
+local Log = require("aod.utils.log")
+Log.LEVEL = Log.DEBUG
 
 local el =
     Gui.Element(
@@ -36,13 +36,14 @@ local btn =
         id = "btn",
         x = 10,
         y = 50,
-        w = 50,
-        h = 50,
+        -- w = 50,
+        -- h = 50,
+        padding = 2,
         border = {
             r = 1,
             g = 1,
             b = 1,
-            width = 1
+            width = 2
         },
         bg = {
             r = 0.5,
@@ -60,8 +61,6 @@ local btn =
     }
 )
 
--- Log.debug(el, Gui.Element.__index)
-
 function init()
     gfx.init("actondev/Command Palette", w, h)
     local R, G, B = 60, 60, 60 -- 0..255 form
@@ -71,8 +70,11 @@ end
 
 function mainloop()
     local c = gfx.getchar()
+    Gui.pre_draw()
+    btn:set('text', tostring(Gui.frame/10))
     el:draw()
     btn:draw()
+    Gui.post_draw()
 
     if c == Chars.CHAR.EXIT then
         return

@@ -1,7 +1,7 @@
 local module = {}
 local Class = require("aod.utils.class")
 local Table = require("utils.table")
-local Log = require("utils.log")
+local Log = require("aod.utils.log")
 
 module = {
     frame = 0,
@@ -23,13 +23,13 @@ function module.pre_draw()
     module.char = gfx.getchar()
     module.mouse.x = gfx.mouse_x
     module.mouse.y = gfx.mouse_y
-    if
-        gfx.mouse_cap & 1 == 1 and last_mouse_cap & 1 == 0 or -- L mouse
-            gfx.mouse_cap & 2 == 2 and last_mouse_cap & 2 == 0 or -- R mouse
-            gfx.mouse_cap & 64 == 64 and last_mouse_cap & 64 == 0
-     then -- M mouse
-        mouse_ox, mouse_oy = gfx.mouse_x, gfx.mouse_y
-    end
+    -- if
+    --     gfx.mouse_cap & 1 == 1 and last_mouse_cap & 1 == 0 or -- L mouse
+    --         gfx.mouse_cap & 2 == 2 and last_mouse_cap & 2 == 0 or -- R mouse
+    --         gfx.mouse_cap & 64 == 64 and last_mouse_cap & 64 == 0
+    --  then -- M mouse
+    --     mouse_ox, mouse_oy = gfx.mouse_x, gfx.mouse_y
+    -- end
 
     module.modifiers.none = gfx.mouse_cap == 0
     module.modifiers.control = gfx.mouse_cap & 4 > 0
@@ -46,6 +46,29 @@ end
 module.Element = Class.create()
 function module.Element:__construct(data)
     self.data = Table.deepcopy(data)
+    self._watches = {}
+    -- return self
+end
+
+function module.Element:watch(property, cb)
+    if  self._watches[property] == nil then
+        self._watches[property] = {}
+    end
+    local watches = self._watches[property]
+    watches[#watches+1] = cb
+end
+
+function module.Element:set(property, newValue)
+    local d = self.data
+    local oldValue = d[property]
+    d[property] = newValue
+    local watches =self._watches[property]
+    if  watches == nil then
+        return
+    end
+    for _,watch in ipairs(watches) do
+        watch(self, oldValue, newValue)
+    end
 end
 
 -- draw a rect with a border width (bw)
@@ -81,7 +104,6 @@ function module.Element:draw_border()
 
     local d = self.data
     draw_border(d.x, d.y, d.w, d.h, width)
-    -- gfx.rect(d.x, d.y, d.w, d.h, false) -- frame1
 end
 
 function module.Element:draw_background()
@@ -112,13 +134,20 @@ end
     If no width (w) is given, it will be calculated automatically
 ]]
 module.Button = Class.extend(module.Element)
+
+function module.Button:_watch_width()
+    self:watch('text', function(el, ...)
+        el:_calculate_height_width()
+    end)
+end
+
 function module.Button:_calculate_height_width()
     local d = self.data
     gfx.setfont(1, d.font, d.fontSize) -- set label fnt
     local text_w, _ = gfx.measurestr(d.text)
     local _, text_h = gfx.measurestr(" ")
-    d.h = text_h + 2 * d.padding
-    d.w = text_w + 2 * d.padding
+    d.h = text_h + 2 * (d.padding + d.border.width)
+    d.w = text_w + 2 * (d.padding + d.border.width)
 end
 function module.Button:__construct(data)
     local extra = {
@@ -133,9 +162,10 @@ function module.Button:__construct(data)
         }
     }
     data = Table.merge(extra, data)
-    module.Element:__construct(data)
+    module.Element.__construct(self, data)
 
     if data.w == nil or data.h == nil then
+        self:_watch_width()
         self:_calculate_height_width()
     end
 end
@@ -144,7 +174,7 @@ function module.Button:draw()
     module.Element.draw(self)
     -- drawing text
     local d = self.data
-    local x, y = d.x + d.padding, d.y + d.padding
+    local x, y = d.x + d.padding + d.border.width, d.y + d.padding + d.border.width
     gfx.r = d.fg.r
     gfx.g = d.fg.g
     gfx.b = d.fg.b
