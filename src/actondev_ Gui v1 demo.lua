@@ -105,6 +105,7 @@ local input =
     {
         id = "input",
         text = "..",
+        padding= 5,
         hasFocus = true
     }
 )

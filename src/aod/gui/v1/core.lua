@@ -2,6 +2,7 @@ local module = {}
 local Class = require("aod.utils.class")
 local Table = require("utils.table")
 local Chars = require("aod.gui.v1.chars")
+local Text = require("aod.gui.v1.text")
 local Log = require("aod.utils.log")
 
 module = {
@@ -201,6 +202,13 @@ function module.Button:_watch_width()
     )
 end
 
+-- return width,height
+function module.Button:textWidthHeight(text)
+    local d = self.data
+    gfx.setfont(1, d.font, d.fontSize) -- set label fnt
+    return gfx.measurestr(text or d.text)
+end
+
 function module.Button:_calculate_height_width()
     local d = self.data
     gfx.setfont(1, d.font, d.fontSize) -- set label fnt
@@ -263,19 +271,38 @@ function module.Input:__construct(data)
     data = Table.merge(defaults, data)
 
     module.Button.__construct(self, data)
+    self._text = Text(data.text)
+end
+
+function module.Input:draw_cursor()
+    local leftStr = self._text:left()
+    local strWidth, h = self:textWidthHeight(leftStr)
+    w, h = self:textWidthHeight("|")
+    local d = self.data
+    local x = d.x + d.border.width + d.padding + strWidth
+    local y = d.y + d.border.width + d.padding
+
+    gfx.r = d.fg.r
+    gfx.g = d.fg.g
+    gfx.b = d.fg.b
+    gfx.a = d.fg.a or 1
+
+    gfx.rect(x, y, w/2, h)
 end
 
 function module.Input:draw()
     if self.data.hasFocus then
         local c = module.char
-        if Chars.isPrintable(c) then
-            self:set("text", self.data.text .. string.char(c))
-        elseif c == Chars.CHAR.RETURN then
+        if c == Chars.CHAR.RETURN then
             self:emit(module.SIGNALS.RETURN)
+        else
+            self._text:handle(c)
+            self:set("text", self._text:getText())
         end
     end
 
     module.Button.draw(self)
+    self:draw_cursor()
 end
 
 --[[
