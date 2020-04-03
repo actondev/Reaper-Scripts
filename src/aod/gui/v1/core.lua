@@ -18,10 +18,10 @@ module = {
         alt = false,
         shit = false
     },
-    signals = {
-        mouseEnter = "mouseEnter",
-        mouseLeave = "mouseLeave",
-        enter = "enter" -- would call it return but.. nope
+    SIGNALS = {
+        MOUSE_ENTER = "mouseEnter",
+        MOUSE_LEAVE = "mouseLeave",
+        RETURN = "return"
     }
 }
 
@@ -175,10 +175,10 @@ function module.Element:draw()
     local wasMouseOver = self:wasMouseOver()
 
     if isMouseOver and not wasMouseOver then
-        self:emit(module.signals.mouseEnter)
+        self:emit(module.SIGNALS.MOUSE_ENTER)
     end
     if not isMouseOver and wasMouseOver then
-        self:emit(module.signals.mouseLeave)
+        self:emit(module.SIGNALS.MOUSE_LEAVE)
     end
 end
 
@@ -271,7 +271,7 @@ function module.Input:draw()
         if Chars.isPrintable(c) then
             self:set("text", self.data.text .. string.char(c))
         elseif c == Chars.CHAR.RETURN then
-            self:emit(module.signals.enter)
+            self:emit(module.SIGNALS.RETURN)
         end
     end
 

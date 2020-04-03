@@ -64,7 +64,7 @@ local btn =
 
 -- example of applying a certain style when hovered
 btn:on(
-    Gui.signals.mouseEnter,
+    Gui.SIGNALS.MOUSE_ENTER,
     function(el)
         el._app_bg = Table.deepcopy(el.data.bg)
         el.data.bg = {r = 1, g = 0, b = 0}
@@ -72,7 +72,7 @@ btn:on(
 )
 
 btn:on(
-    Gui.signals.mouseLeave,
+    Gui.SIGNALS.MOUSE_LEAVE,
     function(el)
         el.data.bg = el._app_bg
         el._app_bg = nil
