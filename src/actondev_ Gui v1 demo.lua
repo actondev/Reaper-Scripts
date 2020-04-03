@@ -106,7 +106,18 @@ local input =
         id = "input",
         text = "..",
         padding= 5,
-        hasFocus = true,
+        focus = true,
+        fontSize = 20
+    }
+)
+
+local input2 =
+    Gui.Input(
+    {
+        id = "input",
+        text = "",
+        padding= 5,
+        focus = false,
         fontSize = 20
     }
 )
@@ -146,7 +157,8 @@ local layout =
             Gui.Button(layoutBtnOpts),
             Gui.Button(layoutBtnOpts),
             input,
-            hlayout
+            hlayout,
+            input2
         }
     }
 )

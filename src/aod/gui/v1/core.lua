@@ -234,8 +234,8 @@ function module.Button:_calculate_height_width()
     gfx.setfont(1, d.font, d.fontSize) -- set label fnt
     local text_w, _ = gfx.measurestr(d.text)
     local _, text_h = gfx.measurestr(" ")
-    d.h = text_h + 2 * ( d.border.width)
-    d.w = text_w + 2 * ( d.border.width)
+    d.h = text_h + 2 * (d.border.width)
+    d.w = text_w + 2 * (d.border.width)
 end
 function module.Button:__construct(data)
     local defaults = {
@@ -286,15 +286,21 @@ end
 module.Input = Class.extend(module.Button)
 function module.Input:__construct(data)
     local defaults = {
-        hasFocus = false
+        focus = false,
+        blinkFrameInterval = 20,
+        cursorVisible = true
     }
     data = Table.merge(defaults, data)
 
     module.Button.__construct(self, data)
     self._text = Text(data.text)
+    self._frame_counter = 1
 end
 
 function module.Input:draw_cursor()
+    if not self.data.cursorVisible then
+        return
+    end
     local leftStr = self._text:textLeftOfCursor()
     local strWidth, h = self:textWidthHeight(leftStr)
     w, h = self:textWidthHeight("|")
@@ -311,7 +317,7 @@ function module.Input:draw_cursor()
 end
 
 function module.Input:draw()
-    if self.data.hasFocus then
+    if self.data.focus then
         local c = module.char
         if c == Chars.CHAR.RETURN then
             self:emit(module.SIGNALS.RETURN)
@@ -319,18 +325,23 @@ function module.Input:draw()
             self._text:handle(c)
             self:set("text", self._text:getText())
         end
+
+        if self._frame_counter % self.data.blinkFrameInterval == 0 then
+            self:set("cursorVisible", not self.data.cursorVisible)
+        end
+        self._frame_counter = self._frame_counter + 1
+        self:draw_cursor()
     end
 
     module.Button.draw(self)
-    self:draw_cursor()
 end
 
 --[[
     Layout
 
     Layouts must implement the _advance function
-    this sets in the temp self._layout the
-    runx and runy variable, which is to be used as x and y for the next element
+    this sets in the temp self._layout table with the
+    'runx' and 'runy' indices. The are used as the x and y for the next element
 ]]
 module.ILayout = Class.extend(module.Element)
 
