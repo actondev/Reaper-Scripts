@@ -31,7 +31,7 @@ local el =
 )
 
 local btn =
-    Gui.Element(
+    Gui.Button(
     {
         id = "btn",
         x = 10,
@@ -59,6 +59,8 @@ local btn =
         fontSize = 15
     }
 )
+
+-- Log.debug(el, Gui.Element.__index)
 
 function init()
     gfx.init("actondev/Command Palette", w, h)

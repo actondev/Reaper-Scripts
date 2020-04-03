@@ -1,4 +1,6 @@
 --[[
+    code from http://lua-users.org/wiki/ObjectOrientationTutorial
+
     example usage:
 
     Gui.Element = Class.create()
@@ -7,9 +9,10 @@
 
     el.init contains the first passed argument
 
-    you can change the constructor like
-    function Gui.Element.__construct(firstArg)
-        -- ..
+    you can change the constructor like this
+    (to have an immutable copy of the passed data)
+    function Gui.Element.__construct(data)
+        self.data = Table.deepcopy(data)
     end
 ]]
 local Class = {}
@@ -36,12 +39,12 @@ end
 
 function Class.extend(baseClass)
     local childClass = {}
-    childClass._index = childClass
+    childClass.__index = childClass
     setmetatable(childClass, {
         __index = baseClass, -- this is what makes the inheritance work
         __call = function (cls, ...)
           local self = setmetatable({}, cls)
-          self:__construct(...)
+          self.__construct(self,...)
           return self
         end,
       })

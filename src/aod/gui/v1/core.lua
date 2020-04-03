@@ -112,7 +112,7 @@ end
     If no width (w) is given, it will be calculated automatically
 ]]
 module.Button = Class.extend(module.Element)
-function module.Button:new(data)
+function module.Button:__construct(data)
     local extra = {
         text = "",
         padding = 10,
@@ -125,11 +125,14 @@ function module.Button:new(data)
         }
     }
     data = Table.merge(extra, data)
-    return module.Elemente.new(self, data)
+    if data.w == nil then
+        -- autocalculating width
+    end
+    module.Element:__construct(data)
 end
 
 function module.Button:draw()
-    module.Elemente.draw(self)
+    module.Element.draw(self)
     -- drawing text
     local d = self.data
     local x, y = d.x + d.padding, d.y + d.padding
