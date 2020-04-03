@@ -16,6 +16,10 @@ module = {
         control = false,
         alt = false,
         shit = false
+    },
+    signals = {
+        mouseEnter = "mouseEnter",
+        mouseLeave = "mouseLeave"
     }
 }
 
@@ -47,27 +51,63 @@ module.Element = Class.create()
 function module.Element:__construct(data)
     self.data = Table.deepcopy(data)
     self._watches = {}
-    -- return self
+    self._listeners = {}
+end
+
+local function contained(x, y, x0, y0, x1, y1)
+    return x >= x0 and x <= x1 and y >= y0 and y <= y1
+end
+
+function module.Element:emit(signal, data)
+    local listeners = self._listeners[signal]
+    if listeners == nil then
+        return
+    end
+    for _, callback in ipairs(listeners) do
+        callback(self, data)
+    end
+end
+
+function module.Element:hasListeners(signal)
+    return self._listeners[signal] ~= nil
+end
+
+function module.Element:isMouseOver()
+    local d = self.data
+    return contained(module.mouse.x, module.mouse.y, d.x, d.y, d.x + d.w, d.y + d.h)
+end
+
+function module.Element:wasMouseOver()
+    local d = self.data
+    return contained(module.mouse.px, module.mouse.py, d.x, d.y, d.x + d.w, d.y + d.h)
 end
 
 function module.Element:watch(property, cb)
-    if  self._watches[property] == nil then
+    if self._watches[property] == nil then
         self._watches[property] = {}
     end
     local watches = self._watches[property]
-    watches[#watches+1] = cb
+    watches[#watches + 1] = cb
+end
+
+function module.Element:on(signal, cb)
+    if self._listeners[signal] == nil then
+        self._listeners[signal] = {}
+    end
+    local listeners = self._listeners[signal]
+    listeners[#listeners + 1] = cb
 end
 
 function module.Element:set(property, newValue)
     local d = self.data
     local oldValue = d[property]
     d[property] = newValue
-    local watches =self._watches[property]
-    if  watches == nil then
+    local watches = self._watches[property]
+    if watches == nil then
         return
     end
-    for _,watch in ipairs(watches) do
-        watch(self, oldValue, newValue)
+    for _, callback in ipairs(watches) do
+        callback(self, oldValue, newValue)
     end
 end
 
@@ -126,6 +166,19 @@ function module.Element:draw()
     gfx.y = self.data.y
     self:draw_background()
     self:draw_border()
+
+    -- if self:isMouseOver() and not self:wasMouseOver() then
+        -- Log.debug("mouse enter", self.data.id)
+    -- end
+    local isMouseOver = self:isMouseOver()
+    local wasMouseOver = self:wasMouseOver()
+
+    if isMouseOver and not wasMouseOver then
+        self:emit(module.signals.mouseEnter)
+    end
+    if not isMouseOver and wasMouseOver then
+        self:emit(module.signals.mouseLeave)
+    end
 end
 
 --[[
@@ -136,9 +189,12 @@ end
 module.Button = Class.extend(module.Element)
 
 function module.Button:_watch_width()
-    self:watch('text', function(el, ...)
-        el:_calculate_height_width()
-    end)
+    self:watch(
+        "text",
+        function(el, ...)
+            el:_calculate_height_width()
+        end
+    )
 end
 
 function module.Button:_calculate_height_width()

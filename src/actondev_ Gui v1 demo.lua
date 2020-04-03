@@ -6,6 +6,7 @@ local h = 500
 local Gui = require("aod.gui.v1.core")
 local Chars = require("gui.chars")
 local Log = require("aod.utils.log")
+local Table = require("aod.utils.table")
 Log.LEVEL = Log.DEBUG
 
 local el =
@@ -55,15 +56,33 @@ local btn =
             g = 1,
             b = 1
         },
-        text = 'hello world',
+        text = "hello world",
         font = "Arial",
         fontSize = 15
     }
 )
 
+
+-- example of applying a certain style when hovered
+btn:on(
+    Gui.signals.mouseEnter,
+    function(el)
+        el._app_bg = Table.deepcopy(el.data.bg)
+        el.data.bg = {r=1,g=0,b=0}
+    end
+)
+
+btn:on(
+    Gui.signals.mouseLeave,
+    function(el)
+        el.data.bg = el._app_bg
+        el._app_bg = nil
+    end
+)
+
 function init()
-    gfx.init("actondev/Command Palette", w, h)
-    local R, G, B = 60, 60, 60 -- 0..255 form
+    gfx.init("actondev/Gui v1 demo", w, h)
+    local R, G, B = 0, 0, 0 -- 0..255 form
     local Wnd_bgd = R + G * 256 + B * 65536 -- red+green*256+blue*65536
     gfx.clear = Wnd_bgd
 end
@@ -71,7 +90,7 @@ end
 function mainloop()
     local c = gfx.getchar()
     Gui.pre_draw()
-    btn:set('text', tostring(Gui.frame/10))
+    btn:set("text", tostring(Gui.frame / 10))
     el:draw()
     btn:draw()
     Gui.post_draw()
