@@ -1,5 +1,7 @@
 local module = {}
-local Class = require("utils.class")
+local Class = require('aod.utils.class')
+local Table = require("utils.table")
+local Log = require('utils.log')
 
 module = {
     frame = 0,
@@ -33,7 +35,6 @@ function module.pre_draw()
     module.modifiers.control = gfx.mouse_cap & 4 > 0
     module.modifiers.shift = gfx.mouse_cap & 8 > 0
     module.modifiers.alt = gfx.mouse_cap & 16 > 0
-
 end
 
 function module.post_draw()
@@ -42,11 +43,9 @@ function module.post_draw()
     module.mouse.py = module.mouse.y
 end
 
-module.Element = Class.new()
-
-function module.Element:new(opts)
-    self.data = opts
-    return self
+module.Element = Class.create()
+function module.Element:__construct(data)
+    self.data = Table.deepcopy(data)
 end
 
 -- draw a rect with a border width (bw)
@@ -100,10 +99,49 @@ function module.Element:draw_background()
 end
 
 function module.Element:draw()
+    -- Log.debug("draw id ", self.data.id)
+    gfx.x = self.data.x
+    gfx.y = self.data.y
     self:draw_background()
     self:draw_border()
 end
 
+--[[
+    Button
+
+    If no width (w) is given, it will be calculated automatically
+]]
 module.Button = Class.extend(module.Element)
+function module.Button:new(data)
+    local extra = {
+        text = "",
+        padding = 10,
+        font = "Arial",
+        fontSize = 14,
+        fg = {
+            r = 1,
+            g = 1,
+            b = 1,
+        }
+    }
+    data = Table.merge(extra, data)
+    return module.Elemente.new(self, data)
+end
+
+function module.Button:draw()
+    module.Elemente.draw(self)
+    -- drawing text
+    local d = self.data
+    local x, y = d.x + d.padding, d.y + d.padding
+    gfx.r = d.fg.r
+    gfx.g = d.fg.g
+    gfx.b = d.fg.b
+    gfx.a = d.fg.a or 1
+
+    gfx.setfont(1, d.font, d.fontSize)
+    gfx.x = x
+    gfx.y = y
+    gfx.drawstr(d.text)
+end
 
 return module

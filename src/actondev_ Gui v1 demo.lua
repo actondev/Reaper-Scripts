@@ -5,14 +5,17 @@ local h = 500
 
 local Gui = require("aod.gui.v1.core")
 local Chars = require("gui.chars")
+local Log = require('utils.log')
+Log.isdebug = true
 
 local el =
-    Gui.Element:new(
+    Gui.Element(
     {
+        id = "el",
         x = 10,
         y = 10,
-        w = 50,
-        h = 50,
+        w = 30,
+        h = 30,
         border = {
             r = 1,
             g = 1,
@@ -27,6 +30,36 @@ local el =
     }
 )
 
+local btn =
+    Gui.Element(
+    {
+        id = "btn",
+        x = 10,
+        y = 50,
+        w = 50,
+        h = 50,
+        border = {
+            r = 1,
+            g = 1,
+            b = 1,
+            width = 1
+        },
+        bg = {
+            r = 0.5,
+            g = 0.5,
+            b = 0.5
+        },
+        fg = {
+            r = 1,
+            g = 1,
+            b = 1
+        },
+        text = 'hello world',
+        font = "Arial",
+        fontSize = 15
+    }
+)
+
 function init()
     gfx.init("actondev/Command Palette", w, h)
     local R, G, B = 60, 60, 60 -- 0..255 form
@@ -37,6 +70,7 @@ end
 function mainloop()
     local c = gfx.getchar()
     el:draw()
+    btn:draw()
 
     if c == Chars.CHAR.EXIT then
         return
