@@ -7,6 +7,19 @@ local Log = require("aod.utils.log")
 
 module = {
     frame = 0,
+    cap = 0, -- the current mouse_cap
+    pcap = 0, -- the previous mouse_cap
+    CAP = {
+        NONE = 0,
+        LMB = 1, -- left mouse button
+        RMB = 2, -- right mouse button
+        MMB = 64, -- middle mouse button
+        COMMAND = 4,
+        SHIFT = 8,
+        OPTION = 16,
+        ALT = 16,
+        CONTROL = 32
+    },
     mouse = {
         x = 0,
         y = 0,
@@ -22,7 +35,8 @@ module = {
     SIGNALS = {
         MOUSE_ENTER = "mouseEnter",
         MOUSE_LEAVE = "mouseLeave",
-        RETURN = "return"
+        RETURN = "return",
+        CLICK = "click"
     }
 }
 
@@ -30,6 +44,7 @@ function module.pre_draw()
     module.char = gfx.getchar()
     module.mouse.x = gfx.mouse_x
     module.mouse.y = gfx.mouse_y
+    module.cap = gfx.mouse_cap
     -- if
     --     gfx.mouse_cap & 1 == 1 and last_mouse_cap & 1 == 0 or -- L mouse
     --         gfx.mouse_cap & 2 == 2 and last_mouse_cap & 2 == 0 or -- R mouse
@@ -38,16 +53,17 @@ function module.pre_draw()
     --     mouse_ox, mouse_oy = gfx.mouse_x, gfx.mouse_y
     -- end
 
-    module.modifiers.none = gfx.mouse_cap == 0
-    module.modifiers.control = gfx.mouse_cap & 4 > 0
-    module.modifiers.shift = gfx.mouse_cap & 8 > 0
-    module.modifiers.alt = gfx.mouse_cap & 16 > 0
+    module.modifiers.none = module.cap == module.CAP.NONE
+    module.modifiers.control = module.cap & module.CAP.CONTROL > 0
+    module.modifiers.shift = module.cap & module.CAP.SHIFT > 0
+    module.modifiers.alt = module.cap & module.CAP.ALT > 0
 end
 
 function module.post_draw()
     module.frame = module.frame + 1
     module.mouse.px = module.mouse.x
     module.mouse.py = module.mouse.y
+    module.pcap = module.cap
 end
 
 module.Element = Class.create()
@@ -69,12 +85,22 @@ local function contained(x, y, x0, y0, x1, y1)
     return x >= x0 and x <= x1 and y >= y0 and y <= y1
 end
 
-function module.Element:emit(signal, data)
+function module.Element:hasSignalListeners(signal)
+    return self._listeners[signal] ~= nil
+end
+
+function module.Element:safeEmit(signal, data)
     local listeners = self._listeners[signal]
     if listeners == nil then
         return
     end
     for _, callback in ipairs(listeners) do
+        callback(self, data)
+    end
+end
+
+function module.Element:emit(signal, data)
+    for _, callback in ipairs(self._listeners[signal]) do
         callback(self, data)
     end
 end
@@ -86,6 +112,14 @@ end
 function module.Element:isMouseOver()
     local d = self.data
     return contained(module.mouse.x, module.mouse.y, d.x, d.y, d.x + d.w, d.y + d.h)
+end
+
+function module.Element:capRise(cap)
+    return module.cap & cap == cap and module.pcap & cap == 0
+end
+
+function module.Element:capFall(cap)
+    return module.pcap & cap == cap and module.cap & cap == 0
 end
 
 function module.Element:wasMouseOver()
@@ -196,10 +230,16 @@ function module.Element:draw()
     local wasMouseOver = self:wasMouseOver()
 
     if isMouseOver and not wasMouseOver then
-        self:emit(module.SIGNALS.MOUSE_ENTER)
+        self:safeEmit(module.SIGNALS.MOUSE_ENTER)
     end
     if not isMouseOver and wasMouseOver then
-        self:emit(module.SIGNALS.MOUSE_LEAVE)
+        self:safeEmit(module.SIGNALS.MOUSE_LEAVE)
+    end
+    if isMouseOver then
+        -- click event: on mouse press (or should be on release?)
+        if self:hasSignalListeners(module.SIGNALS.CLICK) and self:capRise(module.CAP.LMB) then
+            self:emit(module.SIGNALS.CLICK)
+        end
     end
 end
 

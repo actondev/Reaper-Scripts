@@ -31,6 +31,10 @@ local el =
     }
 )
 
+el:on(Gui.SIGNALS.CLICK, function(el)
+    Log.debug("click on", el.data.id)
+end)
+
 local btn =
     Gui.Button(
     {
