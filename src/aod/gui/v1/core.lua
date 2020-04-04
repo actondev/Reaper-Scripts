@@ -375,7 +375,7 @@ function module.Input:draw_cursor()
     gfx.b = d.fg.b
     gfx.a = d.fg.a or 1
 
-    gfx.rect(x, y, w * 0.3, h)
+    gfx.rect(x, y, math.max(1, w * 0.3), h, true)
 end
 
 function module.Input:cursor_reset()
@@ -384,6 +384,7 @@ function module.Input:cursor_reset()
 end
 
 function module.Input:draw()
+    module.Button.draw(self)
     if self.data.focus then
         local c = module.char
         if c == Chars.CHAR.RETURN then
@@ -399,8 +400,6 @@ function module.Input:draw()
         self._frame_counter = self._frame_counter + 1
         self:draw_cursor()
     end
-
-    module.Button.draw(self)
 end
 
 --[[

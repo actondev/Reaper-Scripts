@@ -114,6 +114,7 @@ local input =
         text = "..",
         padding = 5,
         focus = true,
+        fg = {r = 1, g =0, b=0},
         fontSize = 20
     }
 )
