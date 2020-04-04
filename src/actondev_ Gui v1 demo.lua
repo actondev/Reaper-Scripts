@@ -31,9 +31,12 @@ local el =
     }
 )
 
-el:on(Gui.SIGNALS.CLICK, function(el)
-    Log.debug("click on", el.data.id)
-end)
+el:on(
+    Gui.SIGNALS.CLICK,
+    function(el)
+        Log.debug("click on", el.data.id)
+    end
+)
 
 local btn =
     Gui.Button(
@@ -107,9 +110,9 @@ local layoutBtnOpts = {
 local input =
     Gui.Input(
     {
-        id = "input",
+        id = "input1",
         text = "..",
-        padding= 5,
+        padding = 5,
         focus = true,
         fontSize = 20
     }
@@ -118,16 +121,16 @@ local input =
 local input2 =
     Gui.Input(
     {
-        id = "input",
+        id = "input2",
         text = "",
-        padding= 5,
+        padding = 5,
         focus = false,
         fontSize = 20
     }
 )
 
-local hlayout = 
-Gui.HLayout(
+local hlayout =
+    Gui.HLayout(
     {
         id = "hlayout",
         bg = {
@@ -139,9 +142,10 @@ Gui.HLayout(
         elements = {
             Gui.Button(layoutBtnOpts),
             Gui.Button(layoutBtnOpts),
-            Gui.Button(layoutBtnOpts),
+            Gui.Button(layoutBtnOpts)
         }
-    })
+    }
+)
 
 local layout =
     Gui.VLayout(

@@ -109,11 +109,6 @@ function module.Element:hasListeners(signal)
     return self._listeners[signal] ~= nil
 end
 
-function module.Element:isMouseOver()
-    local d = self.data
-    return contained(module.mouse.x, module.mouse.y, d.x, d.y, d.x + d.w, d.y + d.h)
-end
-
 function module.Element:capRise(cap)
     return module.cap & cap == cap and module.pcap & cap == 0
 end
@@ -167,6 +162,10 @@ function module.Element:height()
 end
 function module.Element:outterHeight()
     return self:height() + 2 * self.data.padding
+end
+function module.Element:isMouseOver()
+    local d = self.data
+    return contained(module.mouse.x, module.mouse.y, d.x, d.y, d.x + self:outterWidth(), d.y + self:outterHeight())
 end
 -- draw a rect with a border width (bw)
 -- the border is inset : the final rect will not be drawn outside of x,y and x+w, y+h
@@ -324,6 +323,7 @@ end
     Input
 ]]
 module.Input = Class.extend(module.Button)
+module.Input.elements = {}
 function module.Input:__construct(data)
     local defaults = {
         focus = false,
@@ -335,6 +335,28 @@ function module.Input:__construct(data)
     module.Button.__construct(self, data)
     self._text = Text(data.text)
     self._frame_counter = 1
+    module.Input.elements[#module.Input.elements + 1] = self
+    self:on(
+        module.SIGNALS.CLICK,
+        function(el)
+            el:set("focus", true)
+        end
+    )
+    self:watch(
+        "focus",
+        function(el, old, new)
+            if new == false then
+                return
+            end
+            el:cursor_reset()
+            -- if the element gains focus, set focus to false to the other inputs
+            for _, other in ipairs(module.Input.elements) do
+                if other ~= el then
+                    other:set("focus", false)
+                end
+            end
+        end
+    )
 end
 
 function module.Input:draw_cursor()
@@ -354,6 +376,11 @@ function module.Input:draw_cursor()
     gfx.a = d.fg.a or 1
 
     gfx.rect(x, y, w * 0.3, h)
+end
+
+function module.Input:cursor_reset()
+    self._frame_counter = 1
+    self:set("cursorVisible", true)
 end
 
 function module.Input:draw()
@@ -393,8 +420,15 @@ function module.ILayout:__construct(data)
         w = 0,
         elements = {}
     }
+
     data = Table.merge(defaults, data)
+    local elements = data.elements
+    data.elements = nil
+    -- Important! not passing the elments in the constructor
+    -- the constructor performs a deep copy of the data table. In that case, we would loose the original references
     module.Element.__construct(self, data)
+    -- now setting again the originally passed elements
+    self.data.elements = elements
 end
 
 function module.ILayout:draw()
