@@ -188,12 +188,12 @@ local function draw_border(x, y, w, h, width)
 end
 
 function module.Element:draw_border()
-    local v = self.data.border
-    gfx.r = v.r
-    gfx.g = v.g
-    gfx.b = v.b
-    gfx.a = v.a or 1
-    local width = v.width or 1
+    local bc = self.data.borderColor
+    gfx.r = bc.r
+    gfx.g = bc.g
+    gfx.b = bc.b
+    gfx.a = bc.a or 1
+    local width = self.data.borderWidth
 
     local d = self.data
     draw_border(d.x, d.y, self:outterWidth(), self:outterHeight(), width)
@@ -218,7 +218,7 @@ function module.Element:draw()
     if d.bg then
         self:draw_background()
     end
-    if d.border then
+    if d.borderWidth then
         self:draw_border()
     end
 
@@ -273,8 +273,8 @@ function module.Button:_calculate_height_width()
     gfx.setfont(1, d.font, d.fontSize) -- set label fnt
     local text_w, _ = gfx.measurestr(d.text)
     local _, text_h = gfx.measurestr(" ")
-    d.h = text_h + 2 * (d.border.width)
-    d.w = text_w + 2 * (d.border.width)
+    d.h = text_h + 2 * (d.borderWidth)
+    d.w = text_w + 2 * (d.borderWidth)
 end
 function module.Button:__construct(data)
     local defaults = {
@@ -282,12 +282,12 @@ function module.Button:__construct(data)
         padding = 2,
         font = "Arial",
         fontSize = 14,
-        border = {
+        borderColor = {
             r = 1,
             g = 1,
             b = 1,
-            width = 1
         },
+        borderWidth = 1,
         fg = {
             r = 1,
             g = 1,
@@ -307,7 +307,7 @@ function module.Button:draw()
     module.Element.draw(self)
     -- drawing text
     local d = self.data
-    local x, y = d.x + d.padding + d.border.width, d.y + d.padding + d.border.width
+    local x, y = d.x + d.padding + d.borderWidth, d.y + d.padding + d.borderWidth
     gfx.r = d.fg.r
     gfx.g = d.fg.g
     gfx.b = d.fg.b
@@ -367,8 +367,8 @@ function module.Input:draw_cursor()
     local strWidth, h = self:textWidthHeight(leftStr)
     w, h = self:textWidthHeight("|")
     local d = self.data
-    local x = d.x + d.border.width + d.padding + strWidth
-    local y = d.y + d.border.width + d.padding
+    local x = d.x + d.borderWidth + d.padding + strWidth
+    local y = d.y + d.borderWidth + d.padding
 
     gfx.r = d.fg.r
     gfx.g = d.fg.g

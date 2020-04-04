@@ -17,12 +17,12 @@ local el =
         y = 10,
         w = 30,
         h = 30,
-        border = {
+        borderColor = {
             r = 1,
             g = 1,
-            b = 1,
-            width = 5
+            b = 1
         },
+        borderWidth = 5,
         bg = {
             r = 0.5,
             g = 0.5,
@@ -47,12 +47,12 @@ local btn =
         -- w = 50,
         -- h = 50,
         padding = 2,
-        border = {
+        borderColor = {
             r = 1,
             g = 1,
-            b = 1,
-            width = 2
+            b = 1
         },
+        borderWidth = 2,
         bg = {
             r = 0.5,
             g = 0.5,
@@ -88,12 +88,12 @@ btn:on(
 
 local layoutBtnOpts = {
     id = "repeated btn",
-    border = {
+    borderColor = {
         r = 1,
         g = 1,
-        b = 1,
-        width = 2
+        b = 1
     },
+    borderWidth = 2,
     bg = {
         r = 0.5,
         g = 0.5,
@@ -153,11 +153,12 @@ local layout =
         id = "vlayout",
         x = 10,
         y = 100,
-        border = {
+        borderColor = {
             r = 1,
             g = 0,
             b = 0
         },
+        borderWidth = 1,
         padding = 10,
         spacing = 5,
         elements = {
