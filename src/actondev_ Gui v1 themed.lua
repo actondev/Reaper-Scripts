@@ -18,8 +18,9 @@ local btn =
         x = 10,
         y = 50,
         text = "hello world",
+        w = '100%',
         padding = 10,
-        borderWidth = 0,
+        borderWidth = 2,
     }
 )
 
@@ -29,7 +30,7 @@ local input =
             id = "input1",
             text = "..",
             padding = 5,
-            w = 200, -- TODO: parent layout percentage
+            w = '100%',
             focus = true,
             -- fg = {r = 1, g =0, b=0},
             fontSize = 20
@@ -40,6 +41,7 @@ local layout =
     Gui.VLayout(
     {
         padding = 0,
+        w = 100, -- will be set on redraw
         elements = {
             input,
             btn
@@ -60,8 +62,9 @@ end
 
 function mainloop()
     Gui.pre_draw()
-    btn:set("text", tostring(Gui.frame / 10))
-    input:set("w", gfx.w)
+    layout:set("w", gfx.w)
+    -- btn:set("text", tostring(Gui.frame / 10))
+    -- input:set("w", gfx.w)
     layout:draw()
     Gui.post_draw()
 

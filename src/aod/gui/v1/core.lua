@@ -126,9 +126,6 @@ end
 function module.Element:width()
     local cached = self.data.w
     local newValue = nil
-    if cached then
-        return cached
-    end
     if self:widthFixed() then
         return cached -- not returning init.w but data.w cause it could be changed since then
     elseif self:widthPercentage() then
@@ -528,7 +525,7 @@ function module.ILayout:__construct(data)
     self.data.elements = elements
 
     for _, el in ipairs(elements) do
-        el.data.parent = self
+        el.parent = self
         if self:widthAuto() then
             -- watch changes in childrens' width
             el:watch(
