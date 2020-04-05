@@ -1,5 +1,4 @@
 local module = {}
-
 -- modifies t1 -> updates with t2's values
 function module.merge(t1, t2)
     for k, v in pairs(t2) do
@@ -27,7 +26,10 @@ function module.copy(orig)
     return module.merge({}, orig)
 end
 
-function module.deepcopy(orig)
+-- code from lua site
+-- there was a bug: copies wasn't present in the arguments, thus creating a global variable copies
+-- that caused subsequent calls to this function with the same table argument return the same table reference
+function module.deepcopy(orig, copies)
     copies = copies or {}
     local orig_type = type(orig)
     local copy
@@ -79,5 +81,4 @@ function module.deepCopyIgnoringKeys(orig, ignoreKeys)
     end
     return copy
 end
-
 return module

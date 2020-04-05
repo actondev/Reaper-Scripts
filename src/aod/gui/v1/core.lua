@@ -1,6 +1,6 @@
 local module = {}
 local Class = require("aod.utils.class")
-local Table = require("utils.table")
+local Table = require("aod.utils.table")
 local Chars = require("aod.text.chars")
 local Text = require("aod.text.input")
 local Log = require("aod.utils.log")
@@ -71,14 +71,115 @@ function module.Element:__construct(data)
     local defaults = {
         x = 0,
         y = 0,
-        w = 0,
-        h = 0,
         padding = 0
     }
     data = Table.merge(defaults, data)
     self.data = Table.deepcopy(data)
+    self.init = Table.deepcopy(data)
+    -- Note: there was a bug in deepcoy, giving me the same table for the 2 calls Table.deepcopy on the same table
+    self.parent = nil
     self._watches = {}
     self._listeners = {}
+end
+
+-- returns example 90 (if "90%") or nil
+function module.Element:widthPercentage()
+    return self.init.w and string.match(self.init.w, "^([%d][%d]?[%d]?)%%")
+end
+
+function module.Element:widthFixed()
+    return self.init.w and string.match(self.init.w, "^[%d]+$")
+end
+function module.Element:widthAuto()
+    return self.init.w == nil
+end
+
+function module.Element:calculateAutoWidth()
+    Log.warn("element's auto width calculation not implemented. init: ", self.data.init)
+end
+
+function module.Element:invalidateCachedWidth()
+    self.data.w = nil
+end
+
+-- height
+
+function module.Element:heightPercentage()
+    return self.init.h and string.match(self.init.h, "^([%d][%d]?[%d]?)%%")
+end
+
+function module.Element:heightFixed()
+    return self.init.h and string.match(self.init.h, "^[%d]+$")
+end
+function module.Element:heightAuto()
+    return self.init.h == nil
+end
+
+function module.Element:calculateAutoHeight()
+    Log.warn("element's auto Height calculation not implemented. init: ", self.data.init)
+end
+
+function module.Element:invalidateCachedHeight()
+    self.data.h = nil
+end
+
+function module.Element:width()
+    local cached = self.data.w
+    local newValue = nil
+    if cached then
+        return cached
+    end
+    if self:widthFixed() then
+        return cached -- not returning init.w but data.w cause it could be changed since then
+    elseif self:widthPercentage() then
+        local parent = self.parent
+        if parent == nil then
+            Log.warn("percentage width is only allow for elements in a layout (with a parent)")
+        end
+        local factor = self:widthPercentage() / 100
+        newValue = factor * self.parent:width()
+    elseif self:widthAuto() then
+        if cached then
+            return cached
+        end
+        newValue = self:calculateAutoWidth()
+    else
+        Log.warn("could not figure out the element's width strategy. init values ", self.init)
+    end
+
+    -- Log.debug("setting new width", newValue, " to el", self.data.id)
+    self:set("w", newValue)
+    return newValue
+end
+
+-- TODO... pff.. duplicate code...
+function module.Element:height()
+    local cached = self.data.h
+    local newValue = nil
+    if cached then
+        return cached
+    end
+    if self:heightFixed() then
+        return cached
+    elseif self:heightPercentage() then
+        local parent = self.parent
+        if parent == nil then
+            Log.warn("percentage height is only allow for elements in a layout (with a parent)")
+        end
+        local factor = self:heightPercentage() / 100
+        newValue = factor * self.parent:height()
+    elseif self:heightAuto() then
+        if cached then
+            return cached
+        end
+        newValue = self:calculateAutoHeight()
+    else
+        Log.warn("could not figure out the element's height strategy. init values ", self.init)
+    end
+
+    -- Log.debug("setting new height", newValue, " to el", self.data.id)
+    self:set("h", newValue)
+    return newValue
 end
 
 local function contained(x, y, x0, y0, x1, y1)
@@ -119,7 +220,7 @@ end
 
 function module.Element:wasMouseOver()
     local d = self.data
-    return contained(module.mouse.px, module.mouse.py, d.x, d.y, d.x + d.w, d.y + d.h)
+    return contained(module.mouse.px, module.mouse.py, d.x, d.y, d.x + self:width(), d.y + d.h)
 end
 
 function module.Element:watch(property, cb)
@@ -151,12 +252,6 @@ function module.Element:set(property, newValue)
     end
 end
 
-function module.Element:width()
-    return self.data.w
-end
-function module.Element:height()
-    return self.data.h
-end
 function module.Element:isMouseOver()
     local d = self.data
     return contained(module.mouse.x, module.mouse.y, d.x, d.y, d.x + self:width(), d.y + self:height())
@@ -190,7 +285,7 @@ function module.Element:draw_border()
     local width = self.data.borderWidth
 
     local d = self.data
-    draw_border(d.x, d.y, d.w, d.h, width)
+    draw_border(d.x, d.y, self:width(), self:height(), width)
 end
 
 function module.Element:draw_background()
@@ -201,7 +296,7 @@ function module.Element:draw_background()
     gfx.a = bg.a or 1
 
     local d = self.data
-    gfx.rect(d.x, d.y, d.w, d.h, true) -- frame1
+    gfx.rect(d.x, d.y, self:width(), self:height(), true) -- frame1
 end
 
 function module.Element:draw()
@@ -246,15 +341,6 @@ end
 ]]
 module.Button = Class.extend(module.Element)
 
-function module.Button:_watch_width()
-    self:watch(
-        "text",
-        function(el, ...)
-            el:_calculate_width()
-        end
-    )
-end
-
 -- return width,height
 function module.Button:textWidthHeight(text)
     local d = self.data
@@ -262,18 +348,18 @@ function module.Button:textWidthHeight(text)
     return gfx.measurestr(text or d.text)
 end
 
-function module.Button:_calculate_width()
+function module.Button:calculateAutoWidth()
     local d = self.data
     gfx.setfont(1, d.font, d.fontSize) -- set label fnt
     local text_w, _ = gfx.measurestr(d.text)
-    self:set("w", text_w + 2 * (d.borderWidth + d.padding))
+    return text_w + 2 * (d.borderWidth + d.padding)
 end
 
-function module.Button:_calculate_height()
+function module.Button:calculateAutoHeight()
     local d = self.data
     gfx.setfont(1, d.font, d.fontSize) -- set label fnt
     local _, text_h = gfx.measurestr(" ")
-    self:set("h", text_h + 2 * (d.borderWidth + d.padding))
+    return text_h + 2 * (d.borderWidth + d.padding)
 end
 
 function module.Button:__construct(data)
@@ -297,12 +383,24 @@ function module.Button:__construct(data)
     data = Table.merge(defaults, data)
     module.Element.__construct(self, data)
 
-    if data.w == nil then
-        self:_watch_width()
-        self:_calculate_width()
+    if self:widthAuto() then
+        -- self._cached_width = self:calculateAutoWidth()
+        self:watch(
+            "text",
+            function(el, old, new)
+                self:invalidateCachedWidth()
+            end
+        )
     end
-    if data.h == nil then
-        self:_calculate_height()
+
+    if self:heightAuto() then
+        -- self._cached_width = self:calculateAutoWidth()
+        self:watch(
+            "text",
+            function(el, old, new)
+                self:invalidateCachedHeight()
+            end
+        )
     end
 end
 
@@ -392,7 +490,7 @@ function module.Input:draw()
         local c = module.char
         if c == Chars.CHAR.RETURN then
             self:emit(module.SIGNALS.RETURN)
-        else
+        elseif c ~= 0 then
             self._text:handle(c)
             self:set("text", self._text:getText())
         end
@@ -417,9 +515,6 @@ module.ILayout = Class.extend(module.Element)
 function module.ILayout:__construct(data)
     local defaults = {
         spacing = 5,
-        -- the layout's height and width are calculated on each :draw call
-        h = 0,
-        w = 0,
         elements = {}
     }
 
@@ -431,13 +526,34 @@ function module.ILayout:__construct(data)
     module.Element.__construct(self, data)
     -- now setting again the originally passed elements
     self.data.elements = elements
+
+    for _, el in ipairs(elements) do
+        el.data.parent = self
+        if self:widthAuto() then
+            -- watch changes in childrens' width
+            el:watch(
+                "w",
+                function(_)
+                    -- Log.debug("element's width changed, id", el.data.id)
+                    self:invalidateCachedWidth()
+                end
+            )
+        end
+
+        if self:heightAuto() then
+            -- watch changes in childrens' height
+            el:watch(
+                "h",
+                function(_)
+                    -- Log.debug("element's height changed, id", el.data.id)
+                    self:invalidateCachedHeight()
+                end
+            )
+        end
+    end
 end
 
 function module.ILayout:draw()
-    -- TODO: no need to calculate width & height every time
-    -- instead, watch children width for changes
-    self:set("w", self:width())
-    self:set("h", self:height())
     module.Element.draw(self)
     local d = self.data
     self._layout = {
@@ -461,15 +577,18 @@ function module.VLayout:_advance(el)
     self._layout.runy = self._layout.runy + el:height() + d.spacing
 end
 
-function module.VLayout:width()
+function module.VLayout:calculateAutoWidth()
+    -- Log.debug("VLayout auto width calculation")
     local width = 0
     for i, el in ipairs(self.data.elements) do
         width = math.max(width, el:width())
     end
-    return width + 2 * self.data.padding
+    local res = width + 2 * self.data.padding
+    return res
 end
 
-function module.VLayout:height()
+function module.VLayout:calculateAutoHeight()
+    -- Log.debug("VLayout auto height calculation")
     local height = 0
     local d = self.data
     for i, el in ipairs(d.elements) do
@@ -484,7 +603,8 @@ function module.HLayout:_advance(el)
     self._layout.runx = self._layout.runx + el:width() + d.spacing
 end
 
-function module.HLayout:width()
+function module.HLayout:calculateAutoWidth()
+    -- Log.debug("HLayout auto width calculation")
     local width = 0
     local d = self.data
     for i, el in ipairs(d.elements) do
@@ -493,7 +613,8 @@ function module.HLayout:width()
     return width - d.spacing + 2 * d.padding
 end
 
-function module.HLayout:height()
+function module.HLayout:calculateAutoHeight()
+    -- Log.debug("HLayout auto height calculation")
     local height = 0
     for i, el in ipairs(self.data.elements) do
         height = math.max(height, el:height())
