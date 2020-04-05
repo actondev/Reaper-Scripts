@@ -17,7 +17,9 @@ local btn =
         id = "btn",
         x = 10,
         y = 50,
-        text = "hello world"
+        text = "hello world",
+        padding = 10,
+        borderWidth = 0,
     }
 )
 
@@ -27,6 +29,7 @@ local input =
             id = "input1",
             text = "..",
             padding = 5,
+            w = 200, -- TODO: parent layout percentage
             focus = true,
             -- fg = {r = 1, g =0, b=0},
             fontSize = 20
@@ -40,7 +43,8 @@ local layout =
         elements = {
             input,
             btn
-        }
+        },
+        spacing = 0,
     }
 )
 
@@ -57,6 +61,7 @@ end
 function mainloop()
     Gui.pre_draw()
     btn:set("text", tostring(Gui.frame / 10))
+    input:set("w", gfx.w)
     layout:draw()
     Gui.post_draw()
 

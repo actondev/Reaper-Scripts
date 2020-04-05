@@ -154,18 +154,12 @@ end
 function module.Element:width()
     return self.data.w
 end
-function module.Element:outterWidth()
-    return self:width() + 2 * self.data.padding
-end
 function module.Element:height()
     return self.data.h
 end
-function module.Element:outterHeight()
-    return self:height() + 2 * self.data.padding
-end
 function module.Element:isMouseOver()
     local d = self.data
-    return contained(module.mouse.x, module.mouse.y, d.x, d.y, d.x + self:outterWidth(), d.y + self:outterHeight())
+    return contained(module.mouse.x, module.mouse.y, d.x, d.y, d.x + self:width(), d.y + self:height())
 end
 -- draw a rect with a border width (bw)
 -- the border is inset : the final rect will not be drawn outside of x,y and x+w, y+h
@@ -196,7 +190,7 @@ function module.Element:draw_border()
     local width = self.data.borderWidth
 
     local d = self.data
-    draw_border(d.x, d.y, self:outterWidth(), self:outterHeight(), width)
+    draw_border(d.x, d.y, d.w, d.h, width)
 end
 
 function module.Element:draw_background()
@@ -207,7 +201,7 @@ function module.Element:draw_background()
     gfx.a = bg.a or 1
 
     local d = self.data
-    gfx.rect(d.x, d.y, self:outterWidth(), self:outterHeight(), true) -- frame1
+    gfx.rect(d.x, d.y, d.w, d.h, true) -- frame1
 end
 
 function module.Element:draw()
@@ -256,7 +250,7 @@ function module.Button:_watch_width()
     self:watch(
         "text",
         function(el, ...)
-            el:_calculate_height_width()
+            el:_calculate_width()
         end
     )
 end
@@ -268,14 +262,20 @@ function module.Button:textWidthHeight(text)
     return gfx.measurestr(text or d.text)
 end
 
-function module.Button:_calculate_height_width()
+function module.Button:_calculate_width()
     local d = self.data
     gfx.setfont(1, d.font, d.fontSize) -- set label fnt
     local text_w, _ = gfx.measurestr(d.text)
-    local _, text_h = gfx.measurestr(" ")
-    d.h = text_h + 2 * (d.borderWidth)
-    d.w = text_w + 2 * (d.borderWidth)
+    self:set("w", text_w + 2 * (d.borderWidth + d.padding))
 end
+
+function module.Button:_calculate_height()
+    local d = self.data
+    gfx.setfont(1, d.font, d.fontSize) -- set label fnt
+    local _, text_h = gfx.measurestr(" ")
+    self:set("h", text_h + 2 * (d.borderWidth + d.padding))
+end
+
 function module.Button:__construct(data)
     local defaults = {
         text = "",
@@ -285,7 +285,7 @@ function module.Button:__construct(data)
         borderColor = {
             r = 1,
             g = 1,
-            b = 1,
+            b = 1
         },
         borderWidth = 1,
         fg = {
@@ -297,9 +297,12 @@ function module.Button:__construct(data)
     data = Table.merge(defaults, data)
     module.Element.__construct(self, data)
 
-    if data.w == nil or data.h == nil then
+    if data.w == nil then
         self:_watch_width()
-        self:_calculate_height_width()
+        self:_calculate_width()
+    end
+    if data.h == nil then
+        self:_calculate_height()
     end
 end
 
@@ -455,47 +458,47 @@ end
 module.VLayout = Class.extend(module.ILayout)
 function module.VLayout:_advance(el)
     local d = self.data
-    self._layout.runy = self._layout.runy + el:outterHeight() + d.spacing
+    self._layout.runy = self._layout.runy + el:height() + d.spacing
 end
 
 function module.VLayout:width()
     local width = 0
     for i, el in ipairs(self.data.elements) do
-        width = math.max(width, el:outterWidth())
+        width = math.max(width, el:width())
     end
-    return width
+    return width + 2 * self.data.padding
 end
 
 function module.VLayout:height()
     local height = 0
     local d = self.data
     for i, el in ipairs(d.elements) do
-        height = height + el:outterHeight() + d.spacing
+        height = height + el:height() + d.spacing
     end
-    return height - d.spacing
+    return height - d.spacing + 2 * d.padding
 end
 
 module.HLayout = Class.extend(module.ILayout)
 function module.HLayout:_advance(el)
     local d = self.data
-    self._layout.runx = self._layout.runx + el:outterWidth() + d.spacing
+    self._layout.runx = self._layout.runx + el:width() + d.spacing
 end
 
 function module.HLayout:width()
     local width = 0
     local d = self.data
     for i, el in ipairs(d.elements) do
-        width = width + el:outterWidth() + d.spacing
+        width = width + el:width() + d.spacing
     end
-    return width - d.spacing
+    return width - d.spacing + 2 * d.padding
 end
 
 function module.HLayout:height()
     local height = 0
     for i, el in ipairs(self.data.elements) do
-        height = math.max(height, el:outterHeight())
+        height = math.max(height, el:height())
     end
-    return height
+    return height + 2 * self.data.padding
 end
 
 return module
