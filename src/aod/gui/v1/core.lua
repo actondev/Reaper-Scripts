@@ -345,10 +345,15 @@ function module.Button:textWidthHeight(text)
     return gfx.measurestr(text or d.text)
 end
 
+-- can be overridden
+function module.Button:drawable_text()
+    return self.data.text
+end
+
 function module.Button:calculateAutoWidth()
     local d = self.data
     gfx.setfont(1, d.font, d.fontSize) -- set label fnt
-    local text_w, _ = gfx.measurestr(d.text)
+    local text_w, _ = gfx.measurestr(self:drawable_text())
     return text_w + 2 * (d.borderWidth + d.padding)
 end
 
@@ -414,11 +419,11 @@ function module.Button:draw()
     gfx.setfont(1, d.font, d.fontSize)
     gfx.x = x
     gfx.y = y
-    gfx.drawstr(d.text)
+    gfx.drawstr(self:drawable_text())
 end
 
---[[
-    Input
+--[[ Input
+
 ]]
 module.Input = Class.extend(module.Button)
 module.Input.elements = {}
@@ -426,7 +431,8 @@ function module.Input:__construct(data)
     local defaults = {
         focus = false,
         blinkFrameInterval = 20,
-        cursorVisible = true
+        cursorVisible = true,
+        placeholder = "start typing", -- or a text to show when the text input is empty
     }
     data = Table.merge(defaults, data)
 
@@ -455,6 +461,13 @@ function module.Input:__construct(data)
             end
         end
     )
+end
+
+function module.Input:drawable_text()
+    if self.data.text == "" and self.data.placeholder then
+        return self.data.placeholder
+    end
+    return self.data.text
 end
 
 function module.Input:draw_cursor()

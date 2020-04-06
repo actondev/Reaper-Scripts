@@ -32,7 +32,6 @@ local input =
             padding = 5,
             w = '100%',
             focus = true,
-            -- fg = {r = 1, g =0, b=0},
             fontSize = 20
         }
 )
@@ -63,7 +62,7 @@ end
 function mainloop()
     Gui.pre_draw()
     layout:set("w", gfx.w)
-    -- btn:set("text", tostring(Gui.frame / 10))
+    btn:set("text", tostring(Gui.frame / 10))
     -- input:set("w", gfx.w)
     layout:draw()
     Gui.post_draw()
