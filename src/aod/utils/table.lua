@@ -1,4 +1,8 @@
 local module = {}
+-- local Log = require("aod.utils.log")
+
+
+
 -- modifies t1 -> updates with t2's values
 function module.merge(t1, t2)
     for k, v in pairs(t2) do
@@ -20,6 +24,40 @@ function module.deepmerge(t1, t2)
         end
     end
     return t1
+end
+
+local function getIn(tbl, keys)
+    local k = table.remove(keys,1)
+    if #keys == 0 then
+        return tbl[k]
+    else return
+        getIn(tbl[k], keys)
+    end
+end
+
+-- the has copied
+function module.getIn(tbl, keys)
+    local copiedKeys = module.copy(keys)
+    return getIn(tbl, copiedKeys)
+end
+
+local function setIn(tbl, keys, value)
+    local k = table.remove(keys,1)
+    if #keys == 0 then
+        tbl[k] = value
+    else return
+        setIn(tbl[k], keys, value)
+    end
+end
+
+function module.updateIn(tbl, keys)
+    local copiedKeys = module.copy(keys)
+    return getIn(tbl, copiedKeys)
+end
+
+function module.setIn(tbl, keys, value)
+    local copiedKeys = module.copy(keys)
+    return setIn(tbl, copiedKeys, value)
 end
 
 function module.copy(orig)
