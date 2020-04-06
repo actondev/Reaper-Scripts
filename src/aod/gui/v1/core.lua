@@ -5,6 +5,20 @@ local Chars = require("aod.text.chars")
 local Text = require("aod.text.input")
 local Log = require("aod.utils.log")
 
+-- https://gist.github.com/jrus/3197011
+local random = math.random
+local function uuid()
+    local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+    return string.gsub(
+        template,
+        "[xy]",
+        function(c)
+            local v = (c == "x") and random(0, 0xf) or random(8, 0xb)
+            return string.format("%x", v)
+        end
+    )
+end
+
 module = {
     frame = 0,
     cap = 0, -- the current mouse_cap
@@ -66,7 +80,123 @@ function module.post_draw()
     module.pcap = module.cap
 end
 
-module.Element = Class.create()
+module.Object = Class.create()
+function module.Object:__construct(data)
+    data = data or {}
+    self.data = Table.deepcopy(data)
+    self.init = Table.deepcopy(data)
+    -- Note: there was a bug in deepcoy, giving me the same table for the 2 calls Table.deepcopy on the same table
+    self.mods = {} -- keeping track of modifications.. like when on hover
+    self._watches = {}
+    self._listeners = {}
+end
+
+function module.Object:watch(property, cb)
+    if self._watches[property] == nil then
+        self._watches[property] = {}
+    end
+    local watches = self._watches[property]
+    watches[#watches + 1] = cb
+end
+
+function module.Object:on(signal, cb)
+    if self._listeners[signal] == nil then
+        self._listeners[signal] = {}
+    end
+    local listeners = self._listeners[signal]
+    listeners[#listeners + 1] = cb
+end
+
+-- watches the property for changes
+-- @param property: the property to watch for changes
+-- @param predicate: if the predicate is true, will call the modifier
+-- @param modifier
+--    a "list" of modifications to apply to the Object while the predicate is true
+--    when the predicate gets to false, the applied changes get reverted
+--
+
+
+--[[
+    Applies a modification to the Object's data as defined from the return value of callback
+    The callback is run whenever the watchProperty is changed
+    If the callback returns nil, then the applied modification is reversed/undone
+
+    example usage
+btn:watch_mod(
+    "hover",
+    function(el, oldValue, newValue)
+        if newValue then
+            -- modifing background green to 1
+            return {[{"bg", "g"}] = 1}
+        else
+            -- upon returning nil, my change is reversed
+            return nil
+        end
+    end
+)
+
+]]
+function module.Object:watch_mod(watchProperty, callback)
+    local reverseKey = uuid()
+    self:watch(
+        watchProperty,
+        function(el, old, new)
+            local mod = callback(el, old, new)
+            if mod then
+                local reverse = Table.setInMultiple(el.data, mod, true)
+                if self.mods[reverseKey] == nil then
+                    -- storing the reverse
+                    self.mods[reverseKey] = reverse
+                end
+            else
+                -- if the returned value of the callback is nill, then reverse
+                Table.setInMultiple(el.data, self.mods[reverseKey])
+                self.mods[reverseKey] = nil
+            end
+        end
+    )
+end
+
+function module.Object:set(property, newValue, force)
+    local d = self.data
+    local oldValue = d[property]
+    if newValue == oldValue and not force then
+        return
+    end
+    d[property] = newValue
+    local watches = self._watches[property]
+    if watches == nil then
+        return
+    end
+    for _, callback in ipairs(watches) do
+        callback(self, oldValue, newValue)
+    end
+end
+
+function module.Object:hasSignalListeners(signal)
+    return self._listeners[signal] ~= nil
+end
+
+function module.Object:emit(signal, data)
+    local listeners = self._listeners[signal]
+    if listeners == nil then
+        return
+    end
+    for _, callback in ipairs(listeners) do
+        callback(self, data)
+    end
+end
+
+function module.Object:hasListeners(signal)
+    return self._listeners[signal] ~= nil
+end
+
+--[[ Element
+
+    Basic element. x,y,w,h, can draw background and border, handle mouse pointer etc
+]]
+
+module.Element = Class.extend(module.Object)
 function module.Element:__construct(data)
     local defaults = {
         x = 0,
@@ -75,13 +205,8 @@ function module.Element:__construct(data)
         hover = false
     }
     data = Table.merge(defaults, data)
-    self.data = Table.deepcopy(data)
-    self.init = Table.deepcopy(data)
-    -- Note: there was a bug in deepcoy, giving me the same table for the 2 calls Table.deepcopy on the same table
-    self.mods = {} -- keeping track of modifications.. like when on hover
-    self.parent = nil
-    self._watches = {}
-    self._listeners = {}
+
+    module.Object.__construct(self,data)
 end
 
 -- returns example 90 (if "90%") or nil
@@ -185,30 +310,6 @@ local function contained(x, y, x0, y0, x1, y1)
     return x >= x0 and x <= x1 and y >= y0 and y <= y1
 end
 
-function module.Element:hasSignalListeners(signal)
-    return self._listeners[signal] ~= nil
-end
-
-function module.Element:safeEmit(signal, data)
-    local listeners = self._listeners[signal]
-    if listeners == nil then
-        return
-    end
-    for _, callback in ipairs(listeners) do
-        callback(self, data)
-    end
-end
-
-function module.Element:emit(signal, data)
-    for _, callback in ipairs(self._listeners[signal]) do
-        callback(self, data)
-    end
-end
-
-function module.Element:hasListeners(signal)
-    return self._listeners[signal] ~= nil
-end
-
 function module.Element:capRise(cap)
     return module.cap & cap == cap and module.pcap & cap == 0
 end
@@ -220,103 +321,6 @@ end
 function module.Element:wasMouseOver()
     local d = self.data
     return contained(module.mouse.px, module.mouse.py, d.x, d.y, d.x + self:width(), d.y + d.h)
-end
-
-function module.Element:watch(property, cb)
-    if self._watches[property] == nil then
-        self._watches[property] = {}
-    end
-    local watches = self._watches[property]
-    watches[#watches + 1] = cb
-end
-
-function module.Element:on(signal, cb)
-    if self._listeners[signal] == nil then
-        self._listeners[signal] = {}
-    end
-    local listeners = self._listeners[signal]
-    listeners[#listeners + 1] = cb
-end
-
--- watches the property for changes
--- @param property: the property to watch for changes
--- @param predicate: if the predicate is true, will call the modifier
--- @param modifier
---    a "list" of modifications to apply to the element while the predicate is true
---    when the predicate gets to false, the applied changes get reverted
---
-
--- https://gist.github.com/jrus/3197011
-local random = math.random
-local function uuid()
-    local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
-    return string.gsub(
-        template,
-        "[xy]",
-        function(c)
-            local v = (c == "x") and random(0, 0xf) or random(8, 0xb)
-            return string.format("%x", v)
-        end
-    )
-end
---[[
-    Applies a modification to the element's data as defined from the return value of callback
-    The callback is run whenever the watchProperty is changed
-    If the callback returns nil, then the applied modification is reversed/undone
-
-    example usage
-btn:watch_mod(
-    "hover",
-    function(el, oldValue, newValue)
-        if newValue then
-            -- modifing background green to 1
-            return {[{"bg", "g"}] = 1}
-        else
-            -- upon returning nil, my change is reversed
-            return nil
-        end
-    end
-)
-
-]]
-function module.Element:watch_mod(watchProperty, callback)
-    local reverseKey = uuid()
-    self:watch(
-        watchProperty,
-        function(el, old, new)
-            local mod = callback(el, old, new)
-            if mod then
-                local reverse = Table.setInMultiple(el.data, mod, true)
-                if self.mods[reverseKey] == nil then
-                    -- storing the reverse
-                    self.mods[reverseKey] = reverse
-                end
-            else
-                Log.debug("here, returned nil, mods", self.mods)
-                -- if the returned value of the callback is nill, then reverse
-                Table.setInMultiple(el.data, self.mods[reverseKey])
-                self.mods[reverseKey] = nil
-
-                Log.debug("mods after", self.mods)
-            end
-        end
-    )
-end
-
-function module.Element:set(property, newValue, force)
-    local d = self.data
-    local oldValue = d[property]
-    if newValue == oldValue and not force then
-        return
-    end
-    d[property] = newValue
-    local watches = self._watches[property]
-    if watches == nil then
-        return
-    end
-    for _, callback in ipairs(watches) do
-        callback(self, oldValue, newValue)
-    end
 end
 
 function module.Element:isMouseOver()
