@@ -71,12 +71,14 @@ function module.Element:__construct(data)
     local defaults = {
         x = 0,
         y = 0,
-        padding = 0
+        padding = 0,
+        hover = false
     }
     data = Table.merge(defaults, data)
     self.data = Table.deepcopy(data)
     self.init = Table.deepcopy(data)
     -- Note: there was a bug in deepcoy, giving me the same table for the 2 calls Table.deepcopy on the same table
+    self.mods = {} -- keeping track of modifications.. like when on hover
     self.parent = nil
     self._watches = {}
     self._listeners = {}
@@ -236,9 +238,77 @@ function module.Element:on(signal, cb)
     listeners[#listeners + 1] = cb
 end
 
-function module.Element:set(property, newValue)
+-- watches the property for changes
+-- @param property: the property to watch for changes
+-- @param predicate: if the predicate is true, will call the modifier
+-- @param modifier
+--    a "list" of modifications to apply to the element while the predicate is true
+--    when the predicate gets to false, the applied changes get reverted
+--
+
+-- https://gist.github.com/jrus/3197011
+local random = math.random
+local function uuid()
+    local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
+    return string.gsub(
+        template,
+        "[xy]",
+        function(c)
+            local v = (c == "x") and random(0, 0xf) or random(8, 0xb)
+            return string.format("%x", v)
+        end
+    )
+end
+--[[
+    Applies a modification to the element's data as defined from the return value of callback
+    The callback is run whenever the watchProperty is changed
+    If the callback returns nil, then the applied modification is reversed/undone
+
+    example usage
+btn:watch_mod(
+    "hover",
+    function(el, oldValue, newValue)
+        if newValue then
+            -- modifing background green to 1
+            return {[{"bg", "g"}] = 1}
+        else
+            -- upon returning nil, my change is reversed
+            return nil
+        end
+    end
+)
+
+]]
+function module.Element:watch_mod(watchProperty, callback)
+    local reverseKey = uuid()
+    self:watch(
+        watchProperty,
+        function(el, old, new)
+            local mod = callback(el, old, new)
+            if mod then
+                local reverse = Table.setInMultiple(el.data, mod, true)
+                if self.mods[reverseKey] == nil then
+                    -- storing the reverse
+                    self.mods[reverseKey] = reverse
+                end
+            else
+                Log.debug("here, returned nil, mods", self.mods)
+                -- if the returned value of the callback is nill, then reverse
+                Table.setInMultiple(el.data, self.mods[reverseKey])
+                self.mods[reverseKey] = nil
+
+                Log.debug("mods after", self.mods)
+            end
+        end
+    )
+end
+
+function module.Element:set(property, newValue, force)
     local d = self.data
     local oldValue = d[property]
+    if newValue == oldValue and not force then
+        return
+    end
     d[property] = newValue
     local watches = self._watches[property]
     if watches == nil then
@@ -313,6 +383,7 @@ function module.Element:draw()
     -- end
     local isMouseOver = self:isMouseOver()
     local wasMouseOver = self:wasMouseOver()
+    self:set("hover", isMouseOver)
 
     if isMouseOver and not wasMouseOver then
         self:safeEmit(module.SIGNALS.MOUSE_ENTER)
@@ -432,7 +503,7 @@ function module.Input:__construct(data)
         focus = false,
         blinkFrameInterval = 20,
         cursorVisible = true,
-        placeholder = "start typing", -- or a text to show when the text input is empty
+        placeholder = "start typing" -- or a text to show when the text input is empty
     }
     data = Table.merge(defaults, data)
 

@@ -70,7 +70,7 @@ local btn =
 )
 
 -- example of applying a certain style when hovered
-btn:on(
+el:on(
     Gui.SIGNALS.MOUSE_ENTER,
     function(el)
         el._app_bg = Table.deepcopy(el.data.bg)
@@ -78,11 +78,25 @@ btn:on(
     end
 )
 
-btn:on(
+el:on(
     Gui.SIGNALS.MOUSE_LEAVE,
     function(el)
         el.data.bg = el._app_bg
         el._app_bg = nil
+    end
+)
+
+-- a better way to do apply a style when hovered
+btn:watch_mod(
+    "hover",
+    function(el, oldValue, newValue)
+        if newValue then
+            -- modifing background green to 1
+            return {[{"bg", "g"}] = 1}
+        else
+            -- upon returning nil, the mod applied change is reversed
+            return nil
+        end
     end
 )
 
@@ -114,7 +128,7 @@ local input =
         text = "..",
         padding = 5,
         focus = true,
-        fg = {r = 1, g =0, b=0},
+        fg = {r = 1, g = 0, b = 0},
         fontSize = 20
     }
 )
