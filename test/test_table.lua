@@ -51,11 +51,75 @@ function test_setIn()
 
     local path = {"fg", "r"}
     Table.setIn(t, path, 1.1)
-    Log.debug(t)
     lu.assertEquals(Table.getIn(t, path), 1.1)
     lu.assertEquals(Table.getIn(t, {"fg", "r"}), 1.1)
+end
 
+function test_setInMultiple()
+    local t = {
+        text = "blah",
+        fg = {
+            r = 1,
+            g = 0,
+            b = 0
+        },
+        bg = {
+            r = 0,
+            g = 1,
+            b = 0
+        }
+    }
 
+    Table.setInMultiple(
+        t,
+        {
+            [{"fg", "r"}] = 1.1,
+            [{"bg", "r"}] = 0.1
+        }
+    )
+    lu.assertEquals(Table.getIn(t, {"fg", "r"}), 1.1)
+    lu.assertEquals(Table.getIn(t, {"bg", "r"}), 0.1)
+end
+
+function test_setInMultiple_and_reverse()
+    local t = {
+        text = "blah",
+        fg = {
+            r = 1,
+            g = 0,
+            b = 0
+        },
+        bg = {
+            r = 0,
+            g = 1,
+            b = 0
+        }
+    }
+
+    lu.assertEquals(Table.getIn(t, {"fg", "r"}), 1)
+
+    local reverse =
+        Table.setInMultiple(
+        t,
+        {
+            [{"fg", "r"}] = 1.1,
+            [{"bg", "r"}] = 0.1
+        },
+        true
+    )
+    lu.assertEquals(Table.getIn(t, {"fg", "r"}), 1.1)
+    lu.assertEquals(Table.getIn(t, {"bg", "r"}), 0.1)
+
+    local expectedReverse = {
+        [{"fg", "r"}] = 1,
+        [{"bg", "r"}] = 0
+    }
+    lu.assertEquals(Log.dump(reverse), Log.dump(expectedReverse))
+
+    -- reversing
+    Table.setInMultiple(t, reverse)
+    -- now fg.r should be back to 1
+    lu.assertEquals(Table.getIn(t, {"fg", "r"}), 1)
 end
 
 os.exit(lu.LuaUnit.run())

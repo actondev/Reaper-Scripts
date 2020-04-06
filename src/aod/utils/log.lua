@@ -6,11 +6,10 @@ module.WARN = 2
 
 module.LEVEL = module.WARN
 
-if reaper then 
+if reaper then
     module.backend = reaper.ShowConsoleMsg
 else
     module.backend = io.write
-
 end
 
 local function dump(o)
@@ -18,16 +17,24 @@ local function dump(o)
         local s = "{ "
         for k, v in pairs(o) do
             if type(k) ~= "number" then
-                k = '"' .. k .. '"'
+                if type(k) == "table" then
+                    k = dump(k)
+                else
+                    k = '"' .. k .. '"'
+                end
             end
-            s = s .. "[" .. k .. "] = " .. dump(v) .. ","
+            s = s .. "[" .. k .. "] = " .. dump(v) .. ", "
         end
-        return s .. "} "
+        return s .. "}"
     elseif type(o) == "string" then
         return "'" .. o .. "'"
     else
         return tostring(o)
     end
+end
+
+function module.dump(o)
+    return dump(o)
 end
 
 local function print(prepend, ...)

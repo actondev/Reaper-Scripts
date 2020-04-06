@@ -1,7 +1,5 @@
 local module = {}
--- local Log = require("aod.utils.log")
-
-
+local Log = require("aod.utils.log")
 
 -- modifies t1 -> updates with t2's values
 function module.merge(t1, t2)
@@ -27,11 +25,11 @@ function module.deepmerge(t1, t2)
 end
 
 local function getIn(tbl, keys)
-    local k = table.remove(keys,1)
+    local k = table.remove(keys, 1)
     if #keys == 0 then
         return tbl[k]
-    else return
-        getIn(tbl[k], keys)
+    else
+        return getIn(tbl[k], keys)
     end
 end
 
@@ -42,11 +40,11 @@ function module.getIn(tbl, keys)
 end
 
 local function setIn(tbl, keys, value)
-    local k = table.remove(keys,1)
+    local k = table.remove(keys, 1)
     if #keys == 0 then
         tbl[k] = value
-    else return
-        setIn(tbl[k], keys, value)
+    else
+        return setIn(tbl[k], keys, value)
     end
 end
 
@@ -58,6 +56,39 @@ end
 function module.setIn(tbl, keys, value)
     local copiedKeys = module.copy(keys)
     return setIn(tbl, copiedKeys, value)
+end
+
+-- modify a table like so
+-- keys: {{"a","b"} = 1 , {"a,c"} = 2} will set tbl.a.b to 1 and tbl.a.c to 2
+-- @return if returnPrev==true :
+--         the map of the old values which, if applied, will result in nothing having changed
+function module.setInMultiple(tbl, kv, returnPrev)
+    if not kv then
+        return
+    end
+    local prev = nil
+    if returnPrev then
+        prev = {}
+    end
+    for path, value in pairs(kv) do
+        if returnPrev then
+            prev[module.copy(path)] = module.getIn(tbl, path)
+        end
+        module.setIn(tbl, path, value)
+    end
+
+    return prev
+end
+
+function module.keyset(tbl)
+    local keyset = {}
+    local n = 0
+
+    for k, _ in pairs(tbl) do
+        n = n + 1
+        keyset[n] = k
+    end
+    return keyset
 end
 
 function module.copy(orig)
