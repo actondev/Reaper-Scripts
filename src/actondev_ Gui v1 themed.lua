@@ -28,7 +28,8 @@ local input =
     Themed.Input(
         {
             id = "input1",
-            text = "..",
+            text = "",
+            placeholder = "Start typing to search actions",
             padding = 5,
             w = '100%',
             focus = true,
@@ -63,7 +64,6 @@ function mainloop()
     Gui.pre_draw()
     layout:set("w", gfx.w)
     btn:set("text", tostring(Gui.frame / 10))
-    -- input:set("w", gfx.w)
     layout:draw()
     Gui.post_draw()
 

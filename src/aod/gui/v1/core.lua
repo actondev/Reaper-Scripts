@@ -115,7 +115,6 @@ end
 --    when the predicate gets to false, the applied changes get reverted
 --
 
-
 --[[
     Applies a modification to the Object's data as defined from the return value of callback
     The callback is run whenever the watchProperty is changed
@@ -195,7 +194,6 @@ end
 
     Basic element. x,y,w,h, can draw background and border, handle mouse pointer etc
 ]]
-
 module.Element = Class.extend(module.Object)
 function module.Element:__construct(data)
     local defaults = {
@@ -206,7 +204,7 @@ function module.Element:__construct(data)
     }
     data = Table.merge(defaults, data)
 
-    module.Object.__construct(self,data)
+    module.Object.__construct(self, data)
 end
 
 -- returns example 90 (if "90%") or nil
@@ -390,10 +388,10 @@ function module.Element:draw()
     self:set("hover", isMouseOver)
 
     if isMouseOver and not wasMouseOver then
-        self:safeEmit(module.SIGNALS.MOUSE_ENTER)
+        self:emit(module.SIGNALS.MOUSE_ENTER)
     end
     if not isMouseOver and wasMouseOver then
-        self:safeEmit(module.SIGNALS.MOUSE_LEAVE)
+        self:emit(module.SIGNALS.MOUSE_LEAVE)
     end
     if isMouseOver then
         -- click event: on mouse press (or should be on release?)
@@ -448,13 +446,15 @@ function module.Button:__construct(data)
         borderColor = {
             r = 1,
             g = 1,
-            b = 1
+            b = 1,
+            a = 1
         },
         borderWidth = 1,
         fg = {
             r = 1,
             g = 1,
-            b = 1
+            b = 1,
+            a = 1
         }
     }
     data = Table.merge(defaults, data)
@@ -507,7 +507,7 @@ function module.Input:__construct(data)
         focus = false,
         blinkFrameInterval = 20,
         cursorVisible = true,
-        placeholder = "start typing" -- or a text to show when the text input is empty
+        placeholder = nil
     }
     data = Table.merge(defaults, data)
 
@@ -536,6 +536,21 @@ function module.Input:__construct(data)
             end
         end
     )
+    if data.placeholder and data.placeholder ~= "" then
+        -- modifying text color alpha
+        self:watch_mod(
+            "text",
+            function(el, old, new)
+                if new == "" then
+                    return {[{"fg", "a"}] = 0.5}
+                end
+            end
+        )
+        if data.text == "" then
+            -- triggering the mod
+            self:set("text", "", true)
+        end
+    end
 end
 
 function module.Input:drawable_text()

@@ -8,7 +8,7 @@ local themeContent = Theme.content(Theme.file())
 
 local function rgb(key)
     local r, g, b = Theme.colorRGB(themeContent, key)
-    return {r = r, g = g, b = b}
+    return {r = r, g = g, b = b, a = 1}
 end
 
 local function clearColor(color)

@@ -99,6 +99,7 @@ local actions = {
     [Chars.CHAR.END] = module._handleEnd
 }
 
+-- @param c : ascii int code (eg 0 = null code, 27 = escape)
 function module:handle(c, mods)
     if c == 0 then
         return

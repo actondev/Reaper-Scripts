@@ -138,6 +138,7 @@ local input2 =
     {
         id = "input2",
         text = "",
+        placeholder = "Input 2: start typing",
         padding = 5,
         focus = false,
         fontSize = 20
