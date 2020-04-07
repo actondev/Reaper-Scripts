@@ -81,9 +81,12 @@ function module.post_draw()
 end
 
 module.Object = Class.create()
-function module.Object:__construct(data)
+-- @param keysToKeepFromData : optional. an array(table) of keys to keep from the original data
+--        usecase: a layout needs to keep track of the elements. it's a mutable field
+function module.Object:__construct(data, keysToKeepFromData)
     data = data or {}
-    self.data = Table.deepcopy(data)
+    keysToKeepFromData = keysToKeepFromData or {}
+    self.data = Table.partialDeepCopy(data, keysToKeepFromData)
     self.init = Table.deepcopy(data)
     -- Note: there was a bug in deepcoy, giving me the same table for the 2 calls Table.deepcopy on the same table
     self.mods = {} -- keeping track of modifications.. like when on hover
@@ -721,5 +724,7 @@ function module.HLayout:calculateAutoHeight()
     end
     return height + 2 * self.data.padding
 end
+
+module.List = Class.extend(module.Element)
 
 return module
