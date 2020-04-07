@@ -187,7 +187,7 @@ local list =
         selectedIndex = 1, -- 0 for no default selected, or 1 to select the 1st
         elements = {
             makeListButton(layoutBtnOpts),
-            makeListButton(layoutBtnOpts)
+            makeListButton(Table.merge(layoutBtnOpts, {text = "second button"}))
         },
         borderColor = {
             r = 0,
@@ -199,6 +199,10 @@ local list =
         spacing = 5
     }
 )
+
+list:on(Gui.SIGNALS.RETURN, function(el)
+    Log.debug("enter on button with text ", el:selected().data.text)
+end)
 
 local layout =
     Gui.VLayout(

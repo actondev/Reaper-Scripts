@@ -721,6 +721,10 @@ end
 
 module.List = Class.extend(module.VLayout)
 
+function module.List:selected()
+    return self.data.elements[self.data.selectedIndex]
+end
+
 function module.List:__construct(data)
     local defaults = {
         focus = true, -- listening for up/down key presses,
@@ -760,19 +764,23 @@ end
 function module.List:draw()
     -- listening up/down keystrokes
     local d = self.data
-    if d.focus and module.char == Chars.CHAR.DOWN or module.char == Chars.CHAR.UP then
+    local c = module.char
+
+    if d.focus and c ~= 0 then
         local newIndex = d.selectedIndex
-        if module.char == Chars.CHAR.DOWN then
+        if c == Chars.CHAR.DOWN then
             newIndex = d.selectedIndex + 1
-        elseif module.char == Chars.CHAR.UP then
+            if newIndex > #d.elements then
+                newIndex = 1
+            end
+        elseif c == Chars.CHAR.UP then
             newIndex = d.selectedIndex - 1
-        end
-        -- wrapping index
-        if newIndex > #d.elements then
-            newIndex = 1
-        end
-        if newIndex < 1 then
-            newIndex = #d.elements
+            if newIndex < 1 then
+                newIndex = #d.elements
+            end
+        elseif c == Chars.CHAR.RETURN then
+            Log.debug("here return")
+            self:emit(module.SIGNALS.RETURN)
         end
         self:set("selectedIndex", newIndex)
     end
