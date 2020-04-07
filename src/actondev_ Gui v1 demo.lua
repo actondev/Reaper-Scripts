@@ -163,6 +163,43 @@ local hlayout =
     }
 )
 
+local function makeListButton(opts)
+    local btn = Gui.Button(layoutBtnOpts)
+    btn:watch_mod(
+        "selected",
+        function(el, old, new)
+            if new then
+                return {
+                    [{"borderColor"}] = {r = 1, b = 0, g = 0},
+                }
+            end
+        end
+    )
+
+    return btn
+end
+
+-- changes selection with up/down key press
+local list =
+    Gui.List(
+    {
+        id = "list",
+        selectedIndex = 1, -- 0 for no default selected, or 1 to select the 1st
+        elements = {
+            makeListButton(layoutBtnOpts),
+            makeListButton(layoutBtnOpts)
+        },
+        borderColor = {
+            r = 0,
+            g = 1,
+            b = 0
+        },
+        borderWidth = 1,
+        padding = 10,
+        spacing = 5
+    }
+)
+
 local layout =
     Gui.VLayout(
     {
@@ -183,7 +220,8 @@ local layout =
             Gui.Button(layoutBtnOpts),
             input,
             hlayout,
-            input2
+            input2,
+            list
         }
     }
 )

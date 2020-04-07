@@ -198,7 +198,7 @@ end
     Basic element. x,y,w,h, can draw background and border, handle mouse pointer etc
 ]]
 module.Element = Class.extend(module.Object)
-function module.Element:__construct(data)
+function module.Element:__construct(data, ...)
     local defaults = {
         x = 0,
         y = 0,
@@ -207,7 +207,7 @@ function module.Element:__construct(data)
     }
     data = Table.merge(defaults, data)
 
-    module.Object.__construct(self, data)
+    module.Object.__construct(self, data, ...)
 end
 
 -- returns example 90 (if "90%") or nil
@@ -622,15 +622,9 @@ function module.ILayout:__construct(data)
     }
 
     data = Table.merge(defaults, data)
-    local elements = data.elements
-    data.elements = nil
-    -- Important! not passing the elments in the constructor
-    -- the constructor performs a deep copy of the data table. In that case, we would loose the original references
-    module.Element.__construct(self, data)
-    -- now setting again the originally passed elements
-    self.data.elements = elements
-
-    for _, el in ipairs(elements) do
+    -- Important! we need to keep the reference of data.elements
+    module.Element.__construct(self, data, {"elements"})
+    for _, el in ipairs(data.elements) do
         el.parent = self
         if self:widthAuto() then
             -- watch changes in childrens' width
@@ -665,7 +659,7 @@ function module.ILayout:draw()
         runx = d.x + d.padding,
         runy = d.y + d.padding
     } -- storing temp layout values
-    for i, el in ipairs(d.elements) do
+    for _, el in ipairs(d.elements) do
         el:set("x", self._layout.runx)
         el:set("y", self._layout.runy)
         el:draw()
@@ -725,6 +719,65 @@ function module.HLayout:calculateAutoHeight()
     return height + 2 * self.data.padding
 end
 
-module.List = Class.extend(module.Element)
+module.List = Class.extend(module.VLayout)
+
+function module.List:__construct(data)
+    local defaults = {
+        focus = true, -- listening for up/down key presses,
+        selectedIndex = 0,
+        elements = {}
+    }
+    data = Table.merge(defaults, data)
+
+    module.VLayout.__construct(self, data)
+    for i, el in pairs(data.elements) do
+        -- initializing list elements: selected false
+        -- note: no need to use set: avoid listeners
+        el.data.selected = false
+        -- TODO not sure if I should store the index
+        -- but could be useful (auto selecting on hover for example)
+        el.data.listIndex = i
+    end
+
+    self:watch(
+        "selectedIndex",
+        function(el, oldIndex, newIndex)
+            local selectedCurrent = self.data.elements[newIndex]
+            local selectedPrev = self.data.elements[oldIndex]
+            if selectedPrev then
+                selectedPrev:set("selected", false)
+            end
+            if selectedCurrent then
+                selectedCurrent:set("selected", true)
+            end
+        end
+    )
+
+    -- forcing the selected element to listen for its selection event
+    self:set("selectedIndex", data.selectedIndex, true)
+end
+
+function module.List:draw()
+    -- listening up/down keystrokes
+    local d = self.data
+    if d.focus and module.char == Chars.CHAR.DOWN or module.char == Chars.CHAR.UP then
+        local newIndex = d.selectedIndex
+        if module.char == Chars.CHAR.DOWN then
+            newIndex = d.selectedIndex + 1
+        elseif module.char == Chars.CHAR.UP then
+            newIndex = d.selectedIndex - 1
+        end
+        -- wrapping index
+        if newIndex > #d.elements then
+            newIndex = 1
+        end
+        if newIndex < 1 then
+            newIndex = #d.elements
+        end
+        self:set("selectedIndex", newIndex)
+    end
+
+    module.VLayout.draw(self)
+end
 
 return module

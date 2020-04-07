@@ -119,6 +119,15 @@ function module.deepcopy(orig, copies)
     return copy
 end
 
+function module.partialDeepCopy(orig, keysToKeepFromOriginal)
+    local copy = module.deepcopy(orig)
+    for _,key in pairs(keysToKeepFromOriginal) do
+        copy[key] = orig[key]
+    end
+    
+    return copy
+end
+
 function module.map(tbl, f)
     local t = {}
     for k, v in ipairs(tbl) do
