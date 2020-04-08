@@ -212,7 +212,7 @@ end
 
 -- returns example 90 (if "90%") or nil
 function module.Element:widthPercentage()
-    return self.init.w and string.match(self.init.w, "^([%d][%d]?[%d]?)%%")
+    return self.init.w and string.match(self.init.w, "^([%d][%d]?[%d]?)%%$")
 end
 
 function module.Element:widthFixed()
@@ -262,7 +262,7 @@ function module.Element:width()
             Log.warn("percentage width is only allow for elements in a layout (with a parent)")
         end
         local factor = self:widthPercentage() / 100
-        newValue = factor * self.parent:width()
+        newValue = factor * self.parent:internalWidth()
     elseif self:widthAuto() then
         if cached then
             return cached
@@ -275,6 +275,10 @@ function module.Element:width()
     -- Log.debug("setting new width", newValue, " to el", self.data.id)
     self:set("w", newValue)
     return newValue
+end
+
+function module.Element:internalWidth()
+    return self:width() - 2 * self.data.padding
 end
 
 -- TODO... pff.. duplicate code...
@@ -292,7 +296,7 @@ function module.Element:height()
             Log.warn("percentage height is only allow for elements in a layout (with a parent)")
         end
         local factor = self:heightPercentage() / 100
-        newValue = factor * self.parent:height()
+        newValue = factor * self.parent:internalHeight()
     elseif self:heightAuto() then
         if cached then
             return cached
@@ -305,6 +309,10 @@ function module.Element:height()
     -- Log.debug("setting new height", newValue, " to el", self.data.id)
     self:set("h", newValue)
     return newValue
+end
+
+function module.Element:internalHeight()
+    return self:height() - 2 * self.data.padding
 end
 
 local function contained(x, y, x0, y0, x1, y1)
@@ -510,6 +518,7 @@ function module.Input:__construct(data)
         focus = false,
         blinkFrameInterval = 20,
         cursorVisible = true,
+        text = "",
         placeholder = nil
     }
     data = Table.merge(defaults, data)
@@ -678,7 +687,10 @@ function module.VLayout:calculateAutoWidth()
     -- Log.debug("VLayout auto width calculation")
     local width = 0
     for i, el in ipairs(self.data.elements) do
-        width = math.max(width, el:width())
+        -- note: if the element has a percentage, could result in a recursion
+        if not el:widthPercentage() then
+            width = math.max(width, el:width())
+        end
     end
     local res = width + 2 * self.data.padding
     return res
@@ -689,7 +701,9 @@ function module.VLayout:calculateAutoHeight()
     local height = 0
     local d = self.data
     for i, el in ipairs(d.elements) do
-        height = height + el:height() + d.spacing
+        if not el:heightPercentage() then
+            height = height + el:height() + d.spacing
+        end
     end
     return height - d.spacing + 2 * d.padding
 end
