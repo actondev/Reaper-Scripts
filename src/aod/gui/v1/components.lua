@@ -31,24 +31,6 @@ local layoutBtnOpts = {
     text = "button"
 }
 
-local function makeResultButton(result)
-    layoutBtnOpts.text = result.name
-    local btn = Gui.Button(layoutBtnOpts)
-    btn.result = result
-    btn:watch_mod(
-        "selected",
-        function(el, old, new)
-            if new then
-                return {
-                    [{"borderColor"}] = {r = 1, b = 0, g = 0}
-                }
-            end
-        end
-    )
-
-    return btn
-end
-
 local exampleData = {
     search = {
         entries = {
@@ -65,11 +47,25 @@ local exampleData = {
     action = function(result)
         Log.debug("pressed enter, active is", result)
     end,
+    resultFn = function(result) -- to generate a button
+        layoutBtnOpts.text = result.name
+        local btn = Gui.Button(layoutBtnOpts)
+        btn.result = result
+        btn:watch_mod(
+            "selected",
+            function(el, old, new)
+                if new then
+                    return {
+                        [{"borderColor"}] = {r = 1, b = 0, g = 0}
+                    }
+                end
+            end
+        )
+    
+        return btn
+    end,
     layout = {
         w = "100%",
-        -- h = 100,
-        spacing = 5,
-        padding = 5,
         borderColor = {r = 0, g = 0, b = 1, a = 1},
         borderWidth = 2,
         elements = {}
@@ -80,25 +76,20 @@ local exampleData = {
     }
 }
 
-local exapmleResults = {
-    {name = "result 1", id = 1},
-    {name = "result 2", id = 2}
-}
-
 module.AutoComplete = Class.extend(Gui.VLayout)
 
 function module.AutoComplete:__construct(data)
     data = data or exampleData
-
     local input = Gui.Input(data.input)
-    data.input = nil
 
     local resultList =
         Gui.List(
         {
             focus = true,
             w = "100%",
-            elements = {}
+            elements = {},
+            padding = 0,
+            spacing = 0,
         }
     )
 
@@ -107,7 +98,7 @@ function module.AutoComplete:__construct(data)
         function(el, oldV, newV)
             data.search.query = newV
             local results = Search.search(data.search)
-            local buttons = Table.map(results, makeResultButton)
+            local buttons = Table.map(results, data.resultFn)
             resultList:set("elements", buttons)
         end
     )
@@ -126,18 +117,7 @@ function module.AutoComplete:__construct(data)
         resultList
     }
 
-    -- local layout = Gui.VLayout(data.layout)
-    -- data.layout = nil
-
     Gui.VLayout.__construct(self, data.layout)
-
-    -- self.input = input
-    -- self.layout = layout
-end
-
-function module.AutoComplete:draw()
-    -- Log.debug("drawing autocompleteee")
-    Gui.VLayout.draw(self)
 end
 
 return module

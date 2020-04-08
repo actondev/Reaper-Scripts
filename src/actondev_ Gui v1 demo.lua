@@ -64,7 +64,7 @@ local btn =
             g = 1,
             b = 1
         },
-        text = "hello world",
+        text = "hello world 2",
         font = "Arial",
         fontSize = 15
     }

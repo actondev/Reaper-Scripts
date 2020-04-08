@@ -1,7 +1,7 @@
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
 
 local w = 500
-local h = 500
+local h = 300
 local Log = require("aod.utils.log")
 Log.LEVEL = Log.DEBUG
 
@@ -17,24 +17,47 @@ local btn =
         id = "btn",
         x = 10,
         y = 50,
-        text = "hello world",
-        w = '100%',
+        text = "hello world 11",
+        w = "100%",
         padding = 10,
-        borderWidth = 2,
+        borderWidth = 2
     }
 )
 
 local input =
     Themed.Input(
-        {
-            id = "input1",
-            text = "",
-            placeholder = "Start typing to search actions",
-            padding = 5,
-            w = '100%',
+    {
+        id = "input1",
+        text = "",
+        placeholder = "Start typing to search actions",
+        padding = 5,
+        w = "100%",
+        focus = true,
+        fontSize = 20
+    }
+)
+
+local autoComplete = Themed.AutoComplete(
+    {
+        search = {
+            entries = {
+                {name = "split items"},
+                {name = "start recording"},
+                {name = "do this"},
+                {name = "do that"}
+            }, -- an array of the searchable entries
+            query = "query", -- the query to search over the entries
+            limit = 10,
+            key = "name", -- the key of the entries to perform the search to
+            showAll = true
+        },
+        input = {
             focus = true,
-            fontSize = 20
-        }
+        },
+        action = function(result)
+            Log.debug("hey there",result)
+        end
+    }
 )
 
 local layout =
@@ -43,10 +66,11 @@ local layout =
         padding = 0,
         w = 100, -- will be set on redraw
         elements = {
-            input,
-            btn
+            -- input,
+            -- btn,
+            autoComplete
         },
-        spacing = 0,
+        spacing = 0
     }
 )
 
@@ -63,7 +87,7 @@ end
 function mainloop()
     Gui.pre_draw()
     layout:set("w", gfx.w)
-    btn:set("text", tostring(Gui.frame / 10))
+    -- btn:set("text", tostring(Gui.frame / 10))
     layout:draw()
     Gui.post_draw()
 

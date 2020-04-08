@@ -2,11 +2,26 @@ local module = {}
 local Log = require("aod.utils.log")
 
 -- modifies t1 -> updates with t2's values
-function module.merge(t1, t2)
+
+local function mergeMut(t1, t2)
+    if not t2 then
+        return t1
+    end
     for k, v in pairs(t2) do
         t1[k] = v
     end
     return t1
+end
+
+function module.merge(t1, t2)
+    local t1Copy = mergeMut({}, t1)
+    if not t2 then
+        return t1Copy
+    end
+    for k, v in pairs(t2) do
+        t1Copy[k] = v
+    end
+    return t1Copy
 end
 
 function module.deepmerge(t1, t2)
@@ -121,10 +136,10 @@ end
 
 function module.partialDeepCopy(orig, keysToKeepFromOriginal)
     local copy = module.deepcopy(orig)
-    for _,key in pairs(keysToKeepFromOriginal) do
+    for _, key in pairs(keysToKeepFromOriginal) do
         copy[key] = orig[key]
     end
-    
+
     return copy
 end
 
