@@ -123,6 +123,11 @@ function module:getCursor()
     return self.data.cursor
 end
 
+function module:clear()
+    self.data.text = ""
+    self.data.cursor = 0
+end
+
 function module:getTextWithCursor()
     return self:textLeftOfCursor() .. "|" .. self:textRightOfCursor()
 end

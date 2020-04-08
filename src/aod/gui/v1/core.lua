@@ -524,7 +524,7 @@ function module.Input:__construct(data)
     data = Table.merge(defaults, data)
 
     module.Button.__construct(self, data)
-    self._text = Text(data.text)
+    self.textHandler = Text(data.text)
     self._frame_counter = 1
     module.Input.elements[#module.Input.elements + 1] = self
     self:on(
@@ -576,7 +576,7 @@ function module.Input:draw_cursor()
     if not self.data.cursorVisible then
         return
     end
-    local leftStr = self._text:textLeftOfCursor()
+    local leftStr = self.textHandler:textLeftOfCursor()
     local strWidth, h = self:textWidthHeight(leftStr)
     w, h = self:textWidthHeight("|")
     local d = self.data
@@ -591,6 +591,11 @@ function module.Input:draw_cursor()
     gfx.rect(x, y, math.max(1, w * 0.3), h, true)
 end
 
+function module.Input:clear()
+    self.textHandler:clear()
+    self:set("text", "")
+end
+
 function module.Input:cursor_reset()
     self._frame_counter = 1
     self:set("cursorVisible", true)
@@ -603,8 +608,8 @@ function module.Input:draw()
         if c == Chars.CHAR.RETURN then
             self:emit(module.SIGNALS.RETURN)
         elseif c ~= 0 then
-            self._text:handle(c)
-            self:set("text", self._text:getText())
+            self.textHandler:handle(c)
+            self:set("text", self.textHandler:getText())
         end
 
         if self._frame_counter % self.data.blinkFrameInterval == 0 then

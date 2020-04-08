@@ -118,6 +118,7 @@ function module.AutoComplete:__construct(data)
     }
 
     Gui.VLayout.__construct(self, data.layout)
+    self.input = input
 end
 
 return module

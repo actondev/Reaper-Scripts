@@ -30,7 +30,7 @@ local defaultsButton = {
     bg = btnBg,
     borderColor = btnBorder,
     borderWidth = 2,
-    padding = 5,
+    padding = 5
 }
 
 module.Button = function(data)
@@ -45,7 +45,7 @@ local defaultsInput = {
     bg = inputBG,
     borderColor = btnBg,
     borderWidth = 5,
-    padding = 5,    
+    padding = 5
 }
 
 module.Input = function(data)
@@ -63,7 +63,8 @@ local defaultsResultFn = function(btnOpts, key)
             function(el, old, new)
                 if new then
                     return {
-                        [{"bg"}] = rgb(Theme.COLOR.Window_list_selected_row)
+                        [{"bg"}] = rgb(Theme.COLOR.Window_list_selected_row),
+                        [{"fg"}] = rgb(Theme.COLOR.Window_list_selected_text)
                     }
                 end
             end
@@ -98,9 +99,24 @@ local defaultsLayout = {
     - action
 ]]
 module.AutoComplete = function(data)
-    local defaultsInput2 = Table.merge(defaultsInput, {w = "100%"})
+    local defaultsInput2 =
+        Table.merge(
+        defaultsInput,
+        {
+            w = "100%",
+            bg = rgb(Theme.COLOR.Window_list_selected_row),
+            fg = rgb(Theme.COLOR.Window_list_selected_text)
+        }
+    )
     data.input = Table.merge(defaultsInput2, data.input)
-    data.resultFn = defaultsResultFn({w = "100%"}, data.search.key)
+    data.resultFn =
+        defaultsResultFn(
+        {
+            w = "100%",
+            borderWidth = 0
+        },
+        data.search.key
+    )
     data.layout = Table.merge(defaultsLayout, data.layout)
     data.action = data.action or function()
             Log.warning("No action specified")

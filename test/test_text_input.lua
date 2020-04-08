@@ -113,4 +113,13 @@ function test_home_end_plus_deletions()
     lu.assertEquals(".|", text:getTextWithCursor())
 end
 
+function test_clear()
+    local text = TextInput("abc")
+    lu.assertEquals("abc|", text:getTextWithCursor())
+    text:clear()
+    lu.assertEquals("|", text:getTextWithCursor())
+    text:handle(char("."))
+    lu.assertEquals(".|", text:getTextWithCursor())
+end
+
 os.exit(lu.LuaUnit.run())
