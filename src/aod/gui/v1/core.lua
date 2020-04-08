@@ -32,7 +32,7 @@ module = {
         SHIFT = 8,
         OPTION = 16,
         ALT = 16,
-        CONTROL = 32
+        CONTROL = 4 -- docs say 32 but practially.. 4
     },
     mouse = {
         x = 0,
@@ -44,7 +44,7 @@ module = {
         none = true,
         control = false,
         alt = false,
-        shit = false
+        shift = false
     },
     SIGNALS = {
         MOUSE_ENTER = "mouseEnter",
@@ -68,7 +68,7 @@ function module.pre_draw()
     -- end
 
     module.modifiers.none = module.cap == module.CAP.NONE
-    module.modifiers.control = module.cap & module.CAP.CONTROL > 0
+    module.modifiers.control = module.cap & module.CAP.COMMAND > 0 -- option or ctrl?
     module.modifiers.shift = module.cap & module.CAP.SHIFT > 0
     module.modifiers.alt = module.cap & module.CAP.ALT > 0
 end
@@ -175,6 +175,11 @@ function module.Object:set(property, newValue, force)
     end
 end
 
+function module.Object:get(property, fallback)
+    local value = self.data[property]
+    return value or fallback
+end
+
 function module.Object:hasSignalListeners(signal)
     return self._listeners[signal] ~= nil
 end
@@ -185,7 +190,7 @@ function module.Object:emit(signal, data)
         return
     end
     for _, callback in ipairs(listeners) do
-        callback(self, data)
+        callback(data)
     end
 end
 
@@ -529,8 +534,8 @@ function module.Input:__construct(data)
     module.Input.elements[#module.Input.elements + 1] = self
     self:on(
         module.SIGNALS.CLICK,
-        function(el)
-            el:set("focus", true)
+        function()
+            self:set("focus", true)
         end
     )
     self:watch(

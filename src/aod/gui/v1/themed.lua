@@ -12,6 +12,11 @@ local function rgb(key)
     return {r = r, g = g, b = b, a = 1}
 end
 
+module.rgb = rgb
+module.BUTTON_FG = rgb(Theme.COLOR.Window_list_text)
+module.BUTTON_BG = rgb(Theme.COLOR.Window_list_background)
+module.BUTTON_BG_MARKED = rgb(Theme.COLOR.Media_item_background_even)
+
 local function clearColor(color)
     local clear = math.floor(color.r * 255) + math.floor(color.g * 255) * 256 + math.floor(color.b * 255) * 65536
     return clear
@@ -37,6 +42,22 @@ module.Button = function(data)
     data = Table.merge(defaultsButton, data)
     return Gui.Button(data)
 end
+
+local defaultsLabel = {
+    fontSize = 15,
+    font = "Arial",
+    fg = btnFg,
+    bg = rgb(Theme.COLOR.Window_background),
+    borderColor = nil,
+    borderWidth = 0,
+    padding = 5
+}
+
+module.Label = function(data)
+    data = Table.merge(defaultsLabel, data)
+    return Gui.Button(data)
+end
+
 
 local defaultsInput = {
     fontSize = 15,
@@ -110,13 +131,14 @@ module.AutoComplete = function(data)
     )
     data.input = Table.merge(defaultsInput2, data.input)
     data.resultFn =
+        data.resultFn or
         defaultsResultFn(
-        {
-            w = "100%",
-            borderWidth = 0
-        },
-        data.search.key
-    )
+            {
+                w = "100%",
+                borderWidth = 0
+            },
+            data.search.key
+        )
     data.layout = Table.merge(defaultsLayout, data.layout)
     data.action = data.action or function()
             Log.warning("No action specified")

@@ -34,7 +34,7 @@ local el =
 
 el:on(
     Gui.SIGNALS.CLICK,
-    function(el)
+    function()
         Log.debug("click on", el.data.id)
     end
 )
@@ -73,7 +73,7 @@ local btn =
 -- example of applying a certain style when hovered
 el:on(
     Gui.SIGNALS.MOUSE_ENTER,
-    function(el)
+    function()
         el._app_bg = Table.deepcopy(el.data.bg)
         el.data.bg = {r = 1, g = 0, b = 0}
     end
@@ -81,7 +81,7 @@ el:on(
 
 el:on(
     Gui.SIGNALS.MOUSE_LEAVE,
-    function(el)
+    function()
         el.data.bg = el._app_bg
         el._app_bg = nil
     end
@@ -202,12 +202,12 @@ local list =
     }
 )
 
-list:on(
-    Gui.SIGNALS.RETURN,
-    function(el)
-        Log.debug("enter on button with text ", el:selected().data.text)
-    end
-)
+-- list:on(
+--     Gui.SIGNALS.RETURN,
+--     function(el)
+--         Log.debug("enter on button with text ", el:selected().data.text)
+--     end
+-- )
 
 local autoComplete = Components.AutoComplete()
 

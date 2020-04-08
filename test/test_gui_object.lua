@@ -34,6 +34,7 @@ function test_watch_mod()
     local obj = Gui.Object({foo = "notbar", mod = {isFooBar = false, mirrorFoo = "waitforit"}})
     obj:watch_mod(
         "foo",
+        -- TODO, should remove "el" as first callback argument..?
         function(el, oldValue, newValue)
             watchCounter = watchCounter + 1
             if newValue == "bar" then
@@ -63,7 +64,7 @@ function test_signals()
     local received = nil
     local obj = Gui.Object()
 
-    obj:on("dada", function(el, data)
+    obj:on("dada", function(data)
         received = data
     end)
 

@@ -1,5 +1,5 @@
 local module = {}
-local Log = require('utils.log')
+local Log = require("aod.utils.log")
 function module.cmd(id)
     if type(id) == "string" then
         reaper.Main_OnCommand(reaper.NamedCommandLookup(id), 0)
@@ -30,7 +30,8 @@ function module.moveWindowToMouse()
 end
 
 local function split(str, pat)
-    local t = {}-- NOTE: use {n = 0} in Lua-5.0
+    local t = {}
+     -- NOTE: use {n = 0} in Lua-5.0
     local fpat = "(.-)" .. pat
     local last_end = 1
     local s, e, cap = str:find(fpat, 1)
@@ -59,34 +60,38 @@ function module.getUserInput(title, opts)
     local titlesCsv = ""
     local valuesCsv = ""
     for _, entry in ipairs(opts) do
-        titlesCsv = titlesCsv .. entry['title'] .. ","
-        valuesCsv = valuesCsv .. entry['default'] .. ","
+        titlesCsv = titlesCsv .. entry["title"] .. ","
+        valuesCsv = valuesCsv .. entry["default"] .. ","
     end
-    
+
     titlesCsv = titlesCsv:sub(1, #titlesCsv - 1)
     valuesCsv = valuesCsv:sub(1, #valuesCsv - 1)
-    
+
     local retval, valuesCsv = reaper.GetUserInputs(title, #opts, titlesCsv, valuesCsv)
     if not retval then
         return nil
     end
 
-    local valuesTable = split(valuesCsv,"[,]+")
+    local valuesTable = split(valuesCsv, "[,]+")
     return valuesTable
 end
 
 module.EDIT_CONTEXT = {
-    ITEM = 'item',
-    TRAK = 'track'
+    ITEM = "item",
+    TRAK = "track"
 }
 
 -- returns if we should edit/act upon media items or media tracks
 function module.getEditContext()
-    if reaper.GetCursorContext2(true) == 1 and reaper.CountSelectedMediaItems(0)>0 then
+    if reaper.GetCursorContext2(true) == 1 and reaper.CountSelectedMediaItems(0) > 0 then
         return module.EDIT_CONTEXT.ITEM
     else
         return module.EDIT_CONTEXT.TRAK
     end
+end
+
+function module.getForegroundWindow()
+    return reaper.BR_Win32_GetForegroundWindow()
 end
 
 return module

@@ -44,9 +44,6 @@ local exampleData = {
         key = "name", -- the key of the entries to perform the search to
         showAll = true
     },
-    action = function(result)
-        Log.debug("pressed enter, active is", result)
-    end,
     resultFn = function(result) -- to generate a button
         layoutBtnOpts.text = result.name
         local btn = Gui.Button(layoutBtnOpts)
@@ -78,6 +75,10 @@ local exampleData = {
 
 module.AutoComplete = Class.extend(Gui.VLayout)
 
+module.AutoComplete.SIGNALS = {
+    RETURN = 'return'
+}
+
 function module.AutoComplete:__construct(data)
     data = data or exampleData
     local input = Gui.Input(data.input)
@@ -107,8 +108,9 @@ function module.AutoComplete:__construct(data)
     input:on(Gui.SIGNALS.RETURN, function()
         local selected = resultList:selected()
         if selected then
+            self:emit(module.AutoComplete.SIGNALS.RETURN, {item = selected, selection = selected.result})
             -- Log.debug("selected is ", selected.result)
-            data.action(selected.result)
+            -- data.action(selected.result)
         end
     end)
 
