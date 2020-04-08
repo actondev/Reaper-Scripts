@@ -9,22 +9,6 @@ local Log = require("aod.utils.log")
 local Table = require("aod.utils.table")
 local module = {}
 
-local exampleAutoComplete = {
-    -- search = {}, -- the map to be passed to the search module
-    search = {
-        entries = {
-            {name = "blah blah", id = 1},
-            {name = "boobla", id = 2}
-        }, -- an array of the searchable entries
-        query = "query", -- the query to search over the entries
-        limit = "limit", -- the limit for the results to return
-        key = "name", -- the key of the entries to perform the search to
-        showAll = "showAll" -- show all the results when query is empty
-    },
-    layout = {}, -- options to be passed to the layout
-    input = {} -- options to be passed to the input
-}
-
 local layoutBtnOpts = {
     id = "repeated btn",
     w = "100%",
@@ -47,9 +31,10 @@ local layoutBtnOpts = {
     text = "button"
 }
 
-local function makeResultButton(opts)
-    layoutBtnOpts.text = opts.name
+local function makeResultButton(result)
+    layoutBtnOpts.text = result.name
     local btn = Gui.Button(layoutBtnOpts)
+    btn.result = result
     btn:watch_mod(
         "selected",
         function(el, old, new)
@@ -77,6 +62,9 @@ local exampleData = {
         key = "name", -- the key of the entries to perform the search to
         showAll = true
     },
+    action = function(result)
+        Log.debug("pressed enter, active is", result)
+    end,
     layout = {
         w = "100%",
         -- h = 100,
@@ -125,6 +113,13 @@ function module.AutoComplete:__construct(data)
     )
 
     input:set("text", "", true)
+    input:on(Gui.SIGNALS.RETURN, function()
+        local selected = resultList:selected()
+        if selected then
+            -- Log.debug("selected is ", selected.result)
+            data.action(selected.result)
+        end
+    end)
 
     data.layout.elements = {
         input,

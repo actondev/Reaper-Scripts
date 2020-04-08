@@ -663,8 +663,8 @@ function module.ILayout:updateChildren()
     end
 end
 
-function module.ILayout:set(key, data)
-    module.Element.set(self, key, data)
+function module.ILayout:set(key, data, force)
+    module.Element.set(self, key, data, force)
     if key == "elements" then
         self:updateChildren()
     end
@@ -792,25 +792,33 @@ function module.List:draw()
     local c = module.char
 
     if d.focus and c ~= 0 then
-        local newIndex = d.selectedIndex
         if c == Chars.CHAR.DOWN then
-            newIndex = d.selectedIndex + 1
-            if newIndex > #d.elements then
-                newIndex = 1
-            end
+            self:set("selectedIndex", d.selectedIndex + 1)
         elseif c == Chars.CHAR.UP then
-            newIndex = d.selectedIndex - 1
-            if newIndex < 1 then
-                newIndex = #d.elements
-            end
+            self:set("selectedIndex", d.selectedIndex - 1)
         elseif c == Chars.CHAR.RETURN then
-            Log.debug("here return")
             self:emit(module.SIGNALS.RETURN)
         end
-        self:set("selectedIndex", newIndex)
     end
 
     module.VLayout.draw(self)
+end
+
+function module.List:set(key, data, force)
+    -- fixing selectedIndex
+    if key == "selectedIndex" then
+        if data > #self.data.elements then
+            data = 1
+        elseif data < 1 then
+            data = #self.data.elements
+        end
+    end
+    -- calling parent as always
+    module.VLayout.set(self, key, data, force)
+    if key == "elements" and self.data.selectedIndex ~= nil then
+        -- when elements are updated, select the first item on the list
+        self:set("selectedIndex", 1, true)
+    end
 end
 
 return module
