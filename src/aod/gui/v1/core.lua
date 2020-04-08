@@ -633,7 +633,11 @@ function module.ILayout:__construct(data)
     data = Table.merge(defaults, data)
     -- Important! we need to keep the reference of data.elements
     module.Element.__construct(self, data, {"elements"})
-    for _, el in ipairs(data.elements) do
+    self:updateChildren()
+end
+
+function module.ILayout:updateChildren()
+    for _, el in ipairs(self.data.elements) do
         el.parent = self
         if self:widthAuto() then
             -- watch changes in childrens' width
@@ -656,6 +660,13 @@ function module.ILayout:__construct(data)
                 end
             )
         end
+    end
+end
+
+function module.ILayout:set(key, data)
+    module.Element.set(self, key, data)
+    if key == "elements" then
+        self:updateChildren()
     end
 end
 

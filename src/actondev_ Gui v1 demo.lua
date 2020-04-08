@@ -1,12 +1,13 @@
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
 
-local w = 500
-local h = 500
+local w = 600
+local h = 600
 
 local Gui = require("aod.gui.v1.core")
 local Chars = require("gui.chars")
 local Log = require("aod.utils.log")
 local Table = require("aod.utils.table")
+local Components = require("aod.gui.v1.components")
 Log.LEVEL = Log.DEBUG
 
 local el =
@@ -163,14 +164,14 @@ local hlayout =
     }
 )
 
-local function makeListButton(opts)
-    local btn = Gui.Button(layoutBtnOpts)
+local function makeListButton()
+    local btn = Gui.Button(Table.merge({w = "100%"}, layoutBtnOpts))
     btn:watch_mod(
         "selected",
         function(el, old, new)
             if new then
                 return {
-                    [{"borderColor"}] = {r = 1, b = 0, g = 0},
+                    [{"borderColor"}] = {r = 1, b = 0, g = 0}
                 }
             end
         end
@@ -186,23 +187,29 @@ local list =
         id = "list",
         selectedIndex = 1, -- 0 for no default selected, or 1 to select the 1st
         elements = {
-            makeListButton(layoutBtnOpts),
-            makeListButton(Table.merge(layoutBtnOpts, {text = "second button"}))
+            makeListButton(),
+            makeListButton()
         },
         borderColor = {
             r = 0,
             g = 1,
             b = 0
         },
+        w = "100%",
         borderWidth = 1,
         padding = 10,
         spacing = 5
     }
 )
 
-list:on(Gui.SIGNALS.RETURN, function(el)
-    Log.debug("enter on button with text ", el:selected().data.text)
-end)
+list:on(
+    Gui.SIGNALS.RETURN,
+    function(el)
+        Log.debug("enter on button with text ", el:selected().data.text)
+    end
+)
+
+local autoComplete = Components.AutoComplete()
 
 local layout =
     Gui.VLayout(
@@ -225,7 +232,8 @@ local layout =
             input,
             hlayout,
             input2,
-            list
+            list,
+            autoComplete
         }
     }
 )
