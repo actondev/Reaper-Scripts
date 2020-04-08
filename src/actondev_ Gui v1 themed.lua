@@ -11,25 +11,51 @@ local Table = require("aod.utils.table")
 
 local Themed = require("aod.gui.v1.themed")
 
-local Actions = require("aod.reaper.actions")
+local btn =
+    Themed.Button(
+    {
+        id = "btn",
+        x = 10,
+        y = 50,
+        text = "hello world 11",
+        w = "100%",
+        padding = 10,
+        borderWidth = 2
+    }
+)
 
-local actions = Actions.getActions(Actions.SECTION.MAIN)
+local input =
+    Themed.Input(
+    {
+        id = "input1",
+        text = "",
+        placeholder = "Start typing to search actions",
+        padding = 5,
+        w = "100%",
+        focus = true,
+        fontSize = 20
+    }
+)
 
-local autoComplete =
-    Themed.AutoComplete(
+local autoComplete = Themed.AutoComplete(
     {
         search = {
-            entries = actions,
+            entries = {
+                {name = "split items"},
+                {name = "start recording"},
+                {name = "do this"},
+                {name = "do that"}
+            }, -- an array of the searchable entries
             query = "query", -- the query to search over the entries
-            limit = 5,
+            limit = 10,
             key = "name", -- the key of the entries to perform the search to
             showAll = true
         },
         input = {
-            focus = true
+            focus = true,
         },
         action = function(result)
-            Log.debug("hey there", result)
+            Log.debug("hey there",result)
         end
     }
 )
@@ -40,6 +66,8 @@ local layout =
         padding = 0,
         w = 100, -- will be set on redraw
         elements = {
+            -- input,
+            -- btn,
             autoComplete
         },
         spacing = 0
@@ -47,13 +75,19 @@ local layout =
 )
 
 function init()
-    gfx.init("actondev/Command Palette", w, layout:height())
+    gfx.init("actondev/Gui v1 demo", w, h)
+    local R, G, B = 0.3, 0.3, 0.3 -- 0..255 form
+    local Wnd_bgd = R * 255 + G * 255 * 256 + B * 255 * 65536 -- red+green*256+blue*65536
+    gfx.clear = math.floor(Wnd_bgd)
+    gfx.clear = Wnd_bgd
+
     gfx.clear = Themed.clear
 end
 
 function mainloop()
     Gui.pre_draw()
     layout:set("w", gfx.w)
+    -- btn:set("text", tostring(Gui.frame / 10))
     layout:draw()
     Gui.post_draw()
 
@@ -61,13 +95,7 @@ function mainloop()
         return
     end
     if Gui.char == Chars.CHAR.ESCAPE then
-        if autoComplete.input.data.text == "" then
-            return
-        else
-            -- clearing input text on escape
-            -- does this belong here..?
-            autoComplete.input:clear()
-        end
+        return
     end
     reaper.defer(mainloop)
     gfx.update()
