@@ -1,12 +1,12 @@
 package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
 
-local Common = require('utils.common')
-local Item = require('utils.item')
-local Log = require('utils.log')
-local RegionItem = require('utils.region_items')
-local ItemManipulation = require('utils.item_manipulation')
-local Parse = require('utils.parse')
-local Store = require('utils.store')
+local Common = require('aod.reaper.common')
+local Item = require('aod.reaper.item')
+local Log = require('aod.utils.log')
+local RegionItem = require('aod.region_items')
+local ItemManipulation = require('aod.item_manipulation')
+local Parse = require('aod.utils.parse')
+local Store = require('aod.reaper.store')
 Log.isdebug = true
 
 local undoText = 'actondev/Multi double click'
