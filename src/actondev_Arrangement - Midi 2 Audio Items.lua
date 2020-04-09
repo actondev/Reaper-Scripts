@@ -1,10 +1,10 @@
 package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
 
-local Track = require('utils.track')
-local Log = require('utils.log')
-local Item = require('utils.item')
-local Common = require('utils.common')
-local Store = require('utils.store')
+local Track = require('aod.reaper.track')
+local Log = require('aod.utils.log')
+local Item = require('aod.reaper.item')
+local Common = require('aod.reaper.common')
+local Store = require('aod.reaper.store')
 
 Log.isdebug = true
 

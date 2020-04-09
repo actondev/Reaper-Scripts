@@ -16,11 +16,14 @@ To be tagged as v`1.0.0`
 - `command palette` script
   - can search through actions (only main window for now, easy to extend)
   - can run actions on certain triggers (eg on item selection change, every 2 seconds etc)
-- midi item to items arrangement conversion (to be documented)
+- midi item -> items arrangement conversion (to be documented)
 ### TODO
 - document midi item to arrangement script
 - add inverse arrangement to midi item script
 - video demonstrating region items
+- midi item 2 arrangement:
+  - inverse
+  - only on item's length (not on source's length)
 
 ## [0.1.0] - 2017-12-25
 The old state
