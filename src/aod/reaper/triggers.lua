@@ -1,5 +1,6 @@
 local module = {}
 local Item = require("aod.reaper.item")
+local Log = require("aod.utils.log")
 
 module.itemSelection = function()
     local self = {state = nil}
@@ -85,11 +86,45 @@ module.cursorPosition = function()
     return self
 end
 
+module.every = function()
+    local self = {every = nil, start = nil}
+    function self.init()
+        self.every = nil
+        if interactive == nil then
+            Log.warn("Need an interactive function to ask for amount of seconds")
+            return
+        end
+        interactive(
+            "nEvery x seconds",
+            function(res)
+                self.every = res
+                self.start = os.clock()
+            end
+        )
+        return self
+    end
+    function self.changed()
+        if self.every == nil then
+            return false
+        end
+        local t = os.clock()
+        if t - self.start < self.every then
+            return false
+        else
+            self.start = t
+            return true
+        end
+    end
+
+    return self
+end
+
 function module.getAll()
     return {
         {name = "On item selection change", handler = module.itemSelection()},
         {name = "On cursor position change", handler = module.cursorPosition()},
-        {name = "On active take offset change", handler = module.activeTakeOffset()}
+        {name = "On active take offset change", handler = module.activeTakeOffset()},
+        {name = "On every x seconds", handler = module.every()}
     }
 end
 

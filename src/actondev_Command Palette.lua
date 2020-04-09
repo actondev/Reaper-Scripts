@@ -35,11 +35,6 @@ local makeArmedButton = function(text)
     return btn
 end
 
--- function interactive(str, cb)
-    -- Log.debug("here interactive!", str , "returning 1")
-    -- return 1
--- end
-
 local actionResultFn = function(result)
     -- Log.debug("called action result for ", result)
     local btn = Themed.Button({text = result.name, w = "100%", armed = false, borderWidth = 0})
@@ -127,10 +122,14 @@ local app =
         layout = Gui.VLayout(
             {
                 padding = 0,
+                w = "100%", -- will be set on redraw
+                spacing = 0
+            }
+        ),
+        frame = Gui.VLayout(
+            {
+                padding = 0,
                 w = 100, -- will be set on redraw
-                elements = {
-                    autoCompleteActions
-                },
                 spacing = 0
             }
         ),
@@ -140,7 +139,49 @@ local app =
         }
     }
 )
+
+app.data.frame:set("elements", {app.data.layout})
 app.data.layout:set("elements", {app.data.autocomplete.actions})
+
+--[[
+    global function
+    mimicking emacs-lisp (interactive)
+example usage
+
+interactive("nGive me a number", function (number) 
+    -- to stuff with the number
+end
+--]]
+function interactive(interactiveString, callback)
+    local input =
+        Themed.Input(
+        {
+            placeholder = string.sub(interactiveString, 2, #interactiveString),
+            focus = true
+        }
+    )
+
+    local parse = function(input)
+        local firstChar = interactiveString:sub(1, 1)
+        if firstChar == "n" then
+            return tonumber(input)
+        end
+        -- else just return it. thing of other usages
+        return input
+    end
+
+    input:on(
+        Gui.SIGNALS.RETURN,
+        function()
+            callback(parse(input:get("text")))
+            app.data.frame:set("elements", {app.data.layout})
+        end
+    )
+
+    -- hm, would be nice to show the input at the bottom
+    -- like emacs mini buffer
+    app.data.frame:set("elements", {app.data.layout, input})
+end
 
 function app:markAction(action)
     app:set("markedAction", action)
@@ -216,8 +257,8 @@ function app:main()
             self:set("armedActionCounter", self.data.armedActionCounter + 1)
         end
     end
-    self.data.layout:set("w", gfx.w)
-    self.data.layout:draw()
+    self.data.frame:set("w", gfx.w)
+    self.data.frame:draw()
     return true
 end
 
@@ -269,7 +310,7 @@ autoCompleteTrigger:on(
 )
 
 -- demo
- app:markAction({["id"] = 40012, ["name"] = "Item: Split items at edit or play cursor"})
+app:markAction({["id"] = 40012, ["name"] = "Item: Split items at edit or play cursor"})
 
 function init()
     gfx.init("actondev/Command Palette", w, app.data.layout:height())
