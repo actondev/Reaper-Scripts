@@ -186,6 +186,9 @@ function module.setActiveTakeInfo(item, param, value)
 end
 
 function module.getActiveTakeInfo(item, param)
+    if not item then
+        return nil
+    end
     local take = module.activeTake(item)
     if take == nil then
         return

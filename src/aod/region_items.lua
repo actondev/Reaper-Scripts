@@ -96,7 +96,7 @@ function module.select(regionItem, startOffset, length)
     Track.selectOnly(track)
 end
 
-local function shouldPropagate(source, target)
+local function areOfSameRegion(source, target)
     if source == target then
         return false
     end
@@ -118,7 +118,7 @@ local function shouldPropagate(source, target)
 end
 
 function module.propagateFromTo(sourceRegionItem, targetRegionItem)
-    if not shouldPropagate(sourceRegionItem, targetRegionItem) then
+    if not areOfSameRegion(sourceRegionItem, targetRegionItem) then
         Log.warn(
             "Should not propagate from item with notes " ..
                 Item.notes(sourceRegionItem) .. " to " .. Item.notes(targetRegionItem)
@@ -194,7 +194,7 @@ function module.propagate(regionItem)
     local otherRegionItems = Item.selected()
 
     for _i, targetRegion in ipairs(otherRegionItems) do
-        if shouldPropagate(regionItem, targetRegion) then
+        if areOfSameRegion(regionItem, targetRegion) then
             module.propagateFromTo(regionItem, targetRegion)
         end
     end
@@ -229,7 +229,7 @@ function module.pull(regionItem)
     local otherRegionItems = Item.selected()
 
     for _i, otherRegion in ipairs(otherRegionItems) do
-        if isSubregionOf(regionItem, otherRegion) then
+        if areOfSameRegion(regionItem, otherRegion) and isSubregionOf(regionItem, otherRegion) then
             -- Log.debug("pulling from " .. Item.notes(otherRegion))
             module.propagateFromTo(otherRegion, regionItem)
             break
