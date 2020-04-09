@@ -123,4 +123,12 @@ function module.AutoComplete:__construct(data)
     self.input = input
 end
 
+function module.AutoComplete:getText()
+    return self.input:get("text")
+end
+
+function module.AutoComplete:clear()
+    return self.input:clear()
+end
+
 return module

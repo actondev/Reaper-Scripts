@@ -42,6 +42,52 @@
     end
   ```
 
+## traceback
+``` lua
+local crash = function(errObject)
+   local byLine = "([^\r\n]*)\r?\n?"
+   local trimPath = "[\\/]([^\\/]-:%d+:.+)$"
+   local err = errObject and string.match(errObject, trimPath) or "Couldn't get error message."
+
+   local trace = debug.traceback()
+   local stack = {}
+   for line in string.gmatch(trace, byLine) do
+      local str = string.match(line, trimPath) or line
+      stack[#stack + 1] = str
+   end
+
+   local name = ({reaper.get_action_context()})[2]:match("([^/\\_]+)$")
+
+   local ret =
+      reaper.ShowMessageBox(
+      name .. " has crashed!\n\n" .. "Would you like to have a crash report printed " .. "to the Reaper console?",
+      "Oops",
+      4
+   )
+
+   if ret == 6 then
+      reaper.ShowConsoleMsg(
+         "Error: " ..
+            err ..
+               "\n\n" ..
+                  "Stack traceback:\n\t" ..
+                     table.concat(stack, "\n\t", 2) ..
+                        "\n\n" ..
+                           "Reaper:       \t" .. reaper.GetAppVersion() .. "\n" .. "Platform:     \t" .. reaper.GetOS()
+      )
+   end
+end
+
+
+local function Main()
+   xpcall(
+      function()
+-- CODE HERE--
+,
+      crash
+   )
+end
+```
 
 
 ## TODOs

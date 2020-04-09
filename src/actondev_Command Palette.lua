@@ -129,19 +129,30 @@ local app =
                 spacing = 0
             }
         ),
-        elements = {
+        autocomplete = {
             actions = autoCompleteActions,
-            observes = autoCompleteObserve
+            observers = autoCompleteObserve
         }
     }
 )
-app.data.layout:set("elements", {app.data.elements.actions})
+app.data.layout:set("elements", {app.data.autocomplete.actions})
 
 function app:markAction(action)
     app:set("markedAction", action)
-    app.data.markedActionLabel:set("text",action.name)
-    app.data.layout:set("elements", {app.data.markedActionLabel, autoCompleteObserve})
 end
+
+app:watch(
+    "markedAction",
+    function(el, old, new)
+        local self = app
+        if new then
+            app.data.markedActionLabel:set("text", self.data.markedAction.name)
+            app.data.layout:set("elements", {self.data.markedActionLabel, autoCompleteObserve})
+        else
+            app.data.layout:set("elements", {self.data.autocomplete.actions})
+        end
+    end
+)
 
 app:watch(
     "armedActionCounter",
@@ -155,27 +166,45 @@ function app:setObserver(observer)
     app:set("observer", observer)
 end
 
-app:watch("observer", function(el, old, new)
-    if new then 
-        app:set("observerName", new.name)
-        app:set("observerHandler", new.handler.init())
-        app.data.observerLabel = makeArmedButton(new.name)
-        app.data.armedActionCounterLabel:set("text", "Run: " .. tostring(app.data.armedActionCounter) .. " times")
-        app.data.layout:set(
-            "elements",
-            {app.data.markedActionLabel, app.data.observerLabel, app.data.armedActionCounterLabel}
-        )
-    
+app:watch(
+    "observer",
+    function(el, old, new)
+        if new then
+            app:set("observerName", new.name)
+            app:set("observerHandler", new.handler.init())
+            app.data.observerLabel = makeArmedButton(new.name)
+            app.data.armedActionCounterLabel:set("text", "Run: " .. tostring(app.data.armedActionCounter) .. " times")
+            app.data.layout:set(
+                "elements",
+                {app.data.markedActionLabel, app.data.observerLabel, app.data.armedActionCounterLabel}
+            )
+        else
+            -- Log.debug("unarmed observer")
+            -- layout: marked action and searching for observer
+            app.data.layout:set("elements", {app.data.markedActionLabel, app.data.autocomplete.observers})
+        end
     end
-end
-
 )
 
 function app:main()
     if Gui.char == Chars.CHAR.ESCAPE then
-        return false
+        if self.data.observer ~= nil then
+            -- removing armed observer
+            self:set("observer", nil)
+            self.data.autocomplete.observers:clear()
+        elseif self.data.markedAction ~= nil then
+            -- removing armed action
+            self:set("markedAction", nil)
+            self.data.autocomplete.actions:clear()
+        elseif self.data.autocomplete.actions:getText() ~= "" then
+            -- removing action search filter/query
+            self.data.autocomplete.actions:clear()
+        else
+            -- .. quitting program
+            return false
+        end
     end
-    if app.data.markedAction and app.data.observerHandler then
+    if app.data.markedAction and app.data.observer and app.data.observerHandler then
         if self.data.observerHandler.changed() then
             Common.cmd(self.data.markedAction.id)
             self:set("armedActionCounter", self.data.armedActionCounter + 1)
