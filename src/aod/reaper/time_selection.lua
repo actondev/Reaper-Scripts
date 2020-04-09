@@ -1,7 +1,7 @@
 local module = {}
 
-local Common = require('utils.common')
-local Log = require('utils.log')
+local Common = require("aod.reaper.common")
+local Log = require("aod.utils.log")
 
 function module.setToSelectedItems()
     -- Time selection: Set time selection to items
@@ -16,13 +16,13 @@ end
 -- returns start,end
 function module.get()
     -- start, end = reaper.GetSet_LoopTimeRange( isSet, isLoop, start, end, allowautoseek )
-    return reaper.GetSet_LoopTimeRange( false, false, 0, 0, false )
+    return reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
 end
 
 function module.set(tstart, tend)
     -- start, end = reaper.GetSet_LoopTimeRange( isSet, isLoop, start, end, allowautoseek )
-    reaper.GetSet_LoopTimeRange( true, false, tstart, tend, false )
-    local gotStart,gotEnd = module.get()
+    reaper.GetSet_LoopTimeRange(true, false, tstart, tend, false)
+    local gotStart, gotEnd = module.get()
     -- Common.updateArrange()
 end
 

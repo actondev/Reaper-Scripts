@@ -42,17 +42,71 @@
     end
   ```
 
-## TODOs
- - [x] moving everything to src/ ?
- - [x] create an action to insert region item
-   creates a midi item with a pan envelope going from hard left to hard right
-   it helps visualizing "subregion" items
- - [x] region item: add midi text events: count 16th notes (or x.. user input)]
- - [x] region item: can copy a subregion and update a whole region
- - [ ] recheck the midi item arrangement
-   - item copy bug? if so, post at reaper forum
- - [ ] item arrangement 2 midi
- - [x] merge to dev
- - [x] fix color swatch..?
- - [ ] add reapack functionality
- - [x] remove reaper undo/preventUiRefresh etc from utils/region_item.lua
+## traceback
+``` lua
+local crash = function(errObject)
+   local byLine = "([^\r\n]*)\r?\n?"
+   local trimPath = "[\\/]([^\\/]-:%d+:.+)$"
+   local err = errObject and string.match(errObject, trimPath) or "Couldn't get error message."
+
+   local trace = debug.traceback()
+   local stack = {}
+   for line in string.gmatch(trace, byLine) do
+      local str = string.match(line, trimPath) or line
+      stack[#stack + 1] = str
+   end
+
+   local name = ({reaper.get_action_context()})[2]:match("([^/\\_]+)$")
+
+   local ret =
+      reaper.ShowMessageBox(
+      name .. " has crashed!\n\n" .. "Would you like to have a crash report printed " .. "to the Reaper console?",
+      "Oops",
+      4
+   )
+
+   if ret == 6 then
+      reaper.ShowConsoleMsg(
+         "Error: " ..
+            err ..
+               "\n\n" ..
+                  "Stack traceback:\n\t" ..
+                     table.concat(stack, "\n\t", 2) ..
+                        "\n\n" ..
+                           "Reaper:       \t" .. reaper.GetAppVersion() .. "\n" .. "Platform:     \t" .. reaper.GetOS()
+      )
+   end
+end
+
+
+local function Main()
+   xpcall(
+      function()
+-- CODE HERE--
+,
+      crash
+   )
+end
+```
+
+## Running the tests
+On windows
+- install lua53 with chocolatey `install lua53`
+- on the root folder of this git project run `lua53.exe test/test*.lua`
+
+example `.vscode/tasks/json` for vscode development
+``` json
+{
+    "tasks": [
+        {
+            "label": "lua tests",
+            "type": "shell",
+            "command" : "for f in test/test*.lua; do lua53.exe $f -v; done",
+            "group": {
+                "isDefault": true,
+                "kind": "test"
+            }
+        }
+    ]
+}
+```

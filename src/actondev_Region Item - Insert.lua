@@ -1,10 +1,10 @@
-package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
+package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
 
-local Log = require('utils.log')
-local Item = require('utils.item')
-local Common = require('utils.common')
-local Store = require('utils.store')
-local Midi = require('utils.midi')
+local Log = require("aod.utils.log")
+local Item = require("aod.reaper.item")
+local Common = require("aod.reaper.common")
+local Store = require("aod.reaper.store")
+local Midi = require("aod.reaper.midi")
 
 Common.undoBeginBlock()
 Common.preventUIRefresh(1)
@@ -25,11 +25,17 @@ local envelope = reaper.GetTakeEnvelope(take, 0)
 reaper.InsertEnvelopePoint(envelope, 0, 1, 0, 0, false)
 reaper.InsertEnvelopePoint(envelope, Item.getInfo(item, Item.PARAM.LENGTH), -1, 0, 0, false)
 
-local opts = {[1] = {title = 'Region item name',
-                     default = 'region'},
-              [2] = {title = 'Tick division (eg 16th notes)',
-                     default = '16'}}
-local res = Common.getUserInput("Insert region items",opts)
+local opts = {
+    [1] = {
+        title = "Region item name",
+        default = "region"
+    },
+    [2] = {
+        title = "Tick division (eg 16th notes)",
+        default = "16"
+    }
+}
+local res = Common.getUserInput("Insert region items", opts)
 
 if res then
     local name = res[1]
@@ -37,14 +43,12 @@ if res then
     Item.setActiveTakeInfoString(item, Item.TAKE_PARAM.STR_NAME, name)
 
     local qnLength = Midi.qnLength(item)
-    local qnInterval = 4/division
-    local marks = qnLength/qnInterval
-    for i=0,marks-1 do
-        Midi.insertTextEvent(item,i*qnInterval, tostring(i))
+    local qnInterval = 4 / division
+    local marks = qnLength / qnInterval
+    for i = 0, marks - 1 do
+        Midi.insertTextEvent(item, i * qnInterval, tostring(i))
     end
-
 end
-
 
 Store.restoreCursorPosition()
 Common.preventUIRefresh(-1)

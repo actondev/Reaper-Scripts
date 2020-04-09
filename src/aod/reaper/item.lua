@@ -1,8 +1,8 @@
-local Common = require('utils.common')
-local Log = require('utils.log')
-local Colors = require('utils.colors')
-local EditCursor = require('utils.edit_cursor')
-local TimeSelection = require('utils.time_selection')
+local Common = require("aod.reaper.common")
+local Log = require("aod.utils.log")
+local Colors = require("aod.reaper.colors")
+local EditCursor = require("aod.reaper.edit_cursor")
+local TimeSelection = require("aod.reaper.time_selection")
 local module = {}
 
 module.TYPE = {
@@ -12,27 +12,25 @@ module.TYPE = {
 }
 
 module.PARAM = {
-    POSITION = 'D_POSITION',
-    LENGTH = 'D_LENGTH',
-    MUTE = 'B_MUTE'
+    POSITION = "D_POSITION",
+    LENGTH = "D_LENGTH",
+    MUTE = "B_MUTE"
 }
 
 module.TAKE_ENV = {
-    PAN = 'Pan'
+    PAN = "Pan"
 }
 
 module.TAKE_PARAM = {
-    START_OFFSET = 'D_STARTOFFS',
-    PITCH = 'D_PITCH',
-    STR_NAME = 'P_NAME'
+    START_OFFSET = "D_STARTOFFS",
+    PITCH = "D_PITCH",
+    STR_NAME = "P_NAME"
 }
 
-
 function module.chunk(item)
-    local _retval, itemChunk = reaper.GetItemStateChunk(item, '')
+    local _retval, itemChunk = reaper.GetItemStateChunk(item, "")
     return itemChunk
 end
-
 
 -- probably should think of other items in the future.. Project In Project eg?
 -- @return the item's type. eg empty,midi,audio
@@ -67,8 +65,8 @@ function module.activeTakeName(item)
     if take == nil then
         return ""
     end
-    local _, name = reaper.GetSetMediaItemTakeInfo_String(take, 'P_NAME', '', false)
-    
+    local _, name = reaper.GetSetMediaItemTakeInfo_String(take, "P_NAME", "", false)
+
     return name
 end
 
@@ -88,25 +86,25 @@ end
 function module.countMidiNotes(item)
     local take = reaper.GetActiveTake(item)
     _retval, notecnt, _ccevtcnt, _textsyxevtcnt = reaper.MIDI_CountEvts(take)
-    
+
     return notecnt
 end
 
 function module.iterateMidiNotes(item, cb)
     local take = reaper.GetActiveTake(item)
-    
+
     for i = 0, module.countMidiNotes(item) - 1 do
         local _retval, _selected, muted, startppqpos, endppqpos, chan, pitch, vel = reaper.MIDI_GetNote(take, i)
         local tstart = reaper.MIDI_GetProjTimeFromPPQPos(take, startppqpos)
         local tend = reaper.MIDI_GetProjTimeFromPPQPos(take, endppqpos)
-        local noteMap =
-            {muted = muted,
-                tstart = tstart,
-                tend = tend,
-                chan = chan,
-                pitch = pitch,
-                vel = vel
-            }
+        local noteMap = {
+            muted = muted,
+            tstart = tstart,
+            tend = tend,
+            chan = chan,
+            pitch = pitch,
+            vel = vel
+        }
         cb(noteMap)
     end
 end
@@ -117,7 +115,7 @@ function module.selectInTimeSelectionAcrossSelectedTracks()
 end
 
 function module.validate(item)
-    return reaper.ValidatePtr(item, 'MediaItem*')
+    return reaper.ValidatePtr(item, "MediaItem*")
 end
 
 function module.selectAllInSelectedTrack()
@@ -145,20 +143,20 @@ end
 function module.selected()
     local selCount = reaper.CountSelectedMediaItems(0)
     local items = {}
-    
+
     for i = 0, selCount - 1 do
         local item = reaper.GetSelectedMediaItem(0, i)
         table.insert(items, item)
     end
-    
+
     return items
 end
 
 function module.startEnd(item)
-    local tstart = reaper.GetMediaItemInfo_Value(item, 'D_POSITION')
-    local length = reaper.GetMediaItemInfo_Value(item, 'D_LENGTH')
+    local tstart = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+    local length = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
     local tend = tstart + length
-    
+
     return tstart, tend
 end
 
@@ -169,7 +167,6 @@ end
 function module.setInfo(item, param, value)
     reaper.SetMediaItemInfo_Value(item, param, value)
 end
-
 
 function module.setActiveTakeInfoString(item, param, value)
     local take = module.activeTake(item)
@@ -189,6 +186,9 @@ function module.setActiveTakeInfo(item, param, value)
 end
 
 function module.getActiveTakeInfo(item, param)
+    if not item then
+        return nil
+    end
     local take = module.activeTake(item)
     if take == nil then
         return
@@ -247,12 +247,16 @@ end
 
 function module.splitSelectedTimeSelection()
     -- I noticed buggy splits when no items were selected
-    if module.selectedCount() == 0 then return end
+    if module.selectedCount() == 0 then
+        return
+    end
 
     -- gotta check if there is any time selection. cause if not, reaper throws an alert box
     -- if it's not, both start and end are 0.. not nil
     local tstart, tend = TimeSelection.get()
-    if tstart == tend then return end
+    if tstart == tend then
+        return
+    end
     -- Item: Split items at time selection
     Common.cmd(40061)
 end
@@ -281,10 +285,11 @@ function module.deleteSelectedOutsideOfRange(tstart, tend)
     Common.updateArrange()
 end
 
-
 function module.splitSelected(t)
     -- I noticed buggy splits when no items were selected
-    if module.selectedCount() == 0 then return end
+    if module.selectedCount() == 0 then
+        return
+    end
     EditCursor.setPosition(t)
     -- Item: Split items at edit cursor (no change selection)
     Common.cmd(40757)
@@ -318,4 +323,4 @@ function module.hasActiveTakeEnvelope(item, envType)
     return reaper.GetTakeEnvelopeByName(module.activeTake(item), envType) ~= nil
 end
 
-return module;
+return module

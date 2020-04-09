@@ -1,7 +1,7 @@
 package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
-local Common = require('utils.common')
-local Item = require('utils.item')
-local Track = require('utils.track')
+local Common = require('aod.reaper.common')
+local Item = require('aod.reaper.item')
+local Track = require('aod.reaper.track')
 
 function main()
 	local r = math.floor(math.random()*255)

@@ -5,6 +5,11 @@ module.ALIGN = {
     LEFT = 'left'
 }
 
+module.CHAR = {
+	EXIT = -1,
+	ESCAPE = 27,
+}
+
 function module.drawString(text, align)
 	local tempY = gfx.y
 	local textH = gfx.texth
