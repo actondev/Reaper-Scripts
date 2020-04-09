@@ -1,32 +1,33 @@
-package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
+package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
 
-local RegionItems = require('utils.region_items')
-local Log = require('utils.log')
-local Item = require('utils.item')
-local Json = require('lib.json')
-local Common = require('utils.common')
-local Store = require('utils.store')
-local Parse = require('utils.parse')
-local ItemManipulation = require('utils.item_manipulation')
-local regionItem = reaper.GetSelectedMediaItem(0, 0)
+local RegionItems = require("aod.region_items")
+local Log = require("aod.utils.log")
+local Item = require("aod.reaper.item")
+local Common = require("aod.reaper.common")
+local Store = require("aod.reaper.store")
+local Parse = require("aod.utils.parse")
+local ItemManipulation = require("aod.item_manipulation")
 
 Common.undoBeginBlock()
 Common.preventUIRefresh(1)
+
 Store.storeCursorPosition()
-RegionItems.select(regionItem)
-local notes = Item.notes(regionItem)
--- Log.isdebug = true
--- Log.debug("notes")
--- Log.debug(notes)
+Store.storeTimeSelection()
+Store.storeItemSelection()
 
-local manipulationOpts = Parse.parsedTaggedJson(notes, ItemManipulation.TAG_V1)
+for _, item in pairs(Item.selected()) do
+    RegionItems.select(item)
+    local notes = Item.notes(item)
 
-ItemManipulation.manipulateSelected(manipulationOpts)
+    local manipulationOpts = Parse.parsedTaggedJson(notes, ItemManipulation.TAG_V1)
 
-Item.unselectAll()
-Item.setSelected(regionItem, true)
-Common.updateArrange()
+    ItemManipulation.manipulateSelected(manipulationOpts)
+end
 
 Store.restoreCursorPosition()
+Store.restoreTimeSelection()
+Store.restoreItemSelection()
+
+Common.updateArrange()
 Common.preventUIRefresh(-1)
 Common.undoEndBlock("actondev/Region Item: Manipulate")

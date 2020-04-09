@@ -1,24 +1,25 @@
-package.path = debug.getinfo(1,"S").source:match[[^@?(.*[\/])[^\/]-$]] .."?.lua;".. package.path
-local Common = require('utils.common')
-local Store = require('utils.store')
-local RegionItems = require('utils.region_items')
-local Log = require('utils.log')
-
--- Log.isdebug = true
-
-local regionItem = reaper.GetSelectedMediaItem(0, 0)
+package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
+local Common = require("aod.reaper.common")
+local Store = require("aod.reaper.store")
+local RegionItems = require("aod.region_items")
+local Item = require("aod.reaper.item")
+local Log = require("aod.utils.log")
 
 Common.undoBeginBlock()
 Store.storeArrangeView()
 Store.storeCursorPosition()
+Store.storeItemSelection()
 Store.storeTimeSelection()
 Common.preventUIRefresh(1)
 
-RegionItems.pull(regionItem)
+for _, item in ipairs(Item.selected()) do
+    RegionItems.pull(item)
+end
 
 Store.restoreTimeSelection()
 Common.updateArrange()
 Store.restoreArrangeView()
 Store.restoreCursorPosition()
+Store.restoreItemSelection()
 Common.preventUIRefresh(-1)
 Common.undoEndBlock("actondev/Region Item: Pull")

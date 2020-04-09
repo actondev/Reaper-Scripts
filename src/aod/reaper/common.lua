@@ -21,6 +21,12 @@ function module.preventUIRefresh(prevent_count)
     reaper.PreventUIRefresh(prevent_count)
 end
 
+function module.sleep(n) -- seconds
+    local t0 = os.clock()
+    while os.clock() - t0 <= n do
+    end
+end
+
 function module.updateArrange()
     reaper.UpdateArrange()
 end
@@ -31,7 +37,7 @@ end
 
 local function split(str, pat)
     local t = {}
-     -- NOTE: use {n = 0} in Lua-5.0
+    -- NOTE: use {n = 0} in Lua-5.0
     local fpat = "(.-)" .. pat
     local last_end = 1
     local s, e, cap = str:find(fpat, 1)

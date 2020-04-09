@@ -1,5 +1,6 @@
 local module = {}
 local TimeSelection = require("aod.reaper.time_selection")
+local Item = require("aod.reaper.item")
 
 local start_time, end_time = 0, 0
 function module.storeArrangeView()
@@ -27,6 +28,18 @@ end
 
 function module.restoreTimeSelection()
     TimeSelection.set(time_sel_start, time_sel_end)
+end
+
+local items = {}
+function module.storeItemSelection()
+    items = Item.selected()
+end
+
+function module.restoreItemSelection()
+    Item.unselectAll()
+    for _,item in pairs(items) do
+        Item.setSelected(item, true)
+    end
 end
 
 return module
