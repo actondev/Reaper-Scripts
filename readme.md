@@ -12,6 +12,10 @@ Propagate changes to similarly named region items
 Pull changes from a previous region item (that contains this subregion)
 ![Propagate](./img/regions-pull.gif)
 
+### Scriptable
+
+See more at [Region Item Manipulation](./doc/Region_Item_Manipulation.md)
+
 ## Command Palette
 ![Command Palette](./img/command-palette-demo2.gif)
 
