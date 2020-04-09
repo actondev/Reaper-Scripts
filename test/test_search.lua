@@ -1,8 +1,8 @@
 package.path = "./test/?.lua;" .. "./src/?.lua;" .. package.path
 
 local lu = require("luaunit")
-local Search = require("aod.search")
-local Log = require("utils.log")
+local Search = require("aod.utils.search")
+local Log = require("aod.utils.log")
 Log.isdebug = true
 local entries = {
     {name = "split items"},
@@ -35,7 +35,7 @@ function testSearchNoQuery()
             limit = false,
             query = "",
             key = "name",
-            emptyWhenNoQuery = false
+            showAll = true
         }
     )
     lu.assertEquals(5, #res)
@@ -50,7 +50,7 @@ function testSearchNoQuery()
             limit = false,
             query = "",
             key = "name",
-            emptyWhenNoQuery = true
+            showAll = false
         }
     )
     lu.assertEquals(0, #res2)

@@ -15,7 +15,7 @@ local Themed = require("aod.gui.v1.themed")
 local Theme = require("aod.gui.v1.theme")
 
 local Actions = require("aod.reaper.actions")
-local Observe = require("aod.reaper.observe")
+local Triggers = require("aod.reaper.triggers")
 
 local actions = Actions.getActions(Actions.SECTION.MAIN)
 
@@ -34,6 +34,11 @@ local makeArmedButton = function(text)
 
     return btn
 end
+
+-- function interactive(str, cb)
+    -- Log.debug("here interactive!", str , "returning 1")
+    -- return 1
+-- end
 
 local actionResultFn = function(result)
     -- Log.debug("called action result for ", result)
@@ -72,7 +77,7 @@ local autoCompleteActions =
     }
 )
 
-local observeResultFn = function(result)
+local trigeresultFn = function(result)
     local btn = Themed.Button({text = result.name, w = "100%", armed = false, borderWidth = 0})
     btn.result = result
     btn:watch_mod(
@@ -90,11 +95,11 @@ local observeResultFn = function(result)
     return btn
 end
 
-local autoCompleteObserve =
+local autoCompleteTrigger =
     Themed.AutoComplete(
     {
         search = {
-            entries = Observe.getAll(),
+            entries = Triggers.getAll(),
             query = "query", -- the query to search over the entries
             limit = 5,
             key = "name", -- the key of the entries to perform the search to
@@ -104,7 +109,7 @@ local autoCompleteObserve =
             focus = true,
             placeholder = "Search for triggers"
         },
-        resultFn = observeResultFn
+        resultFn = trigeresultFn
     }
 )
 local app =
@@ -113,10 +118,10 @@ local app =
         markedAction = nil,
         -- markedActionLabel = nil,
         markedActionLabel = makeArmedButton("action.."),
-        observer = nil,
-        observerName = nil,
-        observerHandler = nil,
-        observerLabel = makeArmedButton("observer.."),
+        triger = nil,
+        trigerName = nil,
+        trigerHandler = nil,
+        trigerLabel = makeArmedButton("triger.."),
         armedActionCounter = 0,
         armedActionCounterLabel = Themed.Label({text = "Run: 0 times"}),
         layout = Gui.VLayout(
@@ -131,7 +136,7 @@ local app =
         ),
         autocomplete = {
             actions = autoCompleteActions,
-            observers = autoCompleteObserve
+            trigers = autoCompleteTrigger
         }
     }
 )
@@ -147,7 +152,7 @@ app:watch(
         local self = app
         if new then
             app.data.markedActionLabel:set("text", self.data.markedAction.name)
-            app.data.layout:set("elements", {self.data.markedActionLabel, autoCompleteObserve})
+            app.data.layout:set("elements", {self.data.markedActionLabel, autoCompleteTrigger})
         else
             app.data.layout:set("elements", {self.data.autocomplete.actions})
         end
@@ -162,36 +167,37 @@ app:watch(
 )
 app:set("armedActionCounter", 0, true)
 
-function app:setObserver(observer)
-    app:set("observer", observer)
+function app:setTrigger(triger)
+    app:set("triger", triger)
 end
 
 app:watch(
-    "observer",
+    "triger",
     function(el, old, new)
         if new then
-            app:set("observerName", new.name)
-            app:set("observerHandler", new.handler.init())
-            app.data.observerLabel = makeArmedButton(new.name)
+            app:set("trigerName", new.name)
+            app:set("trigerHandler", new.handler.init())
+            app.data.trigerLabel = makeArmedButton(new.name)
             app.data.armedActionCounterLabel:set("text", "Run: " .. tostring(app.data.armedActionCounter) .. " times")
             app.data.layout:set(
                 "elements",
-                {app.data.markedActionLabel, app.data.observerLabel, app.data.armedActionCounterLabel}
+                {app.data.markedActionLabel, app.data.trigerLabel, app.data.armedActionCounterLabel}
             )
         else
-            -- Log.debug("unarmed observer")
-            -- layout: marked action and searching for observer
-            app.data.layout:set("elements", {app.data.markedActionLabel, app.data.autocomplete.observers})
+            -- Log.debug("unarmed triger")
+            -- layout: marked action and searching for triger
+            app.data.layout:set("elements", {app.data.markedActionLabel, app.data.autocomplete.trigers})
         end
     end
 )
 
 function app:main()
     if Gui.char == Chars.CHAR.ESCAPE then
-        if self.data.observer ~= nil then
-            -- removing armed observer
-            self:set("observer", nil)
-            self.data.autocomplete.observers:clear()
+        if self.data.triger ~= nil then
+            -- removing armed triger
+            self:set("triger", nil)
+            self.data.autocomplete.trigers:clear()
+            self:set("armedActionCounter", 0)
         elseif self.data.markedAction ~= nil then
             -- removing armed action
             self:set("markedAction", nil)
@@ -204,8 +210,8 @@ function app:main()
             return false
         end
     end
-    if app.data.markedAction and app.data.observer and app.data.observerHandler then
-        if self.data.observerHandler.changed() then
+    if app.data.markedAction and app.data.triger and app.data.trigerHandler then
+        if self.data.trigerHandler.changed() then
             Common.cmd(self.data.markedAction.id)
             self:set("armedActionCounter", self.data.armedActionCounter + 1)
         end
@@ -253,18 +259,17 @@ autoCompleteActions:on(
     end
 )
 
-autoCompleteObserve:on(
+autoCompleteTrigger:on(
     Components.AutoComplete.SIGNALS.RETURN,
     function(data)
         local selection = data.selection
         local btn = data.item
-        -- Log.debug("observe : selection is", selection)
-        app:setObserver(selection)
+        app:setTrigger(selection)
     end
 )
 
 -- demo
---  app:markAction({["id"] = 40012, ["name"] = "Item: Split items at edit or play cursor"})
+ app:markAction({["id"] = 40012, ["name"] = "Item: Split items at edit or play cursor"})
 
 function init()
     gfx.init("actondev/Command Palette", w, app.data.layout:height())
