@@ -310,7 +310,7 @@ autoCompleteTrigger:on(
 )
 
 -- demo
-app:markAction({["id"] = 40012, ["name"] = "Item: Split items at edit or play cursor"})
+-- app:markAction({["id"] = 40012, ["name"] = "Item: Split items at edit or play cursor"})
 
 function init()
     gfx.init("actondev/Command Palette", w, app.data.layout:height())
