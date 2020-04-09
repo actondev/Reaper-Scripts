@@ -19,7 +19,24 @@ local Observe = require("aod.reaper.observe")
 
 local actions = Actions.getActions(Actions.SECTION.MAIN)
 
+local rgb = Themed.rgb(Theme.COLOR.Media_item_background_even)
+-- Log.debug("rgb", rgb)
+
+local makeArmedButton = function(text)
+    local btn =
+        Themed.Button(
+        {
+            text = text,
+            w = "100%",
+            bg = Themed.rgb(Theme.COLOR.Media_item_background_even)
+        }
+    )
+
+    return btn
+end
+
 local actionResultFn = function(result)
+    -- Log.debug("called action result for ", result)
     local btn = Themed.Button({text = result.name, w = "100%", armed = false, borderWidth = 0})
     btn.result = result
     btn:watch_mod(
@@ -34,22 +51,10 @@ local actionResultFn = function(result)
         end
     )
 
-    btn:watch_mod(
-        "armed",
-        function(el, old, new)
-            -- Log.debug("armed!!!", old, new)
-            if new then
-                return {
-                    [{"bg"}] = Themed.rgb(Theme.COLOR.Media_item_background_even)
-                }
-            end
-        end
-    )
-
     return btn
 end
 
-local autoComplete =
+local autoCompleteActions =
     Themed.AutoComplete(
     {
         search = {
@@ -67,77 +72,8 @@ local autoComplete =
     }
 )
 
-local app =
-    Gui.Object(
-    {
-        markedAction = nil,
-        markedActionLabel = Themed.Label(),
-        observer = Observe.never()
-    }
-)
-
-app:watch(
-    "markedAction",
-    function(el, old, new)
-        app.data.markedActionLabel:set("text", "Run: " .. new.name)
-    end
-)
-
-function app:setBackWindow()
-    self.data.hwndBack = Common.getForegroundWindow()
-end
-
-function app:setScriptWindow()
-    self.data.hwndScript = Common.getForegroundWindow()
-end
-
-function app:positionScript()
-    local _, left, top, right, bottom = reaper.BR_Win32_GetWindowRect(self.data.hwndBack)
-    -- local hwndStr = reaper.BR_Win32_HwndToString(self.data.hwndScript)
-    local _, leftScript, topScript, rightScript, bottomScript = reaper.BR_Win32_GetWindowRect(self.data.hwndScript)
-    local x = math.floor(left + (right - left) / 2 - gfx.w / 2)
-    local y = math.floor(bottom + (top - bottom) / 2 - gfx.h / 2)
-    reaper.BR_Win32_SetWindowPos(self.data.hwndScript, "", x, y, gfx.w, bottomScript - topScript, 0)
-end
-
-function app:markAction(action)
-    app:set("markedAction", action)
-end
-
-function app:setObserver(observer)
-    app:set("observer", observer.init())
-end
-
-function app:runAction(action)
-    Common.cmd(action.id)
-    if self.data.hwndScript then
-        reaper.BR_Win32_SetFocus(self.data.hwndScript)
-    end
-end
-
-function app:checkAndRunMarkedAction()
-    if self.data.observer.changed() then
-        -- Log.debug("running action", self.data.markedAction)
-        Common.cmd(self.data.markedAction.id)
-    end
-end
-
-autoComplete:on(
-    Components.AutoComplete.SIGNALS.RETURN,
-    function(data)
-        local selection = data.selection
-        local btn = data.item
-        if Gui.modifiers.control then
-            app:markAction(selection)
-            btn:set("armed", true)
-        else
-            app:runAction(selection)
-        end
-    end
-)
-
 local observeResultFn = function(result)
-    local btn = Themed.Button({text = result.name, w = "100%", armed = false})
+    local btn = Themed.Button({text = result.name, w = "100%", armed = false, borderWidth = 0})
     btn.result = result
     btn:watch_mod(
         "selected",
@@ -146,18 +82,6 @@ local observeResultFn = function(result)
                 return {
                     [{"bg"}] = Themed.rgb(Theme.COLOR.Window_list_selected_row),
                     [{"fg"}] = Themed.rgb(Theme.COLOR.Window_list_selected_text)
-                }
-            end
-        end
-    )
-
-    btn:watch_mod(
-        "armed",
-        function(el, old, new)
-            -- Log.debug("armed!!!", old, new)
-            if new then
-                return {
-                    [{"bg"}] = Themed.rgb(Theme.COLOR.Media_item_background_even)
                 }
             end
         end
@@ -183,84 +107,157 @@ local autoCompleteObserve =
         resultFn = observeResultFn
     }
 )
+local app =
+    Gui.Mutable(
+    {
+        markedAction = nil,
+        -- markedActionLabel = nil,
+        markedActionLabel = makeArmedButton("action.."),
+        observer = nil,
+        observerName = nil,
+        observerHandler = nil,
+        observerLabel = makeArmedButton("observer.."),
+        armedActionCounter = 0,
+        armedActionCounterLabel = Themed.Label({text = "Run: 0 times"}),
+        layout = Gui.VLayout(
+            {
+                padding = 0,
+                w = 100, -- will be set on redraw
+                elements = {
+                    autoCompleteActions
+                },
+                spacing = 0
+            }
+        ),
+        elements = {
+            actions = autoCompleteActions,
+            observes = autoCompleteObserve
+        }
+    }
+)
+app.data.layout:set("elements", {app.data.elements.actions})
 
--- TODO the signal should maybe not call the callback with "self" as first argument, but only the relevant data
+function app:markAction(action)
+    app:set("markedAction", action)
+    app.data.markedActionLabel:set("text",action.name)
+    app.data.layout:set("elements", {app.data.markedActionLabel, autoCompleteObserve})
+end
+
+app:watch(
+    "armedActionCounter",
+    function()
+        app.data.armedActionCounterLabel:set("text", "Run: " .. tostring(app.data.armedActionCounter) .. " times")
+    end
+)
+app:set("armedActionCounter", 0, true)
+
+function app:setObserver(observer)
+    app:set("observer", observer)
+end
+
+app:watch("observer", function(el, old, new)
+    if new then 
+        app:set("observerName", new.name)
+        app:set("observerHandler", new.handler.init())
+        app.data.observerLabel = makeArmedButton(new.name)
+        app.data.armedActionCounterLabel:set("text", "Run: " .. tostring(app.data.armedActionCounter) .. " times")
+        app.data.layout:set(
+            "elements",
+            {app.data.markedActionLabel, app.data.observerLabel, app.data.armedActionCounterLabel}
+        )
+    
+    end
+end
+
+)
+
+function app:main()
+    if Gui.char == Chars.CHAR.ESCAPE then
+        return false
+    end
+    if app.data.markedAction and app.data.observerHandler then
+        if self.data.observerHandler.changed() then
+            Common.cmd(self.data.markedAction.id)
+            self:set("armedActionCounter", self.data.armedActionCounter + 1)
+        end
+    end
+    self.data.layout:set("w", gfx.w)
+    self.data.layout:draw()
+    return true
+end
+
+function app:setBackWindow()
+    self.data.hwndBack = Common.getForegroundWindow()
+end
+
+function app:setScriptWindow()
+    self.data.hwndScript = Common.getForegroundWindow()
+    self:positionScript()
+end
+
+function app:positionScript()
+    local _, left, top, right, bottom = reaper.BR_Win32_GetWindowRect(self.data.hwndBack)
+    -- local hwndStr = reaper.BR_Win32_HwndToString(self.data.hwndScript)
+    local _, leftScript, topScript, rightScript, bottomScript = reaper.BR_Win32_GetWindowRect(self.data.hwndScript)
+    local x = math.floor(left + (right - left) / 2 - gfx.w / 2)
+    local y = math.floor(bottom + (top - bottom) / 2 - gfx.h / 2)
+    reaper.BR_Win32_SetWindowPos(self.data.hwndScript, "", x, y, gfx.w, bottomScript - topScript, 0)
+end
+
+function app:runAction(action)
+    Common.cmd(action.id)
+    if self.data.hwndScript then
+        reaper.BR_Win32_SetFocus(self.data.hwndScript)
+    end
+end
+
+autoCompleteActions:on(
+    Components.AutoComplete.SIGNALS.RETURN,
+    function(data)
+        local selection = data.selection
+        local btn = data.item
+        if Gui.modifiers.control then
+            app:markAction(selection)
+        else
+            app:runAction(selection)
+        end
+    end
+)
+
 autoCompleteObserve:on(
     Components.AutoComplete.SIGNALS.RETURN,
     function(data)
         local selection = data.selection
         local btn = data.item
-        -- btn:set("mar")
         -- Log.debug("observe : selection is", selection)
-        app:setObserver(selection.handler)
+        app:setObserver(selection)
     end
 )
 
 -- demo
 --  app:markAction({["id"] = 40012, ["name"] = "Item: Split items at edit or play cursor"})
 
-local layoutActions =
-    Gui.VLayout(
-    {
-        padding = 0,
-        w = 100, -- will be set on redraw
-        elements = {
-            autoComplete
-            -- autoCompleteObserve
-        },
-        spacing = 0
-    }
-)
-
-local layoutMarkedAction =
-    Gui.VLayout(
-    {
-        padding = 0,
-        w = 100, -- will be set on redraw
-        elements = {
-            app.data.markedActionLabel,
-            autoCompleteObserve
-        },
-        spacing = 0
-    }
-)
-
 function init()
-    gfx.init("actondev/Command Palette", w, layoutActions:height())
+    gfx.init("actondev/Command Palette", w, app.data.layout:height())
     gfx.clear = Themed.clear
 end
 
 function mainloop()
     Gui.pre_draw()
-    layoutActions:set("w", gfx.w)
-    layoutMarkedAction:set("w", gfx.w)
-    if app:get("markedAction") == nil then
-        layoutActions:draw()
-    else
-        layoutMarkedAction:draw()
-        app:checkAndRunMarkedAction()
-    end
     Gui.post_draw()
 
     if Gui.char == Chars.CHAR.EXIT then
         return
     end
-    if Gui.char == Chars.CHAR.ESCAPE then
-        if autoComplete.input.data.text == "" then
-            return
-        else
-            -- clearing input text on escape
-            -- does this belong here..?
-            autoComplete.input:clear()
-        end
+    if not app:main() then
+        return
     end
+
     reaper.defer(mainloop)
     gfx.update()
 end
 
-local backWindow = Common.getForegroundWindow()
 app:setBackWindow()
 init()
 app:setScriptWindow()
-app:positionScript()
 mainloop()

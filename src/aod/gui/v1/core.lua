@@ -94,6 +94,8 @@ function module.Object:__construct(data, keysToKeepFromData)
     self._listeners = {}
 end
 
+
+
 function module.Object:watch(property, cb)
     if self._watches[property] == nil then
         self._watches[property] = {}
@@ -196,6 +198,12 @@ end
 
 function module.Object:hasListeners(signal)
     return self._listeners[signal] ~= nil
+end
+
+module.Mutable = Class.extend(module.Object)
+function module.Mutable:__construct(data)
+    module.Object.__construct(self,data)
+    self.data = data
 end
 
 --[[ Element
