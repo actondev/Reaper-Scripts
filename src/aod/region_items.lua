@@ -9,6 +9,8 @@ local Parse = require("aod.utils.parse")
 
 local module = {}
 
+local REGEX_TRACK_IGNORE = "^-.*"
+
 -- select mode "enum"
 local SELECT_MODE = {
     ALL = 0,
@@ -31,19 +33,19 @@ end
 
 local function selectAll()
     Track.selectAllTopLevel()
-    Track.unselectWithRegex("-(.+)")
+    Track.unselectWithRegex(REGEX_TRACK_IGNORE)
     Track.selectChildrenSelected()
 end
 
 local function selectSiblings(track)
     Track.selectSiblings(track)
-    Track.unselectWithRegex("-(.+)")
+    Track.unselectWithRegex(REGEX_TRACK_IGNORE)
 end
 
 local function selectChildren(track)
     Track.selectOnly(track)
     Track.selectChildrenSelected()
-    Track.unselectWithRegex("-(.+)")
+    Track.unselectWithRegex(REGEX_TRACK_IGNORE)
 end
 
 -- The optinal startOffset and length are used to select a subregion of the item region
@@ -114,10 +116,13 @@ local function areOfSameRegion(source, target)
     local sourceName = Item.activeTakeName(source)
     local targetName = Item.activeTakeName(target)
 
+    -- Log.debug("here 1",sourceName,targetName, sourceName == targetName)
+
     return sourceName == targetName
 end
 
-function module.propagateFromTo(sourceRegionItem, targetRegionItem)
+function module.propagateFromTo(sourceRegionItem, targetRegionItem, copiedCount)
+    -- Log.debug("copied count", copiedCount)
     if not areOfSameRegion(sourceRegionItem, targetRegionItem) then
         Log.warn(
             "Should not propagate from item with notes " ..
@@ -127,17 +132,19 @@ function module.propagateFromTo(sourceRegionItem, targetRegionItem)
     end
     local sourceStart, sourceEnd = Item.startEnd(sourceRegionItem)
 
-    module.select(sourceRegionItem)
-    -- unselecting region item: we don't copy it
-    Item.setSelected(sourceRegionItem, false)
-    -- copying only the area of the source region
-    TimeSelection.set(sourceStart, sourceEnd)
-    Item.copySelectedArea()
-    local copiedCount = Item.selectedCount()
+    if copiedCount == nil then
+        module.select(sourceRegionItem)
+        -- copying only the area of the source region
+        TimeSelection.set(sourceStart, sourceEnd)
+        -- Note: we also copy the region item, though when pasting we delete it
+        -- this is to ensure proper paste position across tracks
+        Item.copySelectedArea()
+        copiedCount = Item.selectedCount()
+    end
 
     -- we need the first selected item to later select this item's track when pasting:
     -- in order for the items to be pasted in the correct track
-    local firstSelItem = Item.firstSelected()
+
     local sourceRegionOffset = Item.getActiveTakeInfo(sourceRegionItem, Item.TAKE_PARAM.START_OFFSET)
 
     -- Note: sourceRegion could be a subregion and targetRegion the full region.
@@ -145,23 +152,24 @@ function module.propagateFromTo(sourceRegionItem, targetRegionItem)
     module.clear(targetRegionItem, sourceRegionOffset, sourceEnd - sourceStart)
     local tstart, tend = Item.startEnd(targetRegionItem)
 
-    if firstSelItem then
-        -- need to "touch" the first track that I copy the items from
-        -- if not they get pasted in wrong places
-        local firstTrack = Track.fromItem(firstSelItem)
-        Track.selectOnly(firstTrack)
-        EditCursor.setPosition(tstart)
-        reaper.UpdateTimeline()
-        Common.updateArrange()
+    local repasteCount = 0
+
+    EditCursor.setPosition(tstart)
+    Item.paste()
+    while Item.selectedCount() ~= copiedCount do
+        -- Note: bugs happen..
+        -- TODO fucking bug here, make a bug report
+        -- maybe solved with not copying every time but only the first time?.. don't know
+        repasteCount = repasteCount + 1
         Item.paste()
-        while Item.selectedCount() ~= copiedCount do
-            -- Note: bugs happen..
-            -- TODO fucking bug here, make a bug report
-            -- Log.warn("buggy paste on item with notes ", Item.notes(targetRegionItem))
-            Item.paste()
-        end
-    else
-        Log.warn("no first item??")
+    end
+
+    -- removing the pasted region Item
+    local pastedRegionItem = Item.firstSelected()
+    Item.delete(pastedRegionItem)
+
+    if repasteCount > 0 then
+        Log.warn("paste bug: repasted", repasteCount, "times")
     end
 
     local targetRegionOffset = Item.getActiveTakeInfo(targetRegionItem, Item.TAKE_PARAM.START_OFFSET)
@@ -173,12 +181,16 @@ function module.propagateFromTo(sourceRegionItem, targetRegionItem)
 
     -- adjusting pitch
     local targetPitch = Item.getActiveTakeInfo(targetRegionItem, Item.TAKE_PARAM.PITCH)
-    Item.adjustActiveTakeInfoSelected(Item.TAKE_PARAM.PITCH, targetPitch)
+    if targetPitch ~= 0 then
+        Item.adjustActiveTakeInfoSelected(Item.TAKE_PARAM.PITCH, targetPitch)
+    end
 
     -- manipulating target region
     local targetRegionNotes = Item.notes(targetRegionItem)
     local manipulationOpts = Parse.parsedTaggedJson(targetRegionNotes, ItemManipulation.TAG_V1)
     ItemManipulation.manipulateSelected(manipulationOpts)
+
+    return copiedCount
 end
 
 function module.propagate(regionItem)
@@ -193,9 +205,10 @@ function module.propagate(regionItem)
     Item.setSelected(regionItem, false)
     local otherRegionItems = Item.selected()
 
+    local copiedCount = nil
     for _i, targetRegion in ipairs(otherRegionItems) do
         if areOfSameRegion(regionItem, targetRegion) then
-            module.propagateFromTo(regionItem, targetRegion)
+            copiedCount = module.propagateFromTo(regionItem, targetRegion, copiedCount)
         end
     end
 
@@ -215,7 +228,27 @@ local function isSubregionOf(regionItem, otherRegion)
     local regionStartOther = Item.getActiveTakeInfo(otherRegion, Item.TAKE_PARAM.START_OFFSET)
     local regionEndOther = regionStartOther + lengthOther
 
-    return regionStartOther <= regionStart and regionEndOther >= regionEnd
+    local tolerance = 0.00001
+
+    local res = regionStartOther <= regionStart + tolerance and regionEndOther + tolerance >= regionEnd
+    Log.debug(
+        "subregion of? ",
+        Item.notes(otherRegion),
+        res,
+        "1",
+        regionStartOther <= regionStart,
+        "2",
+        regionEndOther >= regionEnd,
+        "regionStartOther",
+        regionStartOther,
+        "regionStart",
+        regionStart,
+        "regionEndOther",
+        regionEndOther,
+        "regionEnd",
+        regionEnd
+    )
+    return res
 end
 
 -- we scan across the track items to find a (master) region that contains the given (slave) region time
@@ -228,9 +261,12 @@ function module.pull(regionItem)
     Item.setSelected(regionItem, false)
     local otherRegionItems = Item.selected()
 
+    Log.debug("pulling", Item.notes(regionItem))
+
     for _i, otherRegion in ipairs(otherRegionItems) do
+        -- TODO / note: should check if the other region is... "manipulated".. then should not pull from that one
         if areOfSameRegion(regionItem, otherRegion) and isSubregionOf(regionItem, otherRegion) then
-            -- Log.debug("pulling from " .. Item.notes(otherRegion))
+            Log.debug("pulling from", Item.notes(otherRegion))
             module.propagateFromTo(otherRegion, regionItem)
             break
         end
