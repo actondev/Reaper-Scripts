@@ -1,9 +1,11 @@
 package.path = debug.getinfo(1, "S").source:match [[^@?(.*[\/])[^\/]-$]] .. "?.lua;" .. package.path
+local Log = require("aod.utils.log")
+-- Log.LEVEL = Log.DEBUG
+
 local Common = require("aod.reaper.common")
 local Store = require("aod.reaper.store")
 local RegionItems = require("aod.region_items")
 local Item = require("aod.reaper.item")
-local Log = require("aod.utils.log")
 
 Common.undoBeginBlock()
 Store.storeArrangeView()

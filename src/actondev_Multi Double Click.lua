@@ -7,7 +7,7 @@ local RegionItem = require('aod.region_items')
 local ItemManipulation = require('aod.item_manipulation')
 local Parse = require('aod.utils.parse')
 local Store = require('aod.reaper.store')
-Log.isdebug = true
+Log.LEVEL = Log.DEBUG
 
 local undoText = 'actondev/Multi double click'
 
